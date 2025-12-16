@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15.4
+    container_name: expense-db
+    environment:
+      POSTGRES_DB: expense_manager
+      POSTGRES_USER: expense
+      POSTGRES_PASSWORD: expense
+    ports:
+      - "5432:5432"
+
+  backend:
+    build: ./backend
+    container_name: expense-backend
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: ./frontend
+    container_name: expense-frontend
+    ports:
+      - "5174:5173"
