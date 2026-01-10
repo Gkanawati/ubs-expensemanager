@@ -5,6 +5,8 @@ import com.ubs.expensemanager.dto.request.ExpenseFilterRequest;
 import com.ubs.expensemanager.dto.request.ExpenseUpdateRequest;
 import com.ubs.expensemanager.dto.response.ExpenseAuditResponse;
 import com.ubs.expensemanager.dto.response.ExpenseResponse;
+import com.ubs.expensemanager.event.BudgetExceededEvent;
+import com.ubs.expensemanager.event.EventPublisher;
 import com.ubs.expensemanager.exception.InvalidStatusTransitionException;
 import com.ubs.expensemanager.exception.ResourceNotFoundException;
 import com.ubs.expensemanager.exception.UnauthorizedExpenseAccessException;
@@ -14,6 +16,9 @@ import com.ubs.expensemanager.repository.CurrencyRepository;
 import com.ubs.expensemanager.repository.ExpenseCategoryRepository;
 import com.ubs.expensemanager.repository.ExpenseRepository;
 import com.ubs.expensemanager.repository.specification.ExpenseSpecifications;
+import com.ubs.expensemanager.service.budget.BudgetValidationStrategy;
+import com.ubs.expensemanager.service.budget.CategoryBudgetValidationStrategy;
+import com.ubs.expensemanager.service.budget.DepartmentBudgetValidationStrategy;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -51,6 +56,9 @@ public class ExpenseService {
     private final CurrencyRepository currencyRepository;
     private final ExpenseMapper expenseMapper;
     private final EntityManager entityManager;
+    private final EventPublisher eventPublisher;
+    private final CategoryBudgetValidationStrategy categoryBudgetValidationStrategy;
+    private final DepartmentBudgetValidationStrategy departmentBudgetValidationStrategy;
 
     /**
      * Creates a new expense with budget validation.
@@ -69,12 +77,13 @@ public class ExpenseService {
         Currency currency = currencyRepository.findByName(request.getCurrencyName())
                 .orElseThrow(() -> new ResourceNotFoundException("Currency not found: " + request.getCurrencyName()));
 
-        // Perform budget validation (warnings only, does not block creation)
-        validateBudget(currentUser.getId(), category, request.getExpenseDate(), request.getAmount());
-
         Expense expense = expenseMapper.toEntity(request, currency, category, currentUser, ExpenseStatus.PENDING);
 
         Expense savedExpense = expenseRepository.save(expense);
+
+        // Perform budget validation (warnings only, does not block creation)
+        validateBudget(currentUser.getId(), category, savedExpense, request.getAmount());
+
         log.info("Expense {} created successfully with status PENDING", savedExpense.getId());
 
         return expenseMapper.toResponse(savedExpense);
@@ -336,41 +345,19 @@ public class ExpenseService {
     /**
      * Validates budget limits (daily and monthly) for the expense.
      * Logs warnings if budget is exceeded but does not block creation.
-     * TODO: Future enhancement - trigger alert/notification system
+     * Uses strategy pattern to separate category and department validation.
      *
      * @param userId user ID
      * @param category expense category
-     * @param expenseDate date of the expense
+     * @param expense object expense
      * @param newAmount amount of the new expense
      */
-    private void validateBudget(Long userId, ExpenseCategory category, LocalDate expenseDate, BigDecimal newAmount) {
-        // Daily budget check
-        BigDecimal dailyTotal = expenseRepository.sumAmountByUserAndCategoryAndDate(
-                userId, category.getId(), expenseDate
-        );
-        BigDecimal newDailyTotal = dailyTotal.add(newAmount);
+    private void validateBudget(Long userId, ExpenseCategory category, Expense expense, BigDecimal newAmount) {
+        // Validate category budget limits
+        categoryBudgetValidationStrategy.validate(userId, category, expense, newAmount);
 
-        if (newDailyTotal.compareTo(category.getDailyBudget()) > 0) {
-            log.warn("Daily budget exceeded for user {} in category {} on {}: current={}, new={}, limit={}",
-                    userId, category.getName(), expenseDate, dailyTotal, newDailyTotal, category.getDailyBudget());
-            // TODO: Trigger alert system
-        }
-
-        // Monthly budget check
-        YearMonth yearMonth = YearMonth.from(expenseDate);
-        LocalDate monthStart = yearMonth.atDay(1);
-        LocalDate monthEnd = yearMonth.atEndOfMonth();
-
-        BigDecimal monthlyTotal = expenseRepository.sumAmountByUserAndCategoryAndDateRange(
-                userId, category.getId(), monthStart, monthEnd
-        );
-        BigDecimal newMonthlyTotal = monthlyTotal.add(newAmount);
-
-        if (newMonthlyTotal.compareTo(category.getMonthlyBudget()) > 0) {
-            log.warn("Monthly budget exceeded for user {} in category {} in {}: current={}, new={}, limit={}",
-                    userId, category.getName(), yearMonth, monthlyTotal, newMonthlyTotal, category.getMonthlyBudget());
-            // TODO: Trigger alert system
-        }
+        // Validate department budget limits
+        departmentBudgetValidationStrategy.validate(userId, category, expense, newAmount);
     }
 
     /**
@@ -431,12 +418,12 @@ public class ExpenseService {
         }
 
         var auditReader = AuditReaderFactory.get(entityManager);
-        
+
         List<Object[]> results = auditReader.createQuery()
                 .forRevisionsOfEntity(Expense.class, false, true)
                 .add(AuditEntity.id().eq(id))
                 .getResultList();
-        
+
         return results.stream()
                 .map(result -> {
                     Expense entity = (Expense) result[0];
