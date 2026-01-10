@@ -73,4 +73,40 @@ public interface ExpenseRepository extends
      * @return true if the expense exists and belongs to the user, false otherwise
      */
     boolean existsByIdAndUserId(Long id, Long userId);
+
+    /**
+     * Calculates the total expense amount for a department on a specific date.
+     * Excludes REJECTED expenses from the calculation.
+     *
+     * @param departmentId the department ID
+     * @param date the expense date
+     * @return the sum of all expense amounts, or 0 if no expenses found
+     */
+    @Query("SELECT COALESCE(SUM(e.amount), 0) FROM Expense e " +
+           "WHERE e.user.department.id = :departmentId " +
+           "AND e.expenseDate = :date " +
+           "AND e.status != 'REJECTED'")
+    BigDecimal sumAmountByDepartmentAndDate(
+            @Param("departmentId") Long departmentId,
+            @Param("date") LocalDate date
+    );
+
+    /**
+     * Calculates the total expense amount for a department within a date range.
+     * Excludes REJECTED expenses from the calculation.
+     *
+     * @param departmentId the department ID
+     * @param startDate the start date of the range (inclusive)
+     * @param endDate the end date of the range (inclusive)
+     * @return the sum of all expense amounts, or 0 if no expenses found
+     */
+    @Query("SELECT COALESCE(SUM(e.amount), 0) FROM Expense e " +
+           "WHERE e.user.department.id = :departmentId " +
+           "AND e.expenseDate BETWEEN :startDate AND :endDate " +
+           "AND e.status != 'REJECTED'")
+    BigDecimal sumAmountByDepartmentAndDateRange(
+            @Param("departmentId") Long departmentId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
 }
