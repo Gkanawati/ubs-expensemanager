@@ -20,6 +20,7 @@ public interface AlertMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "expense", source = "expense")
+    @Mapping(target = "status", source = "alertUpdateRequest.status")
     Alert updateEntity(@MappingTarget Alert alert, AlertUpdateRequest alertUpdateRequest, Expense expense);
 
     @Mapping(target = "expenseId", source = "expense.id")
