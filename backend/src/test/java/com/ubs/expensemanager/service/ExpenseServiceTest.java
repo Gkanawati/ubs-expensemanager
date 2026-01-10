@@ -223,14 +223,6 @@ class ExpenseServiceTest {
     when(authentication.getPrincipal()).thenReturn(employee);
     when(expenseCategoryRepository.findById(1L)).thenReturn(Optional.of(foodCategory));
     when(currencyRepository.findByName("USD")).thenReturn(Optional.of(usdCurrency));
-    when(expenseRepository.sumAmountByUserAndCategoryAndDate(any(), any(), any()))
-        .thenReturn(BigDecimal.ZERO);
-    when(expenseRepository.sumAmountByUserAndCategoryAndDateRange(any(), any(), any(), any()))
-        .thenReturn(BigDecimal.ZERO);
-    when(expenseRepository.sumAmountByDepartmentAndDate(any(), any()))
-        .thenReturn(BigDecimal.ZERO);
-    when(expenseRepository.sumAmountByDepartmentAndDateRange(any(), any(), any()))
-        .thenReturn(BigDecimal.ZERO);
     when(expenseRepository.save(any(Expense.class))).thenReturn(pendingExpense);
     when(expenseMapper.toResponse(pendingExpense)).thenReturn(expenseResponse);
     when(expenseMapper.toEntity(any(ExpenseCreateRequest.class), any(Currency.class),

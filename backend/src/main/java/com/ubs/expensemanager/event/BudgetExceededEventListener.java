@@ -81,7 +81,16 @@ public class BudgetExceededEventListener {
             formattedTime = event.getDate().format(DATE_FORMATTER);
         } else {
             timeFrame = "Monthly";
-            formattedTime = event.getYearMonth().format(MONTH_FORMATTER);
+            // Handle case where yearMonth is null by using date as fallback
+            if (event.getYearMonth() != null) {
+                formattedTime = event.getYearMonth().format(MONTH_FORMATTER);
+            } else if (event.getDate() != null) {
+                // If yearMonth is null but date is available, use date
+                formattedTime = event.getDate().format(DATE_FORMATTER);
+            } else {
+                // If both yearMonth and date are null, use a default value
+                formattedTime = "unknown date";
+            }
         }
 
         return String.format(

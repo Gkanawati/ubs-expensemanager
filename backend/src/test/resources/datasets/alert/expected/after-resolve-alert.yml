@@ -1,88 +1,88 @@
-alerts:
-  - id: 1
-    type: "CATEGORY"
-    message: "Daily budget exceeded for category 'Food' on 2026-01-08"
-    status: "RESOLVED"
-    expense_id: 101
-    created_at: "2026-01-08 10:15:30"
-  - id: 2
-    type: "DEPARTMENT"
-    message: "Daily department budget exceeded for department 'IT' on 2026-01-08"
-    status: "NEW"
-    expense_id: 102
-    created_at: "2026-01-08 11:30:45"
-    updated_at: "2026-01-08 11:30:45"
+PUBLIC.DEPARTMENTS:
+  - ID: 1
+    NAME: "IT"
+    DAILY_BUDGET: 400.00
+    MONTHLY_BUDGET: 12000.00
+    CURRENCY: "USD"
+  - ID: 2
+    NAME: "Finance"
+    DAILY_BUDGET: 500.00
+    MONTHLY_BUDGET: 15000.00
+    CURRENCY: "USD"
 
-expenses:
-  - id: 101
-    amount: 150.50
-    description: "Team lunch at restaurant"
-    expense_date: "2026-01-08"
-    user_id: 104
-    expense_category_id: 1
-    currency_id: 1
-    status: "PENDING"
-    created_at: "2026-01-08 10:00:00"
-    updated_at: "2026-01-08 10:00:00"
-  - id: 102
-    amount: 500.00
-    description: "Department meeting"
-    expense_date: "2026-01-08"
-    user_id: 104
-    expense_category_id: 2
-    currency_id: 1
-    status: "PENDING"
-    created_at: "2026-01-08 11:00:00"
-    updated_at: "2026-01-08 11:00:00"
+PUBLIC.USERS:
+  - ID: 104
+    EMAIL: "employee@ubs.com"
+    PASSWORD: "$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG"
+    ROLE: "EMPLOYEE"
+    NAME: "John Employee"
+    DEPARTMENT_ID: 1
+    ACTIVE: true
+  - ID: 105
+    EMAIL: "manager@ubs.com"
+    PASSWORD: "$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG"
+    ROLE: "MANAGER"
+    NAME: "Jane Manager"
+    DEPARTMENT_ID: 1
+    ACTIVE: true
+  - ID: 106
+    EMAIL: "finance@ubs.com"
+    PASSWORD: "$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG"
+    ROLE: "FINANCE"
+    NAME: "Alice Finance"
+    DEPARTMENT_ID: 2
+    ACTIVE: true
 
-users:
-  - id: 104
-    email: "employee@ubs.com"
-    password: "$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG"
-    role: "EMPLOYEE"
-    name: "John Employee"
-    department_id: 1
-    active: true
-  - id: 105
-    email: "manager@ubs.com"
-    password: "$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG"
-    role: "MANAGER"
-    name: "Jane Manager"
-    department_id: 1
-    active: true
-  - id: 106
-    email: "finance@ubs.com"
-    password: "$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG"
-    role: "FINANCE"
-    name: "Alice Finance"
-    department_id: 2
-    active: true
+PUBLIC.CURRENCIES:
+  - ID: 1
+    NAME: "USD"
+    EXCHANGE_RATE: 1.000000
 
-departments:
-  - id: 1
-    name: "IT"
-    daily_budget: 400.00
-    monthly_budget: 12000.00
-    currency: "USD"
-  - id: 2
-    name: "Finance"
-    daily_budget: 500.00
-    monthly_budget: 15000.00
-    currency: "USD"
+PUBLIC.EXPENSE_CATEGORIES:
+  - ID: 1
+    NAME: "Food"
+    DAILY_BUDGET: 100.00
+    MONTHLY_BUDGET: 3000.00
+    CURRENCY_ID: 1
+  - ID: 2
+    NAME: "Meetings"
+    DAILY_BUDGET: 200.00
+    MONTHLY_BUDGET: 6000.00
+    CURRENCY_ID: 1
 
-expense_categories:
-  - id: 1
-    name: "Food"
-    daily_budget: 100.00
-    monthly_budget: 3000.00
-    currency_id: 1
-  - id: 2
-    name: "Meetings"
-    daily_budget: 200.00
-    monthly_budget: 6000.00
-    currency_id: 1
+PUBLIC.EXPENSES:
+  - ID: 101
+    AMOUNT: 150.50
+    DESCRIPTION: "Team lunch at restaurant"
+    EXPENSE_DATE: "2026-01-08"
+    USER_ID: 104
+    EXPENSE_CATEGORY_ID: 1
+    CURRENCY_ID: 1
+    STATUS: "PENDING"
+    CREATED_AT: "2026-01-08 10:00:00"
+    UPDATED_AT: "2026-01-08 10:00:00"
+  - ID: 102
+    AMOUNT: 500.00
+    DESCRIPTION: "Department meeting"
+    EXPENSE_DATE: "2026-01-08"
+    USER_ID: 104
+    EXPENSE_CATEGORY_ID: 2
+    CURRENCY_ID: 1
+    STATUS: "PENDING"
+    CREATED_AT: "2026-01-08 11:00:00"
+    UPDATED_AT: "2026-01-08 11:00:00"
 
-currencies:
-  - id: 1
-    name: "USD"
-    exchange_rate: 1.000000
+PUBLIC.ALERTS:
+  - ID: 1
+    TYPE: "CATEGORY"
+    MESSAGE: "Daily budget exceeded for category 'Food' on 2026-01-08"
+    STATUS: "RESOLVED"
+    EXPENSE_ID: 101
+    CREATED_AT: "2026-01-08 10:15:30"
+  - ID: 2
+    TYPE: "DEPARTMENT"
+    MESSAGE: "Daily department budget exceeded for department 'IT' on 2026-01-08"
+    STATUS: "NEW"
+    EXPENSE_ID: 102
+    CREATED_AT: "2026-01-08 11:30:45"
+    UPDATED_AT: "2026-01-08 11:30:45"

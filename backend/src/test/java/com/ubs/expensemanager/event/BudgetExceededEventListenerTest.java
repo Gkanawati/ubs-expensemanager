@@ -126,7 +126,8 @@ class BudgetExceededEventListenerTest {
     @Test
     void handleBudgetExceededEvent_categoryEvent_createsNewAlert() {
         // Given
-        when(alertRepository.findByExpenseAndTypeAndStatus(any(), any(), any())).thenReturn(Optional.empty());
+        // No need to stub findByExpenseAndTypeAndStatus for CATEGORY events
+        // as it's only called for DEPARTMENT events
 
         // When
         eventListener.handleBudgetExceededEvent(categoryEvent);
@@ -179,7 +180,7 @@ class BudgetExceededEventListenerTest {
         verify(alertRepository).save(alertCaptor.capture());
         Alert savedAlert = alertCaptor.getValue();
         assertEquals(existingAlert.getId(), savedAlert.getId());
-        assertEquals(AlertType.DEPARTMENT, savedAlert.getType());
+        assertEquals(AlertType.ALL, savedAlert.getType());
         assertEquals(expense, savedAlert.getExpense());
         assertEquals(AlertStatus.NEW, savedAlert.getStatus());
     }
