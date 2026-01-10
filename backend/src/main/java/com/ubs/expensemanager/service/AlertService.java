@@ -1,7 +1,12 @@
 package com.ubs.expensemanager.service;
 
+import com.ubs.expensemanager.dto.request.AlertUpdateRequest;
 import com.ubs.expensemanager.dto.response.AlertListResponse;
+import com.ubs.expensemanager.dto.response.AlertResponse;
+import com.ubs.expensemanager.exception.ResourceNotFoundException;
+import com.ubs.expensemanager.mapper.AlertMapper;
 import com.ubs.expensemanager.model.Alert;
+import com.ubs.expensemanager.model.AlertStatus;
 import com.ubs.expensemanager.model.AlertType;
 import com.ubs.expensemanager.repository.AlertRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AlertService {
 
     private final AlertRepository alertRepository;
+    private final AlertMapper alertMapper;
 
     /**
      * Retrieves all alerts with pagination.
@@ -31,7 +37,7 @@ public class AlertService {
     public Page<AlertListResponse> findAllPaginated(Pageable pageable) {
         log.info("Retrieving paginated alerts with page: {}, size: {}", 
                 pageable.getPageNumber(), pageable.getPageSize());
-        
+
         return alertRepository.findAll(pageable)
                 .map(this::mapToAlertListResponse);
     }
@@ -44,7 +50,7 @@ public class AlertService {
      */
     private AlertListResponse mapToAlertListResponse(Alert alert) {
         String alertTypeStr;
-        
+
         if (alert.getType() == AlertType.CATEGORY) {
             alertTypeStr = "Category";
         } else if (alert.getType() == AlertType.DEPARTMENT) {
@@ -62,5 +68,34 @@ public class AlertService {
                 .employeeName(alert.getExpense().getUser().getName())
                 .expenseStatus(alert.getExpense().getStatus().toString())
                 .build();
+    }
+
+    /**
+     * Updates an alert's status to RESOLVED.
+     *
+     * @param id the alert ID
+     * @return the updated alert as response DTO
+     */
+    @Transactional
+    public AlertResponse resolveAlert(Long id) {
+        log.info("Resolving alert with id={}", id);
+
+        Alert alert = alertRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Alert not found"));
+
+        // Create an update request with RESOLVED status
+        AlertUpdateRequest updateRequest = AlertUpdateRequest.builder()
+                .status(AlertStatus.RESOLVED)
+                .build();
+
+        // Update the alert entity
+        Alert updatedAlert = alertMapper.updateEntity(alert, updateRequest, alert.getExpense());
+
+        // Save the updated alert
+        updatedAlert = alertRepository.save(updatedAlert);
+
+        log.info("Alert {} status changed to RESOLVED", id);
+
+        return alertMapper.toResponse(updatedAlert);
     }
 }

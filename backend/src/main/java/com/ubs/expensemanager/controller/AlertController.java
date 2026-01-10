@@ -1,6 +1,7 @@
 package com.ubs.expensemanager.controller;
 
 import com.ubs.expensemanager.dto.response.AlertListResponse;
+import com.ubs.expensemanager.dto.response.AlertResponse;
 import com.ubs.expensemanager.dto.response.ErrorResponse;
 import com.ubs.expensemanager.service.AlertService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,6 +19,8 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -64,5 +67,50 @@ public class AlertController {
                 pageable.getPageNumber(), pageable.getPageSize());
         Page<AlertListResponse> alerts = alertService.findAllPaginated(pageable);
         return ResponseEntity.ok(alerts);
+    }
+
+    @Operation(
+        summary = "Resolve Alert",
+        description = "Updates an alert's status to RESOLVED. Only users with FINANCE role can access this endpoint."
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "Alert resolved successfully",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = AlertResponse.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Forbidden - Not authorized to access this resource",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Alert not found",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class)
+            )
+        )
+    })
+    @PutMapping("/{id}/resolve")
+    public ResponseEntity<AlertResponse> resolveAlert(@PathVariable Long id) {
+        log.info("Resolving alert with id={}", id);
+        AlertResponse resolvedAlert = alertService.resolveAlert(id);
+        return ResponseEntity.ok(resolvedAlert);
     }
 }
