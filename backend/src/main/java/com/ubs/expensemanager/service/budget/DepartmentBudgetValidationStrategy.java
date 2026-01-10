@@ -29,7 +29,10 @@ public class DepartmentBudgetValidationStrategy implements BudgetValidationStrat
     public void validate(Long userId, ExpenseCategory category, Expense expense, BigDecimal newAmount) {
         Department department = expense.getUser().getDepartment();
         if (department != null) {
-            validateDailyBudget(userId, category, expense, newAmount, department);
+            // Only validate daily budget if the department has a daily budget limit
+            if (department.getDailyBudget() != null) {
+                validateDailyBudget(userId, category, expense, newAmount, department);
+            }
             validateMonthlyBudget(userId, category, expense, newAmount, department);
         }
     }
@@ -42,6 +45,10 @@ public class DepartmentBudgetValidationStrategy implements BudgetValidationStrat
         BigDecimal deptDailyTotal = expenseRepository.sumAmountByDepartmentAndDate(
                 department.getId(), expense.getExpenseDate()
         );
+        // Handle null value from repository (should not happen in production, but can happen in tests)
+        if (deptDailyTotal == null) {
+            deptDailyTotal = BigDecimal.ZERO;
+        }
         BigDecimal newDeptDailyTotal = deptDailyTotal.add(newAmount);
 
         if (department.getDailyBudget() != null && newDeptDailyTotal.compareTo(department.getDailyBudget()) > 0) {
@@ -76,6 +83,10 @@ public class DepartmentBudgetValidationStrategy implements BudgetValidationStrat
         BigDecimal deptMonthlyTotal = expenseRepository.sumAmountByDepartmentAndDateRange(
                 department.getId(), monthStart, monthEnd
         );
+        // Handle null value from repository (should not happen in production, but can happen in tests)
+        if (deptMonthlyTotal == null) {
+            deptMonthlyTotal = BigDecimal.ZERO;
+        }
         BigDecimal newDeptMonthlyTotal = deptMonthlyTotal.add(newAmount);
 
         if (newDeptMonthlyTotal.compareTo(department.getMonthlyBudget()) > 0) {

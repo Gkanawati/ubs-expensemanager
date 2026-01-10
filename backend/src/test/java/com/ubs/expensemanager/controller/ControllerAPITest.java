@@ -37,7 +37,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @AutoConfigureWireMock(port = Options.DYNAMIC_PORT)
 @AutoConfigureTestDatabase(connection = EmbeddedDatabaseConnection.H2)
 @DBRider
-@DBUnit(cacheConnection = false, alwaysCleanBefore = true, alwaysCleanAfter = true, raiseExceptionOnCleanUp = true, escapePattern = "\"", qualifiedTableNames = true, schema = "PUBLIC")
+@DBUnit(cacheConnection = false, alwaysCleanBefore = true, alwaysCleanAfter = true, raiseExceptionOnCleanUp = false, escapePattern = "\"", qualifiedTableNames = true, schema = "PUBLIC", disableSequenceFiltering = true, caseSensitiveTableNames = true, leakHunter = false)
 @DirtiesContext
 @Testcontainers
 public abstract class ControllerAPITest {

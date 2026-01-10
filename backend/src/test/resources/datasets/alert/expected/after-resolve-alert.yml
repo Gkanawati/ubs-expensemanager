@@ -79,6 +79,7 @@ PUBLIC.ALERTS:
     STATUS: "RESOLVED"
     EXPENSE_ID: 101
     CREATED_AT: "2026-01-08 10:15:30"
+    UPDATED_AT: "2026-01-08 10:15:30"
   - ID: 2
     TYPE: "DEPARTMENT"
     MESSAGE: "Daily department budget exceeded for department 'IT' on 2026-01-08"

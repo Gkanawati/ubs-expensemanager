@@ -37,6 +37,10 @@ public class CategoryBudgetValidationStrategy implements BudgetValidationStrateg
         BigDecimal dailyTotal = expenseRepository.sumAmountByUserAndCategoryAndDate(
                 userId, category.getId(), expense.getExpenseDate()
         );
+        // Handle null value from repository (should not happen in production, but can happen in tests)
+        if (dailyTotal == null) {
+            dailyTotal = BigDecimal.ZERO;
+        }
         BigDecimal newDailyTotal = dailyTotal.add(newAmount);
 
         if (newDailyTotal.compareTo(category.getDailyBudget()) > 0) {
@@ -70,6 +74,10 @@ public class CategoryBudgetValidationStrategy implements BudgetValidationStrateg
         BigDecimal monthlyTotal = expenseRepository.sumAmountByUserAndCategoryAndDateRange(
                 userId, category.getId(), monthStart, monthEnd
         );
+        // Handle null value from repository (should not happen in production, but can happen in tests)
+        if (monthlyTotal == null) {
+            monthlyTotal = BigDecimal.ZERO;
+        }
         BigDecimal newMonthlyTotal = monthlyTotal.add(newAmount);
 
         if (newMonthlyTotal.compareTo(category.getMonthlyBudget()) > 0) {
