@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.Optional;
 
 /**
  * Strategy implementation for validating department budget limits.
@@ -42,13 +43,10 @@ public class DepartmentBudgetValidationStrategy implements BudgetValidationStrat
      */
     private void validateDailyBudget(Long userId, ExpenseCategory category, Expense expense, 
                                     BigDecimal newAmount, Department department) {
-        BigDecimal deptDailyTotal = expenseRepository.sumAmountByDepartmentAndDate(
-                department.getId(), expense.getExpenseDate()
-        );
-        // Handle null value from repository (should not happen in production, but can happen in tests)
-        if (deptDailyTotal == null) {
-            deptDailyTotal = BigDecimal.ZERO;
-        }
+        BigDecimal deptDailyTotal = Optional.ofNullable(
+                expenseRepository.sumAmountByDepartmentAndDate(department.getId(), expense.getExpenseDate())
+        ).orElse(BigDecimal.ZERO);
+
         BigDecimal newDeptDailyTotal = deptDailyTotal.add(newAmount);
 
         if (department.getDailyBudget() != null && newDeptDailyTotal.compareTo(department.getDailyBudget()) > 0) {
@@ -80,13 +78,10 @@ public class DepartmentBudgetValidationStrategy implements BudgetValidationStrat
         LocalDate monthStart = yearMonth.atDay(1);
         LocalDate monthEnd = yearMonth.atEndOfMonth();
 
-        BigDecimal deptMonthlyTotal = expenseRepository.sumAmountByDepartmentAndDateRange(
-                department.getId(), monthStart, monthEnd
-        );
-        // Handle null value from repository (should not happen in production, but can happen in tests)
-        if (deptMonthlyTotal == null) {
-            deptMonthlyTotal = BigDecimal.ZERO;
-        }
+        BigDecimal deptMonthlyTotal = Optional.ofNullable(
+                expenseRepository.sumAmountByDepartmentAndDateRange(department.getId(), monthStart, monthEnd)
+        ).orElse(BigDecimal.ZERO);
+
         BigDecimal newDeptMonthlyTotal = deptMonthlyTotal.add(newAmount);
 
         if (newDeptMonthlyTotal.compareTo(department.getMonthlyBudget()) > 0) {

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.Optional;
 
 /**
  * Strategy implementation for validating category budget limits.
@@ -34,13 +35,9 @@ public class CategoryBudgetValidationStrategy implements BudgetValidationStrateg
      * Validates daily budget limits for the category.
      */
     private void validateDailyBudget(Long userId, ExpenseCategory category, Expense expense, BigDecimal newAmount) {
-        BigDecimal dailyTotal = expenseRepository.sumAmountByUserAndCategoryAndDate(
-                userId, category.getId(), expense.getExpenseDate()
-        );
-        // Handle null value from repository (should not happen in production, but can happen in tests)
-        if (dailyTotal == null) {
-            dailyTotal = BigDecimal.ZERO;
-        }
+        BigDecimal dailyTotal = Optional.ofNullable(
+                expenseRepository.sumAmountByUserAndCategoryAndDate(userId, category.getId(), expense.getExpenseDate())
+        ).orElse(BigDecimal.ZERO);
         BigDecimal newDailyTotal = dailyTotal.add(newAmount);
 
         if (newDailyTotal.compareTo(category.getDailyBudget()) > 0) {
@@ -71,13 +68,10 @@ public class CategoryBudgetValidationStrategy implements BudgetValidationStrateg
         LocalDate monthStart = yearMonth.atDay(1);
         LocalDate monthEnd = yearMonth.atEndOfMonth();
 
-        BigDecimal monthlyTotal = expenseRepository.sumAmountByUserAndCategoryAndDateRange(
-                userId, category.getId(), monthStart, monthEnd
-        );
-        // Handle null value from repository (should not happen in production, but can happen in tests)
-        if (monthlyTotal == null) {
-            monthlyTotal = BigDecimal.ZERO;
-        }
+        BigDecimal monthlyTotal = Optional.ofNullable(
+                expenseRepository.sumAmountByUserAndCategoryAndDateRange(userId, category.getId(), monthStart, monthEnd)
+        ).orElse(BigDecimal.ZERO);
+
         BigDecimal newMonthlyTotal = monthlyTotal.add(newAmount);
 
         if (newMonthlyTotal.compareTo(category.getMonthlyBudget()) > 0) {
