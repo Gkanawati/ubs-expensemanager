@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,6 +29,8 @@ import com.ubs.expensemanager.model.UserRole;
 import com.ubs.expensemanager.repository.CurrencyRepository;
 import com.ubs.expensemanager.repository.ExpenseCategoryRepository;
 import com.ubs.expensemanager.repository.ExpenseRepository;
+import com.ubs.expensemanager.service.budget.CategoryBudgetValidationStrategy;
+import com.ubs.expensemanager.service.budget.DepartmentBudgetValidationStrategy;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -67,6 +70,12 @@ class ExpenseServiceTest {
 
   @Mock
   Authentication authentication;
+
+  @Mock
+  CategoryBudgetValidationStrategy categoryBudgetValidationStrategy;
+
+  @Mock
+  DepartmentBudgetValidationStrategy departmentBudgetValidationStrategy;
 
   @InjectMocks
   ExpenseService expenseService;
@@ -214,22 +223,25 @@ class ExpenseServiceTest {
     when(authentication.getPrincipal()).thenReturn(employee);
     when(expenseCategoryRepository.findById(1L)).thenReturn(Optional.of(foodCategory));
     when(currencyRepository.findByName("USD")).thenReturn(Optional.of(usdCurrency));
-    when(expenseRepository.sumAmountByUserAndCategoryAndDate(any(), any(), any()))
-        .thenReturn(BigDecimal.ZERO);
-    when(expenseRepository.sumAmountByUserAndCategoryAndDateRange(any(), any(), any(), any()))
-        .thenReturn(BigDecimal.ZERO);
     when(expenseRepository.save(any(Expense.class))).thenReturn(pendingExpense);
     when(expenseMapper.toResponse(pendingExpense)).thenReturn(expenseResponse);
     when(expenseMapper.toEntity(any(ExpenseCreateRequest.class), any(Currency.class),
         any(ExpenseCategory.class), any(User.class), any(ExpenseStatus.class)))
         .thenReturn(expense);
 
+    // Mock the budget validation strategies
+    // doNothing() is the default behavior for void methods, but we'll be explicit for clarity
+    doNothing().when(categoryBudgetValidationStrategy).validate(any(), any(), any(), any());
+    doNothing().when(departmentBudgetValidationStrategy).validate(any(), any(), any(), any());
+
     ExpenseResponse result = expenseService.create(request);
 
     assertAll(
         () -> assertNotNull(result),
         () -> assertEquals(expenseResponse.getId(), result.getId()),
-        () -> verify(expenseRepository).save(any(Expense.class))
+        () -> verify(expenseRepository).save(any(Expense.class)),
+        () -> verify(categoryBudgetValidationStrategy).validate(any(), any(), any(), any()),
+        () -> verify(departmentBudgetValidationStrategy).validate(any(), any(), any(), any())
     );
   }
 
