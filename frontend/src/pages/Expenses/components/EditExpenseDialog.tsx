@@ -18,8 +18,9 @@ import {
   ExpenseCategory,
   Currency,
   UpdateExpensePayload,
-} from "@/types/expense";
-import { getExpenseCategories, getCurrencies } from "@/api/expense.api";
+  getExpenseCategories,
+  getCurrencies,
+} from "@/api/expense.api";
 
 interface EditExpenseDialogProps {
   open: boolean;
