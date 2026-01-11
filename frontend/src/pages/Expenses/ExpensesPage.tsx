@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, Edit, Trash2, CheckCircle, AlertCircle, ChevronDown } from "lucide-react";
+import { Plus, Edit, Trash2, CheckCircle, AlertCircle, Filter } from "lucide-react";
 import { ActionButton } from "@/components/ui/ActionButton";
 import { DataTable, ColumnDef, RowAction } from "@/components/DataTable";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { TablePagination } from "@/components/Pagination";
+import { DatePicker } from "@/components/ui/date-picker";
 import { getErrorMessage } from "@/types/api-error";
 import {
   Expense,
@@ -62,8 +63,10 @@ export const ExpensesPage = () => {
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<ExpenseStatus | "">("");
-  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
-  const statusDropdownRef = useRef<HTMLDivElement>(null);
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+  const filterDropdownRef = useRef<HTMLDivElement>(null);
 
   // Dialogs
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
@@ -83,21 +86,36 @@ export const ExpensesPage = () => {
 
   useEffect(() => {
     fetchExpenses();
-  }, [currentPage, statusFilter]);
+  }, [currentPage, statusFilter, startDate, endDate]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        statusDropdownRef.current &&
-        !statusDropdownRef.current.contains(event.target as Node)
-      ) {
-        setStatusDropdownOpen(false);
+      const target = event.target as HTMLElement;
+
+      // Ignore clicks inside the filter dropdown
+      if (filterDropdownRef.current?.contains(target)) {
+        return;
       }
+
+      // Ignore clicks inside calendar popovers (they render in a portal)
+      if (target.closest('[data-radix-popper-content-wrapper]')) {
+        return;
+      }
+
+      setFilterDropdownOpen(false);
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (statusFilter) count++;
+    if (startDate) count++;
+    if (endDate) count++;
+    return count;
+  };
 
   const fetchExpenses = async () => {
     try {
@@ -106,6 +124,8 @@ export const ExpensesPage = () => {
 
       const filters: ExpenseFilters = {};
       if (statusFilter) filters.status = statusFilter;
+      if (startDate) filters.startDate = startDate.toISOString().split("T")[0];
+      if (endDate) filters.endDate = endDate.toISOString().split("T")[0];
 
       const response = await getExpenses({
         page: currentPage - 1,
@@ -282,49 +302,88 @@ export const ExpensesPage = () => {
 
       <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          {/* Status Filter Dropdown */}
-          <div className="relative" ref={statusDropdownRef}>
+          {/* Filters Dropdown */}
+          <div className="relative" ref={filterDropdownRef}>
             <button
               type="button"
-              onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+              onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
               className="flex h-9 items-center gap-2 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
             >
-              <span>{statusFilter ? STATUS_LABELS[statusFilter] : "Status"}</span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${statusDropdownOpen ? "rotate-180" : ""}`} />
+              <Filter className="h-4 w-4" />
+              <span>
+                Filters{getActiveFilterCount() > 0 ? ` (${getActiveFilterCount()})` : ""}
+              </span>
             </button>
 
-            {statusDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 z-50 min-w-[200px] rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900">
-                {(Object.keys(STATUS_LABELS) as ExpenseStatus[]).map((status) => (
-                  <label
-                    key={status}
-                    className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
-                  >
-                    <div className="relative flex items-center justify-center">
-                      <input
-                        type="checkbox"
-                        checked={statusFilter === status}
-                        onChange={() => {
-                          handleStatusFilterChange(statusFilter === status ? "" : status);
-                          setStatusDropdownOpen(false);
-                        }}
-                        className="h-4 w-4 rounded appearance-none border border-gray-300 dark:border-gray-500 checked:bg-primary checked:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
-                      />
-                      {statusFilter === status && (
-                        <svg
-                          className="absolute h-3 w-3 text-white pointer-events-none"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={3}
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </div>
-                    <span className="text-sm">{STATUS_LABELS[status]}</span>
-                  </label>
-                ))}
+            {filterDropdownOpen && (
+              <div className="absolute top-full left-0 mt-1 z-50 min-w-[280px] rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
+                {/* Status Section */}
+                <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Filter by Status</span>
+                </div>
+                <div className="py-1">
+                  {(Object.keys(STATUS_LABELS) as ExpenseStatus[]).map((status) => (
+                    <label
+                      key={status}
+                      className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                    >
+                      <div className="relative flex items-center justify-center">
+                        <input
+                          type="checkbox"
+                          checked={statusFilter === status}
+                          onChange={() => {
+                            handleStatusFilterChange(statusFilter === status ? "" : status);
+                          }}
+                          className="h-4 w-4 rounded appearance-none border border-gray-300 dark:border-gray-500 checked:bg-primary checked:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                        />
+                        {statusFilter === status && (
+                          <svg
+                            className="absolute h-3 w-3 text-white pointer-events-none"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={3}
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-sm">{STATUS_LABELS[status]}</span>
+                    </label>
+                  ))}
+                </div>
+
+                {/* Date Section */}
+                <div className="px-3 py-2 border-t border-gray-200 dark:border-gray-700">
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Filter by Date</span>
+                </div>
+                <div className="px-3 py-2 space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-gray-500 dark:text-gray-400">Start</label>
+                    <DatePicker
+                      value={startDate}
+                      onChange={(date) => {
+                        setStartDate(date);
+                        setCurrentPage(1);
+                      }}
+                      maxDate={endDate || new Date()}
+                      placeholder="Select start date"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-gray-500 dark:text-gray-400">End</label>
+                    <DatePicker
+                      value={endDate}
+                      onChange={(date) => {
+                        setEndDate(date);
+                        setCurrentPage(1);
+                      }}
+                      minDate={startDate}
+                      maxDate={new Date()}
+                      placeholder="Select end date"
+                    />
+                  </div>
+                </div>
               </div>
             )}
           </div>
