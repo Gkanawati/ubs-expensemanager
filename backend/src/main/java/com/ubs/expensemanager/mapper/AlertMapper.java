@@ -21,8 +21,9 @@ public interface AlertMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "expense", source = "expense")
     @Mapping(target = "status", source = "alertUpdateRequest.status")
-    @Mapping(target = "type", ignore = false) // Preserve the type field
-    @Mapping(target = "message", ignore = false) // Preserve the message field
+    @Mapping(target = "type", ignore = true)      // IMPORTANTE: ignore = true para preservar!
+    @Mapping(target = "message", ignore = true)   // IMPORTANTE: ignore = true para preservar!
+    @Mapping(target = "createdAt", ignore = true) // Adicione também
     Alert updateEntity(@MappingTarget Alert alert, AlertUpdateRequest alertUpdateRequest, Expense expense);
 
     @Mapping(target = "expenseId", source = "expense.id")
