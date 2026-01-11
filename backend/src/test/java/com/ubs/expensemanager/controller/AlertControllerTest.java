@@ -95,7 +95,7 @@ class AlertControllerTest {
 
         when(alertService.findAllPaginated(any())).thenReturn(page);
 
-        mockMvc.perform(get(BASE_URL + "/list")
+        mockMvc.perform(get(BASE_URL)
                         .param("page", "0")
                         .param("size", "10"))
                 .andExpect(status().isOk())
@@ -115,7 +115,7 @@ class AlertControllerTest {
     void resolveAlert_success_returnsOk() throws Exception {
         when(alertService.resolveAlert(1L)).thenReturn(alertResponse);
 
-        mockMvc.perform(put(BASE_URL + "/{id}/resolve", 1L))
+        mockMvc.perform(patch(BASE_URL + "/{id}/resolve", 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.type").value("CATEGORY"))
@@ -137,7 +137,7 @@ class AlertControllerTest {
 
         when(alertService.findAllPaginated(any())).thenReturn(emptyPage);
 
-        mockMvc.perform(get(BASE_URL + "/list")
+        mockMvc.perform(get(BASE_URL)
                         .param("page", "0")
                         .param("size", "10"))
                 .andExpect(status().isOk())

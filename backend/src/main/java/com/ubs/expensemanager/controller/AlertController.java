@@ -18,11 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * REST controller for managing alerts.
@@ -59,7 +55,7 @@ public class AlertController {
             )
         )
     })
-    @GetMapping("/list")
+    @GetMapping
     public ResponseEntity<Page<AlertListResponse>> listAlerts(
         @PageableDefault(size = 10, sort = "id") @ParameterObject Pageable pageable
     ) {
@@ -107,7 +103,7 @@ public class AlertController {
             )
         )
     })
-    @PutMapping("/{id}/resolve")
+    @PatchMapping("/{id}/resolve")
     public ResponseEntity<AlertResponse> resolveAlert(@PathVariable Long id) {
         log.info("Resolving alert with id={}", id);
         AlertResponse resolvedAlert = alertService.resolveAlert(id);

@@ -59,7 +59,7 @@ public class AlertControllerAPITest extends ControllerAPITest {
   @DataSet(value = BASE_DATASET + "input/alerts.yml", cleanBefore = true, cleanAfter = true, tableOrdering = {"DEPARTMENTS", "USERS", "CURRENCIES", "EXPENSE_CATEGORIES", "EXPENSES", "ALERTS"})
   void shouldReturnAlertsWhenFinanceUserRequests() {
     // given
-    final String endpointPath = getPath() + "/list";
+    final String endpointPath = getPath();
     authenticateAsFinance();
 
     // when
@@ -86,7 +86,7 @@ public class AlertControllerAPITest extends ControllerAPITest {
   @DataSet(value = BASE_DATASET + "input/alerts.yml", tableOrdering = {"DEPARTMENTS", "USERS", "CURRENCIES", "EXPENSE_CATEGORIES", "EXPENSES", "ALERTS"})
   void shouldReturn403WhenNonFinanceUserRequests() {
     // given
-    final String endpointPath = getPath() + "/list";
+    final String endpointPath = getPath();
     authenticateAsEmployee();
 
     // when
@@ -118,7 +118,7 @@ public class AlertControllerAPITest extends ControllerAPITest {
     // when
     ResponseEntity<AlertResponse> response = restTemplate.exchange(
         endpointPath,
-        HttpMethod.PUT,
+        HttpMethod.PATCH,
         new HttpEntity<>(headers),
         AlertResponse.class
     );
@@ -146,7 +146,7 @@ public class AlertControllerAPITest extends ControllerAPITest {
     // when
     ResponseEntity<String> response = restTemplate.exchange(
         endpointPath,
-        HttpMethod.PUT,
+        HttpMethod.PATCH,
         new HttpEntity<>(headers),
         String.class
     );
@@ -172,7 +172,7 @@ public class AlertControllerAPITest extends ControllerAPITest {
     // when
     ResponseEntity<String> response = restTemplate.exchange(
         endpointPath,
-        HttpMethod.PUT,
+        HttpMethod.PATCH,
         new HttpEntity<>(headers),
         String.class
     );
