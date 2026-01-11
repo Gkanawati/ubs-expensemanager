@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/money-input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
@@ -360,15 +361,13 @@ export const CreateExpenseDialog = ({
             <Label htmlFor="expenseDate" className="text-sm font-medium">
               Date <span className="text-red-600">*</span>
             </Label>
-            <Input
-              id="expenseDate"
-              type="date"
-              value={formData.expenseDate}
-              onChange={(e) =>
-                handleInputChange("expenseDate", e.target.value)
+            <DatePicker
+              value={formData.expenseDate ? new Date(formData.expenseDate + "T00:00:00") : undefined}
+              onChange={(date) =>
+                handleInputChange("expenseDate", date ? date.toISOString().split("T")[0] : "")
               }
-              max={new Date().toISOString().split("T")[0]}
-              className={errors.expenseDate ? "border-red-500" : ""}
+              maxDate={new Date()}
+              placeholder="Select date"
             />
             {errors.expenseDate && (
               <p className="text-sm text-red-600">{errors.expenseDate}</p>
