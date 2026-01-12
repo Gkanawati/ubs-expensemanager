@@ -6,6 +6,8 @@ import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { TablePagination } from "@/components/Pagination";
 import { DatePicker } from "@/components/ui/date-picker";
 import { getErrorMessage } from "@/types/api-error";
+import { formatCurrency, formatDate } from "@/utils/validation";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Expense,
   ExpenseStatus,
@@ -36,24 +38,8 @@ const STATUS_LABELS: Record<ExpenseStatus, string> = {
   REQUIRES_REVISION: "Needs Revision",
 };
 
-const formatCurrency = (amount: number, currency: string): string => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency,
-    minimumFractionDigits: 2,
-  }).format(amount);
-};
-
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString + "T00:00:00");
-  return date.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-};
-
 export const ExpensesPage = () => {
+  const { user } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -124,6 +110,7 @@ export const ExpensesPage = () => {
       if (statusFilter) filters.status = statusFilter;
       if (startDate) filters.startDate = startDate.toISOString().split("T")[0];
       if (endDate) filters.endDate = endDate.toISOString().split("T")[0];
+      if (user?.id) filters.userId = user.id;
 
       const response = await getExpenses({
         page: currentPage - 1,

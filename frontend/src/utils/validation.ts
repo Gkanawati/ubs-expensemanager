@@ -166,3 +166,30 @@ export const categorySchema = z
 
 export type CreateCategoryFormData = z.infer<typeof categorySchema>;
 
+/* =======================
+   FORMATTING
+======================= */
+
+/**
+ * Formats a number as currency with the specified currency code
+ */
+export const formatCurrency = (amount: number, currency: string): string => {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency,
+    minimumFractionDigits: 2,
+  }).format(amount);
+};
+
+/**
+ * Formats a date string (YYYY-MM-DD) to a localized date format
+ */
+export const formatDate = (dateString: string): string => {
+  const date = new Date(dateString + "T00:00:00");
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+
