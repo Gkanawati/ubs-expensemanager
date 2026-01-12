@@ -65,7 +65,14 @@ export const navigationConfig: MenuItem[] = [
     path: '/category',
     icon: 'ClipboardPenLine',
    allowedRoles: ['ROLE_FINANCE'],
-  }
+  },
+  {
+    id: 'alert',
+    label: 'Alert Management',
+    path: '/alert',
+    icon: 'TriangleAlert',
+   allowedRoles: ['ROLE_FINANCE'],
+  },
 ];
 
 export const getMenuItemsForRole = (userRole: UserRole): MenuItem[] => {

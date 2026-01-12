@@ -12,6 +12,7 @@ import { ProfilePage } from './pages/Profile/ProfilePage';
 import { UsersPage } from './pages/Users/UsersPage';
 import { DepartmentPage } from './pages/Department';
 import { CategoriesPage } from './pages/Categories/CategoryPage';
+import { AlertsPage } from './pages/Alerts/AlertsPage';
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
           <Route path='/users' element={<UsersPage />} />
           <Route path='/profile' element={<ProfilePage />} />
           <Route path='/category' element={<CategoriesPage />} />
+          <Route path='/alert' element={<AlertsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
