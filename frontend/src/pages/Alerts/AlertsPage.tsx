@@ -14,7 +14,7 @@ import { getErrorMessage } from "@/types/api-error";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-type AlertStatus = "PENDING" | "APPROVED" | "REJECTED";
+type AlertStatus = "NEW" | "RESOLVED";
 
 export interface Alert {
   idAlert: number;
@@ -23,7 +23,7 @@ export interface Alert {
   alertType: string;
   alertMessage: string;
   employeeName: string;
-  expenseStatus: AlertStatus;
+  alertStatus: AlertStatus;
 }
 
 export const AlertsPage = () => {
@@ -125,17 +125,15 @@ export const AlertsPage = () => {
         ).format(row.expenseValue),
     },
     {
-      key: "expenseStatus",
-      label: "Expense Status",
+      key: "alertStatus",
+      label: "Alert Status",
       render: row => {
         const variant =
-          row.expenseStatus === "APPROVED"
+          row.alertStatus === "RESOLVED"
             ? "success"
-            : row.expenseStatus === "REJECTED"
-              ? "destructive"
-              : "warning";
+            : "warning";
 
-        return <Badge variant={variant}>{row.expenseStatus}</Badge>;
+        return <Badge variant={variant}>{row.alertStatus}</Badge>;
       },
     }
   ];
@@ -146,7 +144,7 @@ export const AlertsPage = () => {
       icon: <Edit className="h-4 w-4" />,
       color: "blue",
       onClick: handleResolveClick,
-      shouldShow: row => row.expenseStatus === "PENDING",
+      shouldShow: row => row.alertStatus === "NEW",
     },
   ];
 

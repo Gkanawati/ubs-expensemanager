@@ -65,8 +65,8 @@ export const ResolveAlertDialog = ({
           </div>
 
           <div>
-            <span className="font-medium">Status:</span>{" "}
-            {selectedAlert.expenseStatus}
+            <span className="font-medium">Alert Status:</span>{" "}
+            {selectedAlert.alertStatus}
           </div>
 
           <div className="rounded-md bg-muted p-3 text-muted-foreground">
