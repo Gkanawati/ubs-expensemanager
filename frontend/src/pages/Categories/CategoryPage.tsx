@@ -11,6 +11,7 @@ import {
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { TablePagination } from "@/components/Pagination";
 import { getErrorMessage } from "@/types/api-error";
+import { formatCurrency } from "@/utils/validation";
 import {
   getCategories,
   createCategory,
@@ -136,22 +137,6 @@ export const CategoriesPage = () => {
   const handleSearch = () => {
     setSearchQuery(searchValue);
     setCurrentPage(1);
-  };
-
-  const formatCurrency = (value: number, currency: "USD" | "BRL") => {
-    const formatted = new Intl.NumberFormat(
-      currency === "BRL" ? "pt-BR" : "en-US",
-      {
-        style: "currency",
-        currency,
-      }
-    ).format(value);
-    
-    // Ensure consistent spacing for USD (add space after $ if not present)
-    if (currency === "USD" && formatted.startsWith("$")) {
-      return formatted.replace("$", "$ ");
-    }
-    return formatted;
   };
 
   const columns: ColumnDef<Category>[] = [

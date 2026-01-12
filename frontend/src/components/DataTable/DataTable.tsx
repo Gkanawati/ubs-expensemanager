@@ -54,6 +54,11 @@ export const DataTable = <TData,>({
   className = "",
   rowClassName = "",
 }: DataTableProps<TData>) => {
+  // Check if there are any visible actions for any row
+  const hasAnyVisibleActions = actions && actions.length > 0 && data.some((row) =>
+    actions.some((action) => !action.shouldShow || action.shouldShow(row))
+  );
+
   return (
     <div
       className={`rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 ${className}`}
@@ -70,8 +75,8 @@ export const DataTable = <TData,>({
                 {column.label}
               </TableHead>
             ))}
-            {actions && actions.length > 0 && (
-              <TableHead className="w-20">Ações</TableHead>
+            {hasAnyVisibleActions && (
+              <TableHead className="w-20">Actions</TableHead>
             )}
           </TableRow>
         </TableHeader>
@@ -80,35 +85,35 @@ export const DataTable = <TData,>({
           {data.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={columns.length + (actions?.length ? 1 : 0)}
+                colSpan={columns.length + (hasAnyVisibleActions ? 1 : 0)}
                 className="text-center py-8 text-gray-500"
               >
                 {emptyMessage}
               </TableCell>
             </TableRow>
           ) : (
-            data.map((row, rowIndex) => (
-              <TableRow
-                key={rowIndex}
-                className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${rowClassName}`}
-              >
-                {columns.map((column) => (
-                  <TableCell key={String(column.key)}>
-                    {column.render
-                      ? column.render(row)
-                      : renderCellValue(row[column.key])}
-                  </TableCell>
-                ))}
+            data.map((row, rowIndex) => {
+              const visibleActions = actions?.filter(
+                (action) => !action.shouldShow || action.shouldShow(row)
+              ) || [];
 
-                {actions && actions.length > 0 && (
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {actions
-                        .filter(
-                          (action) =>
-                            !action.shouldShow || action.shouldShow(row)
-                        )
-                        .map((action, actionIndex) => (
+              return (
+                <TableRow
+                  key={rowIndex}
+                  className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${rowClassName}`}
+                >
+                  {columns.map((column) => (
+                    <TableCell key={String(column.key)}>
+                      {column.render
+                        ? column.render(row)
+                        : renderCellValue(row[column.key])}
+                    </TableCell>
+                  ))}
+
+                  {hasAnyVisibleActions && (
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {visibleActions.map((action, actionIndex) => (
                           <button
                             key={actionIndex}
                             onClick={() => action.onClick(row)}
@@ -124,11 +129,12 @@ export const DataTable = <TData,>({
                             </div>
                           </button>
                         ))}
-                    </div>
-                  </TableCell>
-                )}
-              </TableRow>
-            ))
+                      </div>
+                    </TableCell>
+                  )}
+                </TableRow>
+              );
+            })
           )}
         </TableBody>
       </Table>

@@ -3,6 +3,7 @@ import { Plus, Edit} from "lucide-react";
 import { DataTable, ColumnDef, RowAction } from "@/components/DataTable";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { ActionButton } from "@/components/ui/ActionButton";
+import { formatCurrency } from "@/utils/validation";
 import {
   getDepartments,
   deleteDepartment,
@@ -39,22 +40,6 @@ export const DepartmentPage = () => {
   useEffect(() => {
     load();
   }, []);
-
-  const formatCurrency = (value: number, currency: "USD" | "BRL") => {
-    const formatted = new Intl.NumberFormat(
-      currency === "BRL" ? "pt-BR" : "en-US",
-      {
-        style: "currency",
-        currency,
-      }
-    ).format(value);
-    
-    // Ensure consistent spacing for USD (add space after $ if not present)
-    if (currency === "USD" && formatted.startsWith("$")) {
-      return formatted.replace("$", "$ ");
-    }
-    return formatted;
-  };
 
   const columns: ColumnDef<Department>[] = [
     {
