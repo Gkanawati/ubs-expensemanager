@@ -11,7 +11,6 @@ describe('Navigation Config', () => {
         expect.arrayContaining([
           expect.objectContaining({ id: 'dashboard' }),
           expect.objectContaining({ id: 'expenses' }),
-          expect.objectContaining({ id: 'expenses-report' }),
         ])
       );
     });
@@ -22,40 +21,39 @@ describe('Navigation Config', () => {
       // Employee has access to these
       expect(items.find(item => item.id === 'dashboard')).toBeDefined();
       expect(items.find(item => item.id === 'expenses')).toBeDefined();
-      expect(items.find(item => item.id === 'expenses-report')).toBeDefined();
 
       // Should NOT include manager/finance items
-      expect(items.find(item => item.id === 'approvals')).toBeUndefined();
-      expect(items.find(item => item.id === 'analytics')).toBeUndefined();
+      expect(items.find(item => item.id === 'manage-expenses')).toBeUndefined();
+      expect(items.find(item => item.id === 'users')).toBeUndefined();
     });
 
-    it('should include approvals for ROLE_MANAGER', () => {
+    it('should include manage-expenses for ROLE_MANAGER', () => {
       const items = getMenuItemsForRole('ROLE_MANAGER');
 
       expect(items).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ id: 'dashboard' }),
           expect.objectContaining({ id: 'expenses' }),
-          expect.objectContaining({ id: 'expenses-report' }),
-          expect.objectContaining({ id: 'approvals' }),
+          expect.objectContaining({ id: 'manage-expenses' }),
         ])
       );
 
-      // Should NOT include finance-only analytics
-      expect(items.find(item => item.id === 'analytics')).toBeUndefined();
+      // Should NOT include finance-only items
+      expect(items.find(item => item.id === 'users')).toBeUndefined();
     });
 
-    it('should include analytics and users for ROLE_FINANCE', () => {
+    it('should include all management items for ROLE_FINANCE', () => {
       const items = getMenuItemsForRole('ROLE_FINANCE');
 
       expect(items).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ id: 'dashboard' }),
           expect.objectContaining({ id: 'expenses' }),
-          expect.objectContaining({ id: 'expenses-report' }),
-          expect.objectContaining({ id: 'approvals' }),
-          expect.objectContaining({ id: 'analytics' }),
+          expect.objectContaining({ id: 'manage-expenses' }),
+          expect.objectContaining({ id: 'department' }),
           expect.objectContaining({ id: 'users' }),
+          expect.objectContaining({ id: 'category' }),
+          expect.objectContaining({ id: 'alert' }),
         ])
       );
     });
@@ -69,13 +67,13 @@ describe('Navigation Config', () => {
     });
 
     it('should return false when user does not have required role', () => {
-      const result = hasAccessToMenuItem('analytics', 'ROLE_EMPLOYEE');
+      const result = hasAccessToMenuItem('users', 'ROLE_EMPLOYEE');
 
       expect(result).toBe(false);
     });
 
     it('should return true when user has one of multiple allowed roles', () => {
-      const result = hasAccessToMenuItem('approvals', 'ROLE_MANAGER');
+      const result = hasAccessToMenuItem('manage-expenses', 'ROLE_MANAGER');
 
       expect(result).toBe(true);
     });
