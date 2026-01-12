@@ -160,6 +160,22 @@ export async function deleteExpense(id: number): Promise<void> {
 }
 
 /**
+ * Approve an expense
+ */
+export async function approveExpense(id: number): Promise<Expense> {
+  const response = await api.patch<Expense>(`/api/expenses/${id}/approve`);
+  return response.data;
+}
+
+/**
+ * Reject an expense
+ */
+export async function rejectExpense(id: number): Promise<Expense> {
+  const response = await api.patch<Expense>(`/api/expenses/${id}/reject`);
+  return response.data;
+}
+
+/**
  * Fetch all expense categories for select dropdown
  */
 export async function getExpenseCategories(): Promise<ExpenseCategory[]> {

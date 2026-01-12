@@ -6,6 +6,7 @@ import { AnalyticsPage } from './pages/Analytics/AnalyticsPage';
 import { ApprovalsPage } from './pages/Approvals/ApprovalsPage';
 import { DashboardPage } from './pages/Dashboard/DashboardPage';
 import { ExpensesPage } from './pages/Expenses/ExpensesPage';
+import { ManageExpensesPage } from './pages/ManageExpenses/ManageExpensesPage';
 import { ExpensesReport } from './pages/ExpensesReport/ExpensesReport';
 import { LoginPage } from './pages/Login';
 import { ProfilePage } from './pages/Profile/ProfilePage';
@@ -36,6 +37,7 @@ function App() {
           <Route path='/dashboard' element={<DashboardPage />} />
           <Route path='/department' element={<DepartmentPage />} />
           <Route path='/expenses' element={<ExpensesPage />} />
+          <Route path='/manage-expenses' element={<ManageExpensesPage />} />
           <Route path='/expenses-report' element={<ExpensesReport />} />
           <Route path='/analytics' element={<AnalyticsPage />} />
           <Route path='/users' element={<UsersPage />} />
