@@ -1,6 +1,7 @@
 package com.ubs.expensemanager.controller;
 
 import com.ubs.expensemanager.dto.request.ExpenseCategoryCreateRequest;
+import com.ubs.expensemanager.dto.request.ExpenseCategoryFilterRequest;
 import com.ubs.expensemanager.dto.request.ExpenseCategoryUpdateRequest;
 import com.ubs.expensemanager.dto.response.ExpenseCategoryAuditResponse;
 import com.ubs.expensemanager.dto.response.ExpenseCategoryResponse;
@@ -83,21 +84,22 @@ public class ExpenseCategoryController {
     }
 
     /**
-     * Retrieves all registered expense categories.
+     * Retrieves all registered expense categories with optional filters.
      */
     @Operation(
             summary = "List all expense categories",
-            description = "Returns all registered expense categories"
+            description = "Returns all registered expense categories with optional name filtering"
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Categories retrieved successfully")
     })
     @GetMapping
     public ResponseEntity<Page<ExpenseCategoryResponse>> listAll(
+            @ModelAttribute ExpenseCategoryFilterRequest filters,
             @PageableDefault(size = 10, sort="name") @ParameterObject Pageable pageable
     ) {
-        log.info("Retrieving ExpenseCategories, page:{}, size:{}", pageable.getPageNumber(), pageable.getPageSize());
-        Page<ExpenseCategoryResponse> res = expenseCategoryService.listAll(pageable);
+        log.info("Retrieving ExpenseCategories with filters: {}, page:{}, size:{}", filters, pageable.getPageNumber(), pageable.getPageSize());
+        Page<ExpenseCategoryResponse> res = expenseCategoryService.listAll(filters, pageable);
         return ResponseEntity.ok(res);
     }
 

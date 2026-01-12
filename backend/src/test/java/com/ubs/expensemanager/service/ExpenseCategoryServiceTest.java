@@ -1,6 +1,7 @@
 package com.ubs.expensemanager.service;
 
 import com.ubs.expensemanager.dto.request.ExpenseCategoryCreateRequest;
+import com.ubs.expensemanager.dto.request.ExpenseCategoryFilterRequest;
 import com.ubs.expensemanager.dto.request.ExpenseCategoryUpdateRequest;
 import com.ubs.expensemanager.dto.response.ExpenseCategoryAuditResponse;
 import com.ubs.expensemanager.dto.response.ExpenseCategoryResponse;
@@ -172,11 +173,12 @@ class ExpenseCategoryServiceTest {
         Page<ExpenseCategory> page =
                 new PageImpl<>(categories, PageRequest.of(0, 10), categories.size());
 
-        when(expenseCategoryRepository.findAll(any(Pageable.class)))
+        when(expenseCategoryRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(Pageable.class)))
                 .thenReturn(page);
 
+        ExpenseCategoryFilterRequest filters = new ExpenseCategoryFilterRequest();
         Page<ExpenseCategoryResponse> result =
-                expenseCategoryService.listAll(PageRequest.of(0, 10));
+                expenseCategoryService.listAll(filters, PageRequest.of(0, 10));
 
         assertNotNull(result);
         assertEquals(2, result.getTotalElements());
@@ -184,7 +186,7 @@ class ExpenseCategoryServiceTest {
         assertEquals("Food", result.getContent().get(0).getName());
         assertEquals("Transport", result.getContent().get(1).getName());
 
-        verify(expenseCategoryRepository).findAll(any(Pageable.class));
+        verify(expenseCategoryRepository).findAll(any(org.springframework.data.jpa.domain.Specification.class), any(Pageable.class));
     }
 
     @Test
