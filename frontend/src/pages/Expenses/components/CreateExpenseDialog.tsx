@@ -282,8 +282,7 @@ export const CreateExpenseDialog = ({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Category */}
-          <div className="space-y-2">
+                    <div className="space-y-2">
             <Label htmlFor="expenseCategoryId" className="text-sm font-medium">
               Category <span className="text-red-600">*</span>
             </Label>
@@ -311,8 +310,7 @@ export const CreateExpenseDialog = ({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            {/* Currency */}
-            <div className="space-y-2">
+                        <div className="space-y-2">
               <Label htmlFor="currencyName" className="text-sm font-medium">
                 Currency <span className="text-red-600">*</span>
               </Label>
@@ -336,8 +334,7 @@ export const CreateExpenseDialog = ({
               )}
             </div>
 
-            {/* Amount */}
-            <div className="space-y-2">
+                        <div className="space-y-2">
               <Label htmlFor="amount" className="text-sm font-medium">
                 Amount <span className="text-red-600">*</span>
               </Label>
@@ -357,8 +354,7 @@ export const CreateExpenseDialog = ({
             </div>
           </div>
 
-          {/* Date */}
-          <div className="space-y-2">
+                    <div className="space-y-2">
             <Label htmlFor="expenseDate" className="text-sm font-medium">
               Date <span className="text-red-600">*</span>
             </Label>
@@ -375,8 +371,7 @@ export const CreateExpenseDialog = ({
             )}
           </div>
 
-          {/* Description */}
-          <div className="space-y-2">
+                    <div className="space-y-2">
             <Label htmlFor="description" className="text-sm font-medium">
               Description
             </Label>
@@ -402,8 +397,7 @@ export const CreateExpenseDialog = ({
             </div>
           </div>
 
-          {/* Receipt URL */}
-          <div className="space-y-2">
+                    <div className="space-y-2">
             <Label htmlFor="receiptUrl" className="text-sm font-medium">
               Receipt URL
             </Label>

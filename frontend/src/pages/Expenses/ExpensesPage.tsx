@@ -61,14 +61,12 @@ export const ExpensesPage = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
-  // Filters
   const [statusFilter, setStatusFilter] = useState<ExpenseStatus | "">("");
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const filterDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Dialogs
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [createErrorMessage, setCreateErrorMessage] = useState("");
   const [openCreateSuccessDialog, setOpenCreateSuccessDialog] = useState(false);
@@ -302,7 +300,6 @@ export const ExpensesPage = () => {
 
       <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          {/* Filters Dropdown */}
           <div className="relative" ref={filterDropdownRef}>
             <button
               type="button"
@@ -317,7 +314,6 @@ export const ExpensesPage = () => {
 
             {filterDropdownOpen && (
               <div className="absolute top-full left-0 mt-1 z-50 min-w-[280px] rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
-                {/* Status Section */}
                 <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
                   <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Filter by Status</span>
                 </div>
@@ -353,7 +349,6 @@ export const ExpensesPage = () => {
                   ))}
                 </div>
 
-                {/* Date Section */}
                 <div className="px-3 py-2 border-t border-gray-200 dark:border-gray-700">
                   <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Filter by Date</span>
                 </div>
@@ -418,7 +413,6 @@ export const ExpensesPage = () => {
         </div>
       )}
 
-      {/* Create Dialog */}
       <CreateExpenseDialog
         open={openCreateDialog}
         onOpenChange={setOpenCreateDialog}
@@ -437,7 +431,6 @@ export const ExpensesPage = () => {
         onConfirm={() => setOpenCreateSuccessDialog(false)}
       />
 
-      {/* Edit Dialog */}
       <EditExpenseDialog
         open={openEditDialog}
         onOpenChange={setOpenEditDialog}
@@ -457,7 +450,6 @@ export const ExpensesPage = () => {
         onConfirm={() => setOpenEditSuccessDialog(false)}
       />
 
-      {/* Delete Dialogs */}
       <ConfirmationDialog
         open={openDeleteDialog}
         onOpenChange={setOpenDeleteDialog}
