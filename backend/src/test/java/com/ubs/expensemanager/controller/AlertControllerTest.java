@@ -69,7 +69,7 @@ class AlertControllerTest {
                 .alertType("Category")
                 .alertMessage("Daily budget exceeded for category 'Food' on 2026-01-08")
                 .employeeName("John Doe")
-                .expenseStatus("PENDING")
+                .alertStatus("NEW")
                 .build();
 
         alertResponse = AlertResponse.builder()
@@ -106,7 +106,7 @@ class AlertControllerTest {
                 .andExpect(jsonPath("$.content[0].currencyName").value("USD"))
                 .andExpect(jsonPath("$.content[0].alertType").value("Category"))
                 .andExpect(jsonPath("$.content[0].employeeName").value("John Doe"))
-                .andExpect(jsonPath("$.content[0].expenseStatus").value("PENDING"));
+                .andExpect(jsonPath("$.content[0].alertStatus").value("NEW"));
 
         verify(alertService).findAllPaginated(any());
     }

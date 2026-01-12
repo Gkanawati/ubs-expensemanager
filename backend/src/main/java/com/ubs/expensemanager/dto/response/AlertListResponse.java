@@ -37,6 +37,6 @@ public class AlertListResponse {
     @Schema(description = "Employee name", example = "John Doe")
     private String employeeName;
 
-    @Schema(description = "Expense status", example = "PENDING")
-    private String expenseStatus;
+    @Schema(description = "Alert status", example = "NEW")
+    private String alertStatus;
 }
