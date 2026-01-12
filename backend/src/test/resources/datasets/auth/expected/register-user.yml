@@ -1,11 +1,11 @@
-PUBLIC.departments:
+PUBLIC.DEPARTMENTS:
   - id: 1
     name: "TI"
     daily_budget: 10.0
     monthly_budget: 10.0
     currency: "USD"
 
-PUBLIC.users:
+PUBLIC.USERS:
   - id: 1
     name: "Finance User"
     email: "finance@ubs.com"

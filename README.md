@@ -9,9 +9,9 @@ A **full-stack expense management system** designed for corporate employee reimb
 
 ```
     ┌──────────────┐     HTTP      ┌──────────────────┐     JDBC      ┌──────────────┐
-    │   Frontend   │ ──────────▶   │    Backend      │ ───────────▶  │   PostgreSQL │
+    │   Frontend   │ ──────────▶   │    Backend       │ ───────────▶  │   PostgreSQL │
     │ React + Vite │               │ Spring Boot API  │               │              │
-    │   :5173      │               │     :8080        │               │   :5432      │
+    │   :3000      │               │     :8080        │               │   :5432      │
     └──────────────┘               └──────────────────┘               └──────────────┘
 ```
 
@@ -36,31 +36,45 @@ expense-manager/
 │       │   │   └── com/ubs/expensemanager/
 │       │   │       ├── ExpenseManagerApplication.java  # Application entry point
 │       │   │       ├── config/      # Configuration classes (Security, CORS, etc.)
-│       │   │       ├── domain/      # Domain entities (future)
-│       │   │       ├── repository/  # JPA repositories (future)
-│       │   │       ├── service/     # Business logic (future)
-│       │   │       └── controller/  # REST controllers (future)
+│       │   │       ├── controller/  # REST controllers (User, Expense, Category, etc.)
+│       │   │       ├── dto/         # Data Transfer Objects
+│       │   │       ├── event/       # Application events
+│       │   │       ├── exception/   # Custom exceptions and handlers
+│       │   │       ├── mapper/      # Entity <-> DTO mappers
+│       │   │       ├── model/       # JPA entities (User, Expense, Department, etc.)
+│       │   │       ├── repository/  # Spring Data JPA repositories
+│       │   │       ├── security/    # JWT and authentication logic
+│       │   │       └── service/     # Business logic layer
 │       │   │
 │       │   └── resources/
 │       │       ├── application.yml  # Application configuration
-│       │       └── db/migration/    # Flyway migrations (V1__init.sql)
+│       │       └── db/migration/    # Flyway migrations
 │       │
 │       └── test/
-│           └── java/com/ubs/expensemanager/
-│               └── ExpenseManagerApplicationTests.java
+│           ├── java/com/ubs/expensemanager/  # Unit and integration tests
+│           └── resources/           # Test configurations and data
 │
 ├── frontend/                   # React + TypeScript frontend
 │   ├── Dockerfile               # Node.js container with Vite
 │   ├── package.json             # Dependencies and scripts
 │   ├── tsconfig.json            # TypeScript configuration
 │   ├── vite.config.ts           # Vite configuration
+│   ├── playwright.config.ts     # Playwright E2E test configuration
 │   └── src/
 │       ├── main.tsx              # React bootstrap
 │       ├── App.tsx               # Root component
-│       ├── pages/                # Application pages (login, expenses, etc.)
-│       ├── components/           # Reusable UI components
-│       ├── services/             # API communication layer (future)
-│       └── styles/               # Global styles
+│       ├── api/                  # API client services
+│       ├── components/           # Reusable UI components (DataTable, Dialogs, etc.)
+│       ├── config/               # Application configuration
+│       ├── hooks/                # Custom React hooks
+│       ├── lib/                  # Utility libraries
+│       ├── pages/                # Application pages (Dashboard, Expenses, Users, etc.)
+│       ├── services/             # Business logic and API communication
+│       ├── types/                # TypeScript type definitions
+│       └── utils/                # Helper functions
+│   └── test/
+│       ├── e2e/                  # Playwright end-to-end tests
+│       └── unit/                 # Vitest unit tests
 │
 ├── docker-compose.yml           # Container orchestration
 ├── .gitignore                   # Git ignored files
@@ -77,7 +91,7 @@ The project runs **entirely inside Docker containers**. There is **no need to in
 
 | Service  | Port | Description             |
 | -------- | ---- | ----------------------- |
-| frontend | 5173 | React + Vite dev server |
+| frontend | 3000 | React + Vite dev server |
 | backend  | 8080 | Spring Boot REST API    |
 | db       | 5432 | PostgreSQL database     |
 
@@ -98,30 +112,96 @@ docker compose up --build
 
 Once started:
 
-* Frontend: [http://localhost:5173](http://localhost:5173)
-* Backend: [http://localhost:8080](http://localhost:8080)
+* Frontend: [http://localhost:3000](http://localhost:3000)
+* Backend API: [http://localhost:8080](http://localhost:8080)
+* Swagger Documentation: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
 
 ---
 
-## Authentication (Current State)
+## 🔐 Authentication & Authorization
 
-The backend uses **Spring Security default configuration (development mode)**.
+The application implements **JWT-based authentication** with role-based access control (RBAC).
 
-* A default user is automatically generated on startup.
-* The generated password is printed in the backend logs:
+### Authentication Flow
 
-```text
-Using generated security password: <password>
-```
+1. **Registration**: `POST /api/auth/register` - Create a new user account
+2. **Login**: `POST /api/auth/login` - Authenticate with email/password and receive JWT token
+3. **Logout**: `POST /api/auth/logout` - Clear authentication cookie
 
-### Temporary credentials
+The JWT token is returned in the response body and also set as an **HttpOnly cookie** for enhanced security.
 
-| Field    | Value                |
-| -------- | -------------------- |
-| Username | `user`               |
-| Password | generated at startup |
+### User Roles
 
-This authentication mechanism is **temporary** and will be replaced by fixed mock users and later by JWT-based authentication.
+| Role       | Description                                    | Permissions                                    |
+|------------|------------------------------------------------|------------------------------------------------|
+| `EMPLOYEE` | Regular employee who submits expense claims    | Create and view own expenses                   |
+| `MANAGER`  | Department manager who approves expenses       | Approve/reject expenses, view team reports     |
+| `FINANCE`  | Finance team member with full system access    | Manage users, categories, view all reports     |
+
+### Security Features
+
+* **JWT Token**: Stateless authentication with configurable expiration
+* **Password Encryption**: BCrypt hashing for secure password storage
+* **HttpOnly Cookies**: Protection against XSS attacks
+* **CORS Configuration**: Controlled cross-origin access
+* **Role-based Authorization**: Method-level security with `@PreAuthorize`
+* **Public Endpoints**: Swagger, authentication endpoints accessible without token
+
+### Default Users
+
+The application creates **4 default users** automatically on startup. All users share the same password: `123456`
+
+| Email               | Password | Role       | Description          |
+|---------------------|----------|------------|----------------------|
+| finance@ubs.com     | 123456   | FINANCE    | Finance team member  |
+| manager@ubs.com     | 123456   | MANAGER    | Department manager   |
+| employee@ubs.com    | 123456   | EMPLOYEE   | Employee One         |
+| employee2@ubs.com   | 123456   | EMPLOYEE   | Employee Two         |
+
+**Quick Start:**
+1. Access the frontend at [http://localhost:3000](http://localhost:3000)
+2. Login with any of the default users above
+3. Finance users can create additional users via the User Management page
+
+---
+
+##  API Documentation
+
+The project includes **interactive API documentation** powered by Swagger/OpenAPI:
+
+* **Swagger UI**: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+* **OpenAPI Spec**: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+
+You can explore and test all available endpoints directly from the Swagger interface.
+
+---
+
+##  CI/CD Pipeline
+
+The project implements a **comprehensive CI/CD pipeline** using GitHub Actions that runs automatically on:
+* Push to `dev` branch
+* Pull requests to `dev` or `main` branches
+
+### Pipeline Stages
+
+**Backend (Spring Boot)**
+* Setup JDK 21 (Temurin distribution)
+* Maven cache optimization
+* Build and run all unit & integration tests (`mvn clean verify`)
+
+**Frontend (React + TypeScript)**
+* Setup Node.js 20
+* Install dependencies with npm cache
+* Run ESLint for code quality
+* Execute unit tests with Vitest
+* Run E2E tests with Playwright (Chromium)
+* Build production bundle
+
+**Docker**
+* Validate Docker image builds for both frontend and backend
+* Runs only after successful backend and frontend tests
+
+All tests must pass before code can be merged, ensuring code quality and preventing regressions.
 
 ---
 
@@ -130,20 +210,12 @@ This authentication mechanism is **temporary** and will be replaced by fixed moc
 ✔ Infrastructure ready
 ✔ Dockerized frontend and backend
 ✔ Database versioning with Flyway
-✔ Backend starts correctly
-✔ Frontend starts correctly
-❌ Frontend ↔ Backend integration (in progress)
-❌ Business logic implementation (in progress)
-
----
-
-##  Planned Next Steps
-
-* Introduce fixed mock users (employee / manager / finance)
-* Implement API-based authentication (JWT)
-* Create CRUD for employees and expenses
-* Implement approval workflows
-* Add reporting and dashboards
-* Enable CI/CD with merge validation
+✔ JWT-based authentication implemented
+✔ CRUD operations for users, expenses, and categories
+✔ Role-based access control (Employee, Manager, Finance)
+✔ Approval workflows
+✔ Comprehensive test coverage (unit + E2E)
+✔ CI/CD pipeline with automated testing
+✔ API documentation with Swagger
 
 ---

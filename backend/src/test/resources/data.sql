@@ -1,0 +1,1 @@
+INSERT INTO departments (id, name, daily_budget, monthly_budget, currency) VALUES (1, 'TI', 10.0, 10.0, 'USD');
