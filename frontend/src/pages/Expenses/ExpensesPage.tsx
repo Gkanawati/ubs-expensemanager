@@ -1,26 +1,23 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, Edit, Trash2, CheckCircle, AlertCircle, Filter } from "lucide-react";
+import { Plus, CheckCircle, Filter, History } from "lucide-react";
 import { ActionButton } from "@/components/ui/ActionButton";
 import { DataTable, ColumnDef, RowAction } from "@/components/DataTable";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { TablePagination } from "@/components/Pagination";
 import { DatePicker } from "@/components/ui/date-picker";
 import { getErrorMessage } from "@/types/api-error";
-import { formatCurrency, formatDate } from "@/utils/validation";
+import { formatDate } from "@/utils/validation";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Expense,
   ExpenseStatus,
   CreateExpensePayload,
-  UpdateExpensePayload,
   ExpenseFilters,
   getExpenses,
   createExpense,
-  updateExpense,
-  deleteExpense,
 } from "@/api/expense.api";
 import { CreateExpenseDialog } from "./components/CreateExpenseDialog";
-import { EditExpenseDialog } from "./components/EditExpenseDialog";
+import { ExpenseHistoryDialog } from "./components/ExpenseHistoryDialog";
 
 const STATUS_COLORS: Record<ExpenseStatus, string> = {
   PENDING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
@@ -57,16 +54,8 @@ export const ExpensesPage = () => {
   const [createErrorMessage, setCreateErrorMessage] = useState("");
   const [openCreateSuccessDialog, setOpenCreateSuccessDialog] = useState(false);
 
-  const [openEditDialog, setOpenEditDialog] = useState(false);
-  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
-  const [editErrorMessage, setEditErrorMessage] = useState("");
-  const [openEditSuccessDialog, setOpenEditSuccessDialog] = useState(false);
-
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
-  const [openDeleteSuccessDialog, setOpenDeleteSuccessDialog] = useState(false);
-  const [openDeleteErrorDialog, setOpenDeleteErrorDialog] = useState(false);
-  const [deleteErrorMessage, setDeleteErrorMessage] = useState("");
+  const [openHistoryDialog, setOpenHistoryDialog] = useState(false);
+  const [historyExpenseId, setHistoryExpenseId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchExpenses();
@@ -144,48 +133,9 @@ export const ExpensesPage = () => {
     }
   };
 
-  const handleEditExpense = async (data: UpdateExpensePayload) => {
-    if (!selectedExpense) return;
-
-    try {
-      await updateExpense(selectedExpense.id, data);
-      setOpenEditDialog(false);
-      setEditErrorMessage("");
-      await fetchExpenses();
-      setOpenEditSuccessDialog(true);
-    } catch (err) {
-      const errorMsg = getErrorMessage(err);
-      setEditErrorMessage(errorMsg);
-      console.error("Error updating expense:", err);
-    }
-  };
-
-  const handleDeleteClick = (expense: Expense) => {
-    setExpenseToDelete(expense);
-    setOpenDeleteDialog(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!expenseToDelete) return;
-
-    try {
-      await deleteExpense(expenseToDelete.id);
-      setOpenDeleteDialog(false);
-      await fetchExpenses();
-      setOpenDeleteSuccessDialog(true);
-    } catch (err) {
-      setOpenDeleteDialog(false);
-      const errorMsg = getErrorMessage(err);
-      setDeleteErrorMessage(errorMsg);
-      setOpenDeleteErrorDialog(true);
-      console.error("Error deleting expense:", err);
-    }
-  };
-
-  const handleEdit = (expense: Expense) => {
-    setSelectedExpense(expense);
-    setEditErrorMessage("");
-    setOpenEditDialog(true);
+  const handleHistoryClick = (expense: Expense) => {
+    setHistoryExpenseId(expense.id);
+    setOpenHistoryDialog(true);
   };
 
   const handlePageChange = (page: number) => {
@@ -195,14 +145,6 @@ export const ExpensesPage = () => {
   const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value as ExpenseStatus | "");
     setCurrentPage(1);
-  };
-
-  const canEdit = (expense: Expense): boolean => {
-    return expense.status === "PENDING" || expense.status === "REQUIRES_REVISION";
-  };
-
-  const canDelete = (expense: Expense): boolean => {
-    return expense.status === "PENDING";
   };
 
   const columns: ColumnDef<Expense>[] = [
@@ -259,18 +201,10 @@ export const ExpensesPage = () => {
 
   const actions: RowAction<Expense>[] = [
     {
-      label: "Edit",
-      icon: <Edit className="h-4 w-4" />,
-      onClick: handleEdit,
+      label: "History",
+      icon: <History className="h-4 w-4" />,
+      onClick: handleHistoryClick,
       color: "blue",
-      shouldShow: canEdit,
-    },
-    {
-      label: "Delete",
-      icon: <Trash2 className="h-4 w-4" />,
-      onClick: handleDeleteClick,
-      color: "red",
-      shouldShow: canDelete,
     },
   ];
 
@@ -336,8 +270,20 @@ export const ExpensesPage = () => {
                   ))}
                 </div>
 
-                <div className="px-3 py-2 border-t border-gray-200 dark:border-gray-700">
+                <div className="px-3 py-2 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
                   <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Filter by Date</span>
+                  {(startDate || endDate) && (
+                    <button
+                      onClick={() => {
+                        setStartDate(undefined);
+                        setEndDate(undefined);
+                        setCurrentPage(1);
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium cursor-pointer"
+                    >
+                      Clear dates
+                    </button>
+                  )}
                 </div>
                 <div className="px-3 py-2 space-y-3">
                   <div className="space-y-1">
@@ -418,60 +364,10 @@ export const ExpensesPage = () => {
         onConfirm={() => setOpenCreateSuccessDialog(false)}
       />
 
-      <EditExpenseDialog
-        open={openEditDialog}
-        onOpenChange={setOpenEditDialog}
-        onSubmit={handleEditExpense}
-        expense={selectedExpense}
-        error={editErrorMessage}
-      />
-
-      <ConfirmationDialog
-        open={openEditSuccessDialog}
-        onOpenChange={setOpenEditSuccessDialog}
-        title="Expense Updated"
-        description="Your expense has been updated successfully."
-        confirmText="Done"
-        variant="success"
-        icon={<CheckCircle className="h-6 w-6 text-green-600" />}
-        onConfirm={() => setOpenEditSuccessDialog(false)}
-      />
-
-      <ConfirmationDialog
-        open={openDeleteDialog}
-        onOpenChange={setOpenDeleteDialog}
-        title="Delete Expense"
-        description={`Are you sure you want to delete this expense of ${
-          expenseToDelete
-            ? formatCurrency(expenseToDelete.amount, expenseToDelete.currencyName)
-            : ""
-        }?`}
-        confirmText="Delete"
-        variant="danger"
-        icon={<AlertCircle className="h-6 w-6 text-red-600" />}
-        onConfirm={handleConfirmDelete}
-      />
-
-      <ConfirmationDialog
-        open={openDeleteSuccessDialog}
-        onOpenChange={setOpenDeleteSuccessDialog}
-        title="Expense Deleted"
-        description="The expense has been deleted successfully."
-        confirmText="Done"
-        variant="success"
-        icon={<CheckCircle className="h-6 w-6 text-green-600" />}
-        onConfirm={() => setOpenDeleteSuccessDialog(false)}
-      />
-
-      <ConfirmationDialog
-        open={openDeleteErrorDialog}
-        onOpenChange={setOpenDeleteErrorDialog}
-        title="Error Deleting Expense"
-        description={deleteErrorMessage}
-        confirmText="Close"
-        variant="danger"
-        icon={<AlertCircle className="h-6 w-6 text-red-600" />}
-        onConfirm={() => setOpenDeleteErrorDialog(false)}
+      <ExpenseHistoryDialog
+        open={openHistoryDialog}
+        onOpenChange={setOpenHistoryDialog}
+        expenseId={historyExpenseId}
       />
     </div>
   );

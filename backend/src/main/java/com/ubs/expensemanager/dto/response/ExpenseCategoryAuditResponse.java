@@ -42,4 +42,7 @@ public class ExpenseCategoryAuditResponse {
 
     @Schema(description = "Revision timestamp", example = "2026-01-08T10:30:00")
     private LocalDateTime revisionDate;
+
+    @Schema(description = "Email of the user who made this revision", example = "john.doe@ubs.com")
+    private String revisionUserEmail;
 }

@@ -12,6 +12,7 @@ import com.ubs.expensemanager.exception.ResourceNotFoundException;
 import com.ubs.expensemanager.exception.UnauthorizedExpenseAccessException;
 import com.ubs.expensemanager.mapper.ExpenseMapper;
 import com.ubs.expensemanager.model.*;
+import com.ubs.expensemanager.model.audit.CustomRevisionEntity;
 import com.ubs.expensemanager.repository.CurrencyRepository;
 import com.ubs.expensemanager.repository.ExpenseCategoryRepository;
 import com.ubs.expensemanager.repository.ExpenseRepository;
@@ -427,8 +428,10 @@ public class ExpenseService {
         return results.stream()
                 .map(result -> {
                     Expense entity = (Expense) result[0];
-                    Number revNumber = (Number) ((org.hibernate.envers.DefaultRevisionEntity) result[1]).getId();
-                    long revTimestamp = ((org.hibernate.envers.DefaultRevisionEntity) result[1]).getTimestamp();
+                    CustomRevisionEntity revEntity = (CustomRevisionEntity) result[1];
+                    Number revNumber = revEntity.getId();
+                    long revTimestamp = revEntity.getTimestamp();
+                    String revUserEmail = revEntity.getUserEmail();
                     RevisionType revType = (RevisionType) result[2];
 
                     return ExpenseAuditResponse.builder()
@@ -448,6 +451,7 @@ public class ExpenseService {
                             .revisionType((short) revType.ordinal())
                             .revisionDate(java.time.LocalDateTime.ofInstant(
                                     Instant.ofEpochMilli(revTimestamp), ZoneId.systemDefault()))
+                            .revisionUserEmail(revUserEmail)
                             .build();
                 })
                 .collect(Collectors.toList());
