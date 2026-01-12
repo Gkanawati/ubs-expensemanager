@@ -25,7 +25,7 @@ import {
 interface EditExpenseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: UpdateExpensePayload) => void;
+  onSubmit: (data: UpdateExpensePayload) => Promise<void>;
   expense: Expense | null;
   error?: string;
 }

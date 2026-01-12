@@ -24,7 +24,7 @@ import {
 interface CreateExpenseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: CreateExpensePayload) => void;
+  onSubmit: (data: CreateExpensePayload) => Promise<void>;
   error?: string;
 }
 

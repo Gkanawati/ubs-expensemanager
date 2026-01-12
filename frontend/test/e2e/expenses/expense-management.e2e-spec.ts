@@ -1,4 +1,11 @@
 import { test, expect, Page } from '@playwright/test';
+import type {
+  Expense,
+  ExpenseCategory,
+  Currency,
+  CreateExpensePayload,
+  UpdateExpensePayload,
+} from '@/api/expense.api';
 
 /**
  * E2E Test: Expense Management Full Workflow
@@ -10,42 +17,9 @@ import { test, expect, Page } from '@playwright/test';
  * 4. Filter expenses by status and date
  */
 
-interface Expense {
-  id: number;
-  amount: number;
-  description: string | null;
-  expenseDate: string;
-  userId: number;
-  userName: string;
-  userEmail: string;
-  expenseCategoryId: number;
-  expenseCategoryName: string;
-  currencyName: string;
-  exchangeRate: number;
-  receiptUrl: string | null;
-  status: 'PENDING' | 'APPROVED_BY_MANAGER' | 'APPROVED_BY_FINANCE' | 'REJECTED' | 'REQUIRES_REVISION';
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface Category {
-  id: number;
-  name: string;
-  dailyBudget: number;
-  monthlyBudget: number;
-  currencyName: string;
-  exchangeRate: number;
-}
-
-interface Currency {
-  id: number;
-  name: string;
-  exchangeRate: number;
-}
-
 // Generate unique test data for each test run
 const timestamp = Date.now();
-const testExpense = {
+const testExpense: CreateExpensePayload = {
   amount: 150.0,
   description: `Test Expense ${timestamp}`,
   expenseDate: '2026-01-10',
@@ -53,7 +27,7 @@ const testExpense = {
   currencyName: 'USD',
 };
 
-const updatedExpense = {
+const updatedExpense: UpdateExpensePayload = {
   amount: 250.5,
   description: `Updated Expense ${timestamp}`,
   expenseDate: '2026-01-09',
@@ -62,7 +36,7 @@ const updatedExpense = {
 };
 
 // Mock data for categories and currencies
-const mockCategories: Category[] = [
+const mockCategories: ExpenseCategory[] = [
   { id: 1, name: 'Travel', dailyBudget: 100, monthlyBudget: 3000, currencyName: 'USD', exchangeRate: 1 },
   { id: 2, name: 'Meals', dailyBudget: 50, monthlyBudget: 1000, currencyName: 'USD', exchangeRate: 1 },
   { id: 3, name: 'Office Supplies', dailyBudget: 30, monthlyBudget: 500, currencyName: 'USD', exchangeRate: 1 },
@@ -154,7 +128,7 @@ async function setupExpenseManagementMocks(page: Page) {
   // Mock create expense
   await page.route('**/api/expenses', async (route) => {
     if (route.request().method() === 'POST') {
-      const requestData = route.request().postDataJSON();
+      const requestData = route.request().postDataJSON() as CreateExpensePayload;
       const category = mockCategories.find((c) => c.id === requestData.expenseCategoryId);
       const currency = mockCurrencies.find((c) => c.name === requestData.currencyName);
 
@@ -193,7 +167,7 @@ async function setupExpenseManagementMocks(page: Page) {
     const expenseId = parseInt(route.request().url().split('/').pop() || '0');
 
     if (route.request().method() === 'PUT') {
-      const requestData = route.request().postDataJSON();
+      const requestData = route.request().postDataJSON() as UpdateExpensePayload;
       const expenseIndex = expenses.findIndex((e) => e.id === expenseId);
 
       if (expenseIndex >= 0) {
