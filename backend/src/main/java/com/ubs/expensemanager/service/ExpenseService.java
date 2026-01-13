@@ -5,22 +5,25 @@ import com.ubs.expensemanager.dto.request.ExpenseFilterRequest;
 import com.ubs.expensemanager.dto.request.ExpenseUpdateRequest;
 import com.ubs.expensemanager.dto.response.ExpenseAuditResponse;
 import com.ubs.expensemanager.dto.response.ExpenseResponse;
-import com.ubs.expensemanager.event.BudgetExceededEvent;
-import com.ubs.expensemanager.event.EventPublisher;
 import com.ubs.expensemanager.exception.InvalidStatusTransitionException;
 import com.ubs.expensemanager.exception.ResourceNotFoundException;
 import com.ubs.expensemanager.exception.UnauthorizedExpenseAccessException;
 import com.ubs.expensemanager.mapper.ExpenseMapper;
-import com.ubs.expensemanager.model.*;
+import com.ubs.expensemanager.model.Currency;
+import com.ubs.expensemanager.model.Expense;
+import com.ubs.expensemanager.model.ExpenseCategory;
+import com.ubs.expensemanager.model.ExpenseStatus;
+import com.ubs.expensemanager.model.User;
+import com.ubs.expensemanager.model.UserRole;
 import com.ubs.expensemanager.model.audit.CustomRevisionEntity;
 import com.ubs.expensemanager.repository.CurrencyRepository;
 import com.ubs.expensemanager.repository.ExpenseCategoryRepository;
 import com.ubs.expensemanager.repository.ExpenseRepository;
 import com.ubs.expensemanager.repository.specification.ExpenseSpecifications;
-import com.ubs.expensemanager.service.budget.BudgetValidationStrategy;
 import com.ubs.expensemanager.service.budget.CategoryBudgetValidationStrategy;
 import com.ubs.expensemanager.service.budget.DepartmentBudgetValidationStrategy;
 import jakarta.persistence.EntityManager;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
@@ -36,10 +39,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.YearMonth;
 
 /**
  * Service responsible for handling business logic related to Expenses.
@@ -57,7 +56,6 @@ public class ExpenseService {
     private final CurrencyRepository currencyRepository;
     private final ExpenseMapper expenseMapper;
     private final EntityManager entityManager;
-    private final EventPublisher eventPublisher;
     private final CategoryBudgetValidationStrategy categoryBudgetValidationStrategy;
     private final DepartmentBudgetValidationStrategy departmentBudgetValidationStrategy;
 
