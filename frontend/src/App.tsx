@@ -6,12 +6,14 @@ import { AnalyticsPage } from './pages/Analytics/AnalyticsPage';
 import { ApprovalsPage } from './pages/Approvals/ApprovalsPage';
 import { DashboardPage } from './pages/Dashboard/DashboardPage';
 import { ExpensesPage } from './pages/Expenses/ExpensesPage';
+import { ManageExpensesPage } from './pages/ManageExpenses/ManageExpensesPage';
 import { ExpensesReport } from './pages/ExpensesReport/ExpensesReport';
 import { LoginPage } from './pages/Login';
 import { ProfilePage } from './pages/Profile/ProfilePage';
 import { UsersPage } from './pages/Users/UsersPage';
 import { DepartmentPage } from './pages/Department';
 import { CategoriesPage } from './pages/Categories/CategoryPage';
+import { AlertsPage } from './pages/Alerts/AlertsPage';
 
 function App() {
   return (
@@ -36,11 +38,13 @@ function App() {
           <Route path='/dashboard' element={<DashboardPage />} />
           <Route path='/department' element={<DepartmentPage />} />
           <Route path='/expenses' element={<ExpensesPage />} />
+          <Route path='/manage-expenses' element={<ManageExpensesPage />} />
           <Route path='/expenses-report' element={<ExpensesReport />} />
           <Route path='/analytics' element={<AnalyticsPage />} />
           <Route path='/users' element={<UsersPage />} />
           <Route path='/profile' element={<ProfilePage />} />
           <Route path='/category' element={<CategoriesPage />} />
+          <Route path='/alert' element={<AlertsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

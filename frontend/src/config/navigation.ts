@@ -25,25 +25,11 @@ export const navigationConfig: MenuItem[] = [
     allowedRoles: ['ROLE_MANAGER', 'ROLE_EMPLOYEE', 'ROLE_FINANCE'],
   },
   {
-    id: 'expenses-report',
-    label: 'Expenses Report',
-    path: '/expenses-report',
-    icon: 'ChartBar',
-    allowedRoles: ['ROLE_MANAGER', 'ROLE_EMPLOYEE', 'ROLE_FINANCE'],
-  },
-  {
-    id: 'approvals',
-    label: 'Approvals',
-    path: '/approvals',
-    icon: 'CheckSquare',
+    id: 'manage-expenses',
+    label: 'Manage Expenses',
+    path: '/manage-expenses',
+    icon: 'FileCheck',
     allowedRoles: ['ROLE_MANAGER', 'ROLE_FINANCE'],
-  },
-  {
-    id: 'analytics',
-    label: 'Analytics',
-    path: '/analytics',
-    icon: 'TrendingUp',
-    allowedRoles: ['ROLE_FINANCE'],
   },
   {
     id: 'department',
@@ -65,7 +51,14 @@ export const navigationConfig: MenuItem[] = [
     path: '/category',
     icon: 'ClipboardPenLine',
    allowedRoles: ['ROLE_FINANCE'],
-  }
+  },
+  {
+    id: 'alert',
+    label: 'Alert Management',
+    path: '/alert',
+    icon: 'TriangleAlert',
+   allowedRoles: ['ROLE_FINANCE'],
+  },
 ];
 
 export const getMenuItemsForRole = (userRole: UserRole): MenuItem[] => {

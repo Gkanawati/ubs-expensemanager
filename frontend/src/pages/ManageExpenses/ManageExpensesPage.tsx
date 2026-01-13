@@ -1,23 +1,21 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, CheckCircle, Filter, History } from "lucide-react";
-import { ActionButton } from "@/components/ui/ActionButton";
+import { Check, X, CheckCircle, AlertCircle, Filter, History } from "lucide-react";
 import { DataTable, ColumnDef, RowAction } from "@/components/DataTable";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { TablePagination } from "@/components/Pagination";
 import { DatePicker } from "@/components/ui/date-picker";
 import { getErrorMessage } from "@/types/api-error";
-import { formatDate } from "@/utils/validation";
+import { formatCurrency } from "@/utils/validation";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Expense,
   ExpenseStatus,
-  CreateExpensePayload,
   ExpenseFilters,
   getExpenses,
-  createExpense,
+  approveExpense,
+  rejectExpense,
 } from "@/api/expense.api";
-import { CreateExpenseDialog } from "./components/CreateExpenseDialog";
-import { ExpenseHistoryDialog } from "./components/ExpenseHistoryDialog";
+import { ExpenseHistoryDialog } from "../Expenses/components/ExpenseHistoryDialog";
 
 const STATUS_COLORS: Record<ExpenseStatus, string> = {
   PENDING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
@@ -35,7 +33,7 @@ const STATUS_LABELS: Record<ExpenseStatus, string> = {
   REQUIRES_REVISION: "Needs Revision",
 };
 
-export const ExpensesPage = () => {
+export const ManageExpensesPage = () => {
   const { user } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,9 +48,17 @@ export const ExpensesPage = () => {
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const filterDropdownRef = useRef<HTMLDivElement>(null);
 
-  const [openCreateDialog, setOpenCreateDialog] = useState(false);
-  const [createErrorMessage, setCreateErrorMessage] = useState("");
-  const [openCreateSuccessDialog, setOpenCreateSuccessDialog] = useState(false);
+  const [openApproveDialog, setOpenApproveDialog] = useState(false);
+  const [expenseToApprove, setExpenseToApprove] = useState<Expense | null>(null);
+  const [openApproveSuccessDialog, setOpenApproveSuccessDialog] = useState(false);
+  const [openApproveErrorDialog, setOpenApproveErrorDialog] = useState(false);
+  const [approveErrorMessage, setApproveErrorMessage] = useState("");
+
+  const [openRejectDialog, setOpenRejectDialog] = useState(false);
+  const [expenseToReject, setExpenseToReject] = useState<Expense | null>(null);
+  const [openRejectSuccessDialog, setOpenRejectSuccessDialog] = useState(false);
+  const [openRejectErrorDialog, setOpenRejectErrorDialog] = useState(false);
+  const [rejectErrorMessage, setRejectErrorMessage] = useState("");
 
   const [openHistoryDialog, setOpenHistoryDialog] = useState(false);
   const [historyExpenseId, setHistoryExpenseId] = useState<number | null>(null);
@@ -99,7 +105,7 @@ export const ExpensesPage = () => {
       if (statusFilter) filters.status = statusFilter;
       if (startDate) filters.startDate = startDate.toISOString().split("T")[0];
       if (endDate) filters.endDate = endDate.toISOString().split("T")[0];
-      if (user?.id) filters.userId = user.id;
+      // Note: Not filtering by userId to get all expenses
 
       const response = await getExpenses({
         page: currentPage - 1,
@@ -119,23 +125,48 @@ export const ExpensesPage = () => {
     }
   };
 
-  const handleCreateExpense = async (data: CreateExpensePayload) => {
+  const handleApproveClick = (expense: Expense) => {
+    setExpenseToApprove(expense);
+    setOpenApproveDialog(true);
+  };
+
+  const handleConfirmApprove = async () => {
+    if (!expenseToApprove) return;
+
     try {
-      await createExpense(data);
-      setOpenCreateDialog(false);
-      setCreateErrorMessage("");
+      await approveExpense(expenseToApprove.id);
+      setOpenApproveDialog(false);
       await fetchExpenses();
-      setOpenCreateSuccessDialog(true);
+      setOpenApproveSuccessDialog(true);
     } catch (err) {
+      setOpenApproveDialog(false);
       const errorMsg = getErrorMessage(err);
-      setCreateErrorMessage(errorMsg);
-      console.error("Error creating expense:", err);
+      setApproveErrorMessage(errorMsg);
+      setOpenApproveErrorDialog(true);
+      console.error("Error approving expense:", err);
     }
   };
 
-  const handleHistoryClick = (expense: Expense) => {
-    setHistoryExpenseId(expense.id);
-    setOpenHistoryDialog(true);
+  const handleRejectClick = (expense: Expense) => {
+    setExpenseToReject(expense);
+    setOpenRejectDialog(true);
+  };
+
+  const handleConfirmReject = async () => {
+    if (!expenseToReject) return;
+
+    try {
+      await rejectExpense(expenseToReject.id);
+      setOpenRejectDialog(false);
+      await fetchExpenses();
+      setOpenRejectSuccessDialog(true);
+    } catch (err) {
+      setOpenRejectDialog(false);
+      const errorMsg = getErrorMessage(err);
+      setRejectErrorMessage(errorMsg);
+      setOpenRejectErrorDialog(true);
+      console.error("Error rejecting expense:", err);
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -147,11 +178,23 @@ export const ExpensesPage = () => {
     setCurrentPage(1);
   };
 
+  const handleHistoryClick = (expense: Expense) => {
+    setHistoryExpenseId(expense.id);
+    setOpenHistoryDialog(true);
+  };
+
   const columns: ColumnDef<Expense>[] = [
+    {
+      key: "userName",
+      label: "User",
+    },
     {
       key: "expenseDate",
       label: "Date",
-      render: (row) => formatDate(row.expenseDate),
+      render: (row) => {
+        const date = new Date(row.expenseDate);
+        return date.toLocaleDateString();
+      },
     },
     {
       key: "expenseCategoryName",
@@ -206,16 +249,50 @@ export const ExpensesPage = () => {
       onClick: handleHistoryClick,
       color: "blue",
     },
+    {
+      label: "Approve",
+      icon: <Check className="h-4 w-4" />,
+      onClick: handleApproveClick,
+      color: "green",
+      shouldShow: (expense) => {
+        // Hide if already approved by finance
+        if (expense.status === "APPROVED_BY_FINANCE") return false;
+        // Hide if rejected
+        if (expense.status === "REJECTED") return false;
+        // Hide if user is manager and already approved by manager
+        if (user?.role === "ROLE_MANAGER" && expense.status === "APPROVED_BY_MANAGER") return false;
+        // Hide if user is finance and status is still pending (needs manager approval first)
+        if (user?.role === "ROLE_FINANCE" && expense.status === "PENDING") return false;
+        return true;
+      },
+    },
+    {
+      label: "Reject",
+      icon: <X className="h-4 w-4" />,
+      onClick: handleRejectClick,
+      color: "red",
+      shouldShow: (expense) => {
+        // Hide if already approved by finance
+        if (expense.status === "APPROVED_BY_FINANCE") return false;
+        // Hide if rejected
+        if (expense.status === "REJECTED") return false;
+        // Hide if user is manager and already approved by manager
+        if (user?.role === "ROLE_MANAGER" && expense.status === "APPROVED_BY_MANAGER") return false;
+        // Hide if user is finance and status is still pending (needs manager approval first)
+        if (user?.role === "ROLE_FINANCE" && expense.status === "PENDING") return false;
+        return true;
+      },
+    },
   ];
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          My Expenses
+          Manage Expenses
         </h1>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          View and manage your expense submissions
+          Review and manage all employee expense submissions
         </p>
       </div>
 
@@ -315,15 +392,6 @@ export const ExpensesPage = () => {
               </div>
             )}
           </div>
-
-          <ActionButton
-            label="Add New Expense"
-            icon={<Plus className="h-4 w-4" />}
-            onClick={() => {
-              setCreateErrorMessage("");
-              setOpenCreateDialog(true);
-            }}
-          />
         </div>
       </div>
 
@@ -346,22 +414,78 @@ export const ExpensesPage = () => {
         </div>
       )}
 
-      <CreateExpenseDialog
-        open={openCreateDialog}
-        onOpenChange={setOpenCreateDialog}
-        onSubmit={handleCreateExpense}
-        error={createErrorMessage}
+      <ConfirmationDialog
+        open={openApproveDialog}
+        onOpenChange={setOpenApproveDialog}
+        title="Approve Expense"
+        description={`Are you sure you want to approve this expense of ${
+          expenseToApprove
+            ? formatCurrency(expenseToApprove.amount, expenseToApprove.currencyName)
+            : ""
+        }?`}
+        confirmText="Approve"
+        variant="success"
+        icon={<CheckCircle className="h-6 w-6 text-green-600" />}
+        onConfirm={handleConfirmApprove}
       />
 
       <ConfirmationDialog
-        open={openCreateSuccessDialog}
-        onOpenChange={setOpenCreateSuccessDialog}
-        title="Expense Created"
-        description="Your expense has been submitted successfully."
+        open={openApproveSuccessDialog}
+        onOpenChange={setOpenApproveSuccessDialog}
+        title="Expense Approved"
+        description="The expense has been approved successfully."
         confirmText="Done"
         variant="success"
         icon={<CheckCircle className="h-6 w-6 text-green-600" />}
-        onConfirm={() => setOpenCreateSuccessDialog(false)}
+        onConfirm={() => setOpenApproveSuccessDialog(false)}
+      />
+
+      <ConfirmationDialog
+        open={openApproveErrorDialog}
+        onOpenChange={setOpenApproveErrorDialog}
+        title="Error Approving Expense"
+        description={approveErrorMessage}
+        confirmText="Close"
+        variant="danger"
+        icon={<AlertCircle className="h-6 w-6 text-red-600" />}
+        onConfirm={() => setOpenApproveErrorDialog(false)}
+      />
+
+      <ConfirmationDialog
+        open={openRejectDialog}
+        onOpenChange={setOpenRejectDialog}
+        title="Reject Expense"
+        description={`Are you sure you want to reject this expense of ${
+          expenseToReject
+            ? formatCurrency(expenseToReject.amount, expenseToReject.currencyName)
+            : ""
+        }?`}
+        confirmText="Reject"
+        variant="danger"
+        icon={<AlertCircle className="h-6 w-6 text-red-600" />}
+        onConfirm={handleConfirmReject}
+      />
+
+      <ConfirmationDialog
+        open={openRejectSuccessDialog}
+        onOpenChange={setOpenRejectSuccessDialog}
+        title="Expense Rejected"
+        description="The expense has been rejected successfully."
+        confirmText="Done"
+        variant="success"
+        icon={<CheckCircle className="h-6 w-6 text-green-600" />}
+        onConfirm={() => setOpenRejectSuccessDialog(false)}
+      />
+
+      <ConfirmationDialog
+        open={openRejectErrorDialog}
+        onOpenChange={setOpenRejectErrorDialog}
+        title="Error Rejecting Expense"
+        description={rejectErrorMessage}
+        confirmText="Close"
+        variant="danger"
+        icon={<AlertCircle className="h-6 w-6 text-red-600" />}
+        onConfirm={() => setOpenRejectErrorDialog(false)}
       />
 
       <ExpenseHistoryDialog

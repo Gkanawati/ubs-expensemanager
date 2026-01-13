@@ -166,3 +166,38 @@ export const categorySchema = z
 
 export type CreateCategoryFormData = z.infer<typeof categorySchema>;
 
+/* =======================
+   FORMATTING
+======================= */
+
+/**
+ * Formats a number as currency with the specified currency code
+ */
+export const formatCurrency = (value: number, currency?: string) => {
+  const currencyCode = currency || 'USD';
+
+  const formatted = new Intl.NumberFormat(currencyCode === 'BRL' ? 'pt-BR' : 'en-US', {
+    style: 'currency',
+    currency: currencyCode,
+    minimumFractionDigits: 2,
+  }).format(value);
+
+  // Ensure consistent spacing for USD (add space after $ if not present)
+  if (currencyCode === 'USD' && formatted.startsWith('$')) {
+    return formatted.replace('$', '$ ');
+  }
+  return formatted;
+};
+
+/**
+ * Formats a date string (YYYY-MM-DD) to a localized date format
+ */
+export const formatDate = (dateString: string): string => {
+  const date = new Date(dateString + "T00:00:00");
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+

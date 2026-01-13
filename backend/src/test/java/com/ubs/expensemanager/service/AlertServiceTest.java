@@ -137,7 +137,7 @@ class AlertServiceTest {
                 .alertType("Category")
                 .alertMessage("Daily budget exceeded for category 'Food' on 2026-01-08")
                 .employeeName("John Employee")
-                .expenseStatus("PENDING")
+                .alertStatus("NEW")
                 .build();
     }
 
