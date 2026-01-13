@@ -1,6 +1,7 @@
 package com.ubs.expensemanager.repository;
 
 import com.ubs.expensemanager.model.Expense;
+import com.ubs.expensemanager.model.ExpenseStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Repository responsible for data access operations related to {@link Expense}.
@@ -202,5 +204,19 @@ public interface ExpenseRepository extends
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate,
             @Param("expenseId") Long expenseId
+    );
+
+    /**
+     * Finds all expenses within a date range excluding REJECTED expenses.
+     * Used for generating reports.
+     *
+     * @param startDate the start date of the range (inclusive)
+     * @param endDate the end date of the range (inclusive)
+     * @return list of expenses within the date range
+     */
+    List<Expense> findAllByExpenseDateBetweenAndStatusNot(
+            LocalDate startDate,
+            LocalDate endDate,
+            ExpenseStatus status
     );
 }
