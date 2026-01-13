@@ -19,14 +19,18 @@ const formatMoneyValue = (amount: number | null): string => {
   }).format(amount);
 };
 
+// Maximum value allowed: 13 integer digits + 2 decimal places (database constraint)
+const MAX_AMOUNT = 9999999999999.99;
+
 export interface MoneyInputProps extends Omit<React.ComponentProps<'input'>, 'value' | 'onChange'> {
   value: number | null;
   currency: string;
   onChange: (value: number | null) => void;
+  maxValue?: number;
 }
 
 const MoneyInput = React.forwardRef<HTMLInputElement, MoneyInputProps>(
-  ({ className, value, currency, onChange, disabled, ...props }, ref) => {
+  ({ className, value, currency, onChange, disabled, maxValue = MAX_AMOUNT, ...props }, ref) => {
     const [displayValue, setDisplayValue] = React.useState('');
     const [isFocused, setIsFocused] = React.useState(false);
 
@@ -39,7 +43,7 @@ const MoneyInput = React.forwardRef<HTMLInputElement, MoneyInputProps>(
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const inputValue = e.target.value;
-      
+
       // Allow empty input
       if (inputValue === '') {
         setDisplayValue('');
@@ -50,12 +54,16 @@ const MoneyInput = React.forwardRef<HTMLInputElement, MoneyInputProps>(
       // Only allow numbers and a single decimal point
       // Allow partial inputs like "5." or ".5"
       const regex = /^\d*\.?\d{0,2}$/;
-      
+
       if (regex.test(inputValue)) {
-        setDisplayValue(inputValue);
-        
-        // Parse and send the value
         const parsedValue = parseMoneyValue(inputValue);
+
+        // Block values that exceed the maximum
+        if (parsedValue !== null && parsedValue > maxValue) {
+          return;
+        }
+
+        setDisplayValue(inputValue);
         onChange(parsedValue);
       }
     };
@@ -108,4 +116,4 @@ const MoneyInput = React.forwardRef<HTMLInputElement, MoneyInputProps>(
 
 MoneyInput.displayName = 'MoneyInput';
 
-export { MoneyInput, parseMoneyValue, formatMoneyValue };
+export { MoneyInput, parseMoneyValue, formatMoneyValue, MAX_AMOUNT };

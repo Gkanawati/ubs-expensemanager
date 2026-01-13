@@ -17,6 +17,7 @@ public class ExpenseUpdateRequest {
     @Schema(description = "Expense amount", example = "150.50")
     @NotNull(message = "amount is required")
     @Positive(message = "amount must be positive")
+    @Digits(integer = 13, fraction = 2, message = "amount must have at most 13 integer digits and 2 decimal places")
     private BigDecimal amount;
 
     @Schema(description = "Expense description", example = "Team lunch at restaurant")
