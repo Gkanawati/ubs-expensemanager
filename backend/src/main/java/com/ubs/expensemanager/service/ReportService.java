@@ -9,6 +9,7 @@ import com.ubs.expensemanager.model.Department;
 import com.ubs.expensemanager.model.Expense;
 import com.ubs.expensemanager.model.ExpenseStatus;
 import com.ubs.expensemanager.model.User;
+import com.ubs.expensemanager.model.UserRole;
 import com.ubs.expensemanager.repository.DepartmentRepository;
 import com.ubs.expensemanager.repository.ExpenseRepository;
 import com.ubs.expensemanager.util.CurrencyConverter;
@@ -524,27 +525,108 @@ public class ReportService {
     }
 
     /**
-     * Generates a personal expense summary for the currently authenticated employee.
+     * Generates an expense summary based on the current user's role.
+     * - EMPLOYEE: returns personal expenses only
+     * - MANAGER/FINANCE: returns all expenses across the organization
+     * 
      * Includes total expenses, approved expense count, pending expense count, expenses this month,
      * and the last 3 expenses. All amounts are converted to USD.
      *
-     * @return personal expense summary
+     * @return expense summary
      */
     @Transactional(readOnly = true)
-    public PersonalExpenseSummaryResponse getPersonalExpenseSummary() {
+    public PersonalExpenseSummaryResponse getExpenseSummary() {
         User currentUser = getCurrentUser();
-        Long userId = currentUser.getId();
+        
+        // Check user role to determine scope
+        if (currentUser.getRole() == UserRole.EMPLOYEE) {
+            return getPersonalExpenseSummary(currentUser);
+        } else {
+            return getOverallExpenseSummary();
+        }
+    }
+
+    /**
+     * Generates personal expense summary for a specific user.
+     *
+     * @param user the user
+     * @return personal expense summary
+     */
+    private PersonalExpenseSummaryResponse getPersonalExpenseSummary(User user) {
+        Long userId = user.getId();
         
         log.info("Generating personal expense summary for user {}", userId);
         
-        // Get all expenses (excluding REJECTED)
+        // Get all expenses for the user (excluding REJECTED)
         List<Expense> allExpenses = expenseRepository.findAllByUserIdAndStatusNot(userId, ExpenseStatus.REJECTED);
         
+        // Get last 3 expenses for the user
+        List<Expense> recentExpenses = expenseRepository.findTopByUserIdAndStatusNotOrderByExpenseDateDesc(
+                userId, ExpenseStatus.REJECTED, PageRequest.of(0, 3));
+        
+        // Get this month's expenses for the user
+        LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
+        LocalDate endOfMonth = LocalDate.now();
+        List<Expense> thisMonthExpenses = expenseRepository.findAllByUserIdAndExpenseDateBetweenAndStatusNot(
+                userId, startOfMonth, endOfMonth, ExpenseStatus.REJECTED);
+        
+        PersonalExpenseSummaryResponse summary = buildExpenseSummary(allExpenses, thisMonthExpenses, recentExpenses);
+        
+        log.info("Personal summary generated: total={}, approvedCount={}, pendingCount={}, thisMonth={}, lastExpenses={}",
+                summary.getTotalExpenses(), summary.getApprovedExpensesCount(), 
+                summary.getPendingExpensesCount(), summary.getExpensesThisMonth(), 
+                summary.getLastExpenses().size());
+        
+        return summary;
+    }
+
+    /**
+     * Generates overall expense summary for all employees.
+     *
+     * @return overall expense summary
+     */
+    private PersonalExpenseSummaryResponse getOverallExpenseSummary() {
+        log.info("Generating overall expense summary for all users");
+        
+        // Get all expenses (excluding REJECTED)
+        List<Expense> allExpenses = expenseRepository.findAllByStatusNot(ExpenseStatus.REJECTED);
+        
+        // Get last 3 expenses
+        List<Expense> recentExpenses = expenseRepository.findTopByStatusNotOrderByExpenseDateDesc(
+                ExpenseStatus.REJECTED, PageRequest.of(0, 3));
+        
+        // Get this month's expenses
+        LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
+        LocalDate endOfMonth = LocalDate.now();
+        List<Expense> thisMonthExpenses = expenseRepository.findAllByExpenseDateBetweenAndStatusNot(
+                startOfMonth, endOfMonth, ExpenseStatus.REJECTED);
+        
+        PersonalExpenseSummaryResponse summary = buildExpenseSummary(allExpenses, thisMonthExpenses, recentExpenses);
+        
+        log.info("Overall summary generated: total={}, approvedCount={}, pendingCount={}, thisMonth={}, lastExpenses={}",
+                summary.getTotalExpenses(), summary.getApprovedExpensesCount(), 
+                summary.getPendingExpensesCount(), summary.getExpensesThisMonth(), 
+                summary.getLastExpenses().size());
+        
+        return summary;
+    }
+
+    /**
+     * Builds an expense summary from the given expense lists.
+     * Helper method to avoid code duplication.
+     *
+     * @param allExpenses all expenses (excluding REJECTED)
+     * @param thisMonthExpenses expenses for the current month
+     * @param recentExpenses the most recent expenses
+     * @return expense summary response
+     */
+    private PersonalExpenseSummaryResponse buildExpenseSummary(
+            List<Expense> allExpenses,
+            List<Expense> thisMonthExpenses,
+            List<Expense> recentExpenses) {
+        
         // Calculate total expenses in USD
-        BigDecimal totalExpenses = allExpenses.stream()
-                .map(CurrencyConverter::convertToUsd)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalExpenses = calculateTotalInUsd(allExpenses);
         
         // Count approved expenses (APPROVED_BY_FINANCE)
         Integer approvedExpensesCount = (int) allExpenses.stream()
@@ -559,20 +641,9 @@ public class ReportService {
                 .count();
         
         // Calculate this month's expenses in USD
-        LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
-        LocalDate endOfMonth = LocalDate.now();
-        List<Expense> thisMonthExpenses = expenseRepository.findAllByUserIdAndExpenseDateBetweenAndStatusNot(
-                userId, startOfMonth, endOfMonth, ExpenseStatus.REJECTED);
+        BigDecimal expensesThisMonth = calculateTotalInUsd(thisMonthExpenses);
         
-        BigDecimal expensesThisMonth = thisMonthExpenses.stream()
-                .map(CurrencyConverter::convertToUsd)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .setScale(2, RoundingMode.HALF_UP);
-        
-        // Get last 3 expenses
-        List<Expense> recentExpenses = expenseRepository.findTopByUserIdAndStatusNotOrderByExpenseDateDesc(
-                userId, ExpenseStatus.REJECTED, PageRequest.of(0, 3));
-        
+        // Convert recent expenses to DTOs
         List<LastExpenseDto> lastExpenses = recentExpenses.stream()
                 .map(expense -> LastExpenseDto.builder()
                         .description(expense.getDescription())
@@ -581,9 +652,6 @@ public class ReportService {
                         .build())
                 .collect(Collectors.toList());
         
-        log.info("Personal summary generated: total={}, approvedCount={}, pendingCount={}, thisMonth={}, lastExpenses={}",
-                totalExpenses, approvedExpensesCount, pendingExpensesCount, expensesThisMonth, lastExpenses.size());
-        
         return PersonalExpenseSummaryResponse.builder()
                 .totalExpenses(totalExpenses)
                 .approvedExpensesCount(approvedExpensesCount)
@@ -591,6 +659,19 @@ public class ReportService {
                 .expensesThisMonth(expensesThisMonth)
                 .lastExpenses(lastExpenses)
                 .build();
+    }
+
+    /**
+     * Calculates the total amount of expenses in USD.
+     *
+     * @param expenses list of expenses
+     * @return total amount in USD
+     */
+    private BigDecimal calculateTotalInUsd(List<Expense> expenses) {
+        return expenses.stream()
+                .map(CurrencyConverter::convertToUsd)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     /**

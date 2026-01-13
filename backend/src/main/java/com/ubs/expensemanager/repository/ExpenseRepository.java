@@ -270,4 +270,28 @@ public interface ExpenseRepository extends
      * @return list of user's expenses with the specified status
      */
     List<Expense> findAllByUserIdAndStatus(Long userId, ExpenseStatus status);
+
+    /**
+     * Finds all expenses excluding a specific status.
+     * Used for generating overall reports.
+     *
+     * @param status the status to exclude
+     * @return list of all expenses excluding the specified status
+     */
+    List<Expense> findAllByStatusNot(ExpenseStatus status);
+
+    /**
+     * Finds the most recent expenses, excluding a specific status.
+     * Orders by expense date descending and then by ID descending.
+     *
+     * @param status the status to exclude
+     * @param pageable the pagination information
+     * @return list of recent expenses
+     */
+    @Query("SELECT e FROM Expense e WHERE e.status != :status " +
+           "ORDER BY e.expenseDate DESC, e.id DESC")
+    List<Expense> findTopByStatusNotOrderByExpenseDateDesc(
+            @Param("status") ExpenseStatus status,
+            org.springframework.data.domain.Pageable pageable
+    );
 }
