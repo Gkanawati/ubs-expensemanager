@@ -2,6 +2,7 @@ package com.ubs.expensemanager.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ubs.expensemanager.dto.request.ExpenseCategoryCreateRequest;
+import com.ubs.expensemanager.dto.request.ExpenseCategoryFilterRequest;
 import com.ubs.expensemanager.dto.request.ExpenseCategoryUpdateRequest;
 import com.ubs.expensemanager.dto.request.UserFilterRequest;
 import com.ubs.expensemanager.dto.response.ExpenseCategoryAuditResponse;
@@ -144,7 +145,7 @@ class ExpenseCategoryControllerTest {
                 2
         );
 
-        when(expenseCategoryService.listAll(any(Pageable.class))).thenReturn(page);
+        when(expenseCategoryService.listAll(any(ExpenseCategoryFilterRequest.class), any(Pageable.class))).thenReturn(page);
 
         mockMvc.perform(
                     get(CATEGORIES_URL)
@@ -164,7 +165,7 @@ class ExpenseCategoryControllerTest {
 
     @Test
     void listAll_noCategories_returnsEmptyList() throws Exception {
-        when(expenseCategoryService.listAll(any(Pageable.class)))
+        when(expenseCategoryService.listAll(any(ExpenseCategoryFilterRequest.class), any(Pageable.class)))
                 .thenReturn(Page.empty());
 
         mockMvc.perform(get(CATEGORIES_URL))
@@ -309,5 +310,41 @@ class ExpenseCategoryControllerTest {
                 .andExpect(jsonPath("$.errors.dailyBudget").exists())
                 .andExpect(jsonPath("$.errors.monthlyBudget").exists())
                 .andExpect(jsonPath("$.errors.currencyName").exists());
+    }
+
+    @Test
+    void shouldFilterExpenseCategoriesBySearch() throws Exception {
+        List<ExpenseCategoryResponse> categories = List.of(
+                ExpenseCategoryResponse.builder()
+                        .id(1L)
+                        .name("Food")
+                        .dailyBudget(new BigDecimal("100.00"))
+                        .monthlyBudget(new BigDecimal("3000.00"))
+                        .currencyName("USD")
+                        .exchangeRate(new BigDecimal("1.000000"))
+                        .build()
+        );
+
+        Page<ExpenseCategoryResponse> page = new PageImpl<>(
+                categories,
+                PageRequest.of(0, 10),
+                1
+        );
+
+        when(expenseCategoryService.listAll(any(ExpenseCategoryFilterRequest.class), any(Pageable.class)))
+                .thenReturn(page);
+
+        mockMvc.perform(get(CATEGORIES_URL)
+                        .param("search", "Food")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].name").value("Food"))
+                .andExpect(jsonPath("$.totalElements").value(1));
+
+        org.mockito.Mockito.verify(expenseCategoryService).listAll(
+                org.mockito.ArgumentMatchers.argThat(filter -> "Food".equals(filter.getSearch())),
+                any(Pageable.class)
+        );
     }
 }

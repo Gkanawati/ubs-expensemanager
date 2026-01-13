@@ -2,6 +2,7 @@ package com.ubs.expensemanager.repository;
 
 import com.ubs.expensemanager.model.ExpenseCategory;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -13,7 +14,10 @@ import java.util.Optional;
  * CRUD operations through Spring Data JPA.
  */
 @Repository
-public interface ExpenseCategoryRepository extends JpaRepository<ExpenseCategory, Long> {
+public interface ExpenseCategoryRepository extends 
+        JpaRepository<ExpenseCategory, Long>,
+        JpaSpecificationExecutor<ExpenseCategory>
+{
     Optional<ExpenseCategory> findByNameIgnoreCase(String name);
     boolean existsByNameIgnoreCase(String name);
 }

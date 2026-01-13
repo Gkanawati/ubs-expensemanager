@@ -66,7 +66,7 @@ public class AlertService {
                 .alertType(alertTypeStr)
                 .alertMessage(alert.getMessage())
                 .employeeName(alert.getExpense().getUser().getName())
-                .expenseStatus(alert.getExpense().getStatus().toString())
+                .alertStatus(alert.getStatus().toString())
                 .build();
     }
 

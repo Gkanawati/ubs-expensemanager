@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.format.DateTimeFormatter;
-import java.util.Optional;
+import java.util.List;
 
 /**
  * Listener for budget exceeded events that creates alerts.
@@ -40,22 +40,41 @@ public class BudgetExceededEventListener {
                 ? AlertType.DEPARTMENT 
                 : AlertType.CATEGORY;
 
-        // If this is a DEPARTMENT alert, check if there's already a CATEGORY alert for this expense
-        if (alertType == AlertType.DEPARTMENT) {
-            Optional<Alert> existingAlert = alertRepository.findByExpenseAndTypeAndStatus(
-                    event.getExpense(), AlertType.CATEGORY, AlertStatus.NEW);
+        // Check if there's already an alert for this expense (regardless of type)
+        // Create a mutable list to combine results from both queries
+        List<Alert> existingAlerts = new java.util.ArrayList<>(
+                alertRepository.findAllByExpenseAndTypeAndStatus(
+                        event.getExpense(), AlertType.CATEGORY, AlertStatus.NEW));
+        
+        // Also check for ALL type alerts
+        existingAlerts.addAll(alertRepository.findAllByExpenseAndTypeAndStatus(
+                event.getExpense(), AlertType.ALL, AlertStatus.NEW));
 
-            if (existingAlert.isPresent()) {
-                // Update existing alert instead of creating a new one
-                Alert alert = existingAlert.get();
-                alert.setType(AlertType.ALL);
-                alertRepository.save(alert);
-                log.info("Updated existing alert to ALL type: {}", alert);
-                return;
+        if (!existingAlerts.isEmpty()) {
+            // Update the first alert found and delete any duplicates
+            Alert alertToUpdate = existingAlerts.get(0);
+            
+            // Append the new violation to the existing message
+            String combinedMessage = alertToUpdate.getMessage() + "; " + message;
+            alertToUpdate.setMessage(combinedMessage);
+            
+            // Update type if necessary
+            if (alertType == AlertType.DEPARTMENT && alertToUpdate.getType() == AlertType.CATEGORY) {
+                alertToUpdate.setType(AlertType.ALL);
             }
+            
+            alertRepository.save(alertToUpdate);
+            log.info("Updated existing alert with combined message: {}", alertToUpdate);
+            
+            // Delete any duplicate alerts (if more than one was found)
+            for (int i = 1; i < existingAlerts.size(); i++) {
+                alertRepository.delete(existingAlerts.get(i));
+                log.info("Deleted duplicate alert: {}", existingAlerts.get(i));
+            }
+            return;
         }
 
-        // Create a new alert if no existing alert was found or if this is a CATEGORY alert
+        // Create a new alert if no existing alert was found
         Alert alert = Alert.builder()
                 .type(alertType)
                 .message(message)
@@ -76,28 +95,38 @@ public class BudgetExceededEventListener {
         String timeFrame;
         String formattedTime;
 
-        if (event.getBudgetType() == BudgetExceededEvent.BudgetType.DEPARTAMENT) {
+        // Determine if this is a daily or monthly budget based on which field is populated
+        if (event.getYearMonth() != null) {
+            // Monthly budget exceeded
+            timeFrame = "Monthly";
+            formattedTime = event.getYearMonth().format(MONTH_FORMATTER);
+        } else if (event.getDate() != null) {
+            // Daily budget exceeded
             timeFrame = "Daily";
             formattedTime = event.getDate().format(DATE_FORMATTER);
         } else {
-            timeFrame = "Monthly";
-            // Handle case where yearMonth is null by using date as fallback
-            if (event.getYearMonth() != null) {
-                formattedTime = event.getYearMonth().format(MONTH_FORMATTER);
-            } else if (event.getDate() != null) {
-                // If yearMonth is null but date is available, use date
-                formattedTime = event.getDate().format(DATE_FORMATTER);
-            } else {
-                // If both yearMonth and date are null, use a default value
-                formattedTime = "unknown date";
-            }
+            // Fallback if both are null (shouldn't happen)
+            timeFrame = "Unknown";
+            formattedTime = "unknown date";
+        }
+
+        // Determine the scope (category or department) and the appropriate name
+        String scope;
+        String scopeName;
+        if (event.getBudgetType() == BudgetExceededEvent.BudgetType.DEPARTAMENT) {
+            scope = "department";
+            scopeName = event.getExpense().getUser().getDepartment().getName();
+        } else {
+            scope = "category";
+            scopeName = event.getCategory().getName();
         }
 
         return String.format(
-                "%s budget exceeded for category '%s' on %s. " +
+                "%s budget exceeded for %s '%s' on %s. " +
                 "Current total: %s, New total: %s, Budget limit: %s",
                 timeFrame,
-                event.getCategory().getName(),
+                scope,
+                scopeName,
                 formattedTime,
                 event.getCurrentTotal(),
                 event.getNewTotal(),

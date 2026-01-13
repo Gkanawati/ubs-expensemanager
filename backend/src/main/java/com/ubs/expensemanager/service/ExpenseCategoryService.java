@@ -1,6 +1,7 @@
 package com.ubs.expensemanager.service;
 
 import com.ubs.expensemanager.dto.request.ExpenseCategoryCreateRequest;
+import com.ubs.expensemanager.dto.request.ExpenseCategoryFilterRequest;
 import com.ubs.expensemanager.dto.request.ExpenseCategoryUpdateRequest;
 import com.ubs.expensemanager.dto.response.ExpenseCategoryAuditResponse;
 import com.ubs.expensemanager.dto.response.ExpenseCategoryResponse;
@@ -11,6 +12,7 @@ import com.ubs.expensemanager.model.Currency;
 import com.ubs.expensemanager.model.ExpenseCategory;
 import com.ubs.expensemanager.repository.CurrencyRepository;
 import com.ubs.expensemanager.repository.ExpenseCategoryRepository;
+import com.ubs.expensemanager.repository.specification.ExpenseCategorySpecifications;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -25,6 +27,7 @@ import org.hibernate.envers.RevisionType;
 import org.hibernate.envers.query.AuditEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 /**
@@ -70,12 +73,18 @@ public class ExpenseCategoryService {
     }
 
     /**
-     * Retrieves all expense categories.
+     * Retrieves all expense categories with optional filters.
      *
-     * @return list of categories
+     * @param filters filtering criteria (e.g., search by name)
+     * @param pageable pagination and sorting information
+     * @return paginated list of categories
      */
-    public Page<ExpenseCategoryResponse> listAll(Pageable pageable) {
-        return expenseCategoryRepository.findAll(pageable).map(expenseCategoryMapper::toResponse);
+    public Page<ExpenseCategoryResponse> listAll(ExpenseCategoryFilterRequest filters, Pageable pageable) {
+        Specification<ExpenseCategory> spec = Specification.where(null);
+
+        spec = spec.and(ExpenseCategorySpecifications.nameContains(filters.getSearch()));
+
+        return expenseCategoryRepository.findAll(spec, pageable).map(expenseCategoryMapper::toResponse);
     }
 
     /**

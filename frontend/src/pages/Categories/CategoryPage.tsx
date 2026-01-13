@@ -11,12 +11,14 @@ import {
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { TablePagination } from "@/components/Pagination";
 import { getErrorMessage } from "@/types/api-error";
+import { formatCurrency } from "@/utils/validation";
 import {
   getCategories,
   createCategory,
   updateCategory,
   Category as ApiCategory,
 } from "@/api/category.api";
+import { CreateCategoryFormData } from "@/utils/validation";
 interface Category {
   id: number;
   name: string;
@@ -137,23 +139,6 @@ export const CategoriesPage = () => {
     setCurrentPage(1);
   };
 
-  const formatCurrency = (value: number, currency?: string) => {
-    const currencyCode = currency || "USD"; // default to USD if not provided
-    const formatted = new Intl.NumberFormat(
-      currencyCode === "BRL" ? "pt-BR" : "en-US",
-      {
-        style: "currency",
-        currency: currencyCode,
-      }
-    ).format(value);
-    
-    // Ensure consistent spacing for USD (add space after $ if not present)
-    if (currencyCode === "USD" && formatted.startsWith("$")) {
-      return formatted.replace("$", "$ ");
-    }
-    return formatted;
-  };
-
   const columns: ColumnDef<Category>[] = [
     {
       key: "name",
@@ -174,7 +159,7 @@ export const CategoriesPage = () => {
         <span className="text-right block">
           {formatCurrency(
             row.dailyBudget,
-            row.currencyName
+            row.currencyName as "USD" | "BRL"
           )}
         </span>
       ),
@@ -187,7 +172,7 @@ export const CategoriesPage = () => {
         <span className="text-right block">
           {formatCurrency(
             row.monthlyBudget,
-            row.currencyName
+            row.currencyName as "USD" | "BRL"
           )}
         </span>
       ),
