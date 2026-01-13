@@ -10,6 +10,7 @@ import com.ubs.expensemanager.exception.ResourceNotFoundException;
 import com.ubs.expensemanager.mapper.ExpenseCategoryMapper;
 import com.ubs.expensemanager.model.Currency;
 import com.ubs.expensemanager.model.ExpenseCategory;
+import com.ubs.expensemanager.model.audit.CustomRevisionEntity;
 import com.ubs.expensemanager.repository.CurrencyRepository;
 import com.ubs.expensemanager.repository.ExpenseCategoryRepository;
 import com.ubs.expensemanager.repository.specification.ExpenseCategorySpecifications;
@@ -153,8 +154,10 @@ public class ExpenseCategoryService {
         return results.stream()
                 .map(result -> {
                     ExpenseCategory entity = (ExpenseCategory) result[0];
-                    Number revNumber = (Number) ((org.hibernate.envers.DefaultRevisionEntity) result[1]).getId();
-                    long revTimestamp = ((org.hibernate.envers.DefaultRevisionEntity) result[1]).getTimestamp();
+                    CustomRevisionEntity revEntity = (CustomRevisionEntity) result[1];
+                    Number revNumber = revEntity.getId();
+                    long revTimestamp = revEntity.getTimestamp();
+                    String revUserEmail = revEntity.getModifiedBy();
                     RevisionType revType = (RevisionType) result[2];
 
                     return ExpenseCategoryAuditResponse.builder()
@@ -168,6 +171,7 @@ public class ExpenseCategoryService {
                             .revisionType((short) revType.ordinal())
                             .revisionDate(LocalDateTime.ofInstant(
                                     Instant.ofEpochMilli(revTimestamp), ZoneId.systemDefault()))
+                            .revisionUserEmail(revUserEmail)
                             .build();
                 })
                 .collect(Collectors.toList());

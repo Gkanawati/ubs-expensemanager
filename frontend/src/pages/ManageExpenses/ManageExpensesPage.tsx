@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Check, X, CheckCircle, AlertCircle, Filter } from "lucide-react";
+import { Check, X, CheckCircle, AlertCircle, Filter, History } from "lucide-react";
 import { DataTable, ColumnDef, RowAction } from "@/components/DataTable";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { TablePagination } from "@/components/Pagination";
@@ -15,6 +15,7 @@ import {
   approveExpense,
   rejectExpense,
 } from "@/api/expense.api";
+import { ExpenseHistoryDialog } from "../Expenses/components/ExpenseHistoryDialog";
 
 const STATUS_COLORS: Record<ExpenseStatus, string> = {
   PENDING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
@@ -58,6 +59,9 @@ export const ManageExpensesPage = () => {
   const [openRejectSuccessDialog, setOpenRejectSuccessDialog] = useState(false);
   const [openRejectErrorDialog, setOpenRejectErrorDialog] = useState(false);
   const [rejectErrorMessage, setRejectErrorMessage] = useState("");
+
+  const [openHistoryDialog, setOpenHistoryDialog] = useState(false);
+  const [historyExpenseId, setHistoryExpenseId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchExpenses();
@@ -174,6 +178,11 @@ export const ManageExpensesPage = () => {
     setCurrentPage(1);
   };
 
+  const handleHistoryClick = (expense: Expense) => {
+    setHistoryExpenseId(expense.id);
+    setOpenHistoryDialog(true);
+  };
+
   const columns: ColumnDef<Expense>[] = [
     {
       key: "userName",
@@ -234,6 +243,12 @@ export const ManageExpensesPage = () => {
   ];
 
   const actions: RowAction<Expense>[] = [
+    {
+      label: "History",
+      icon: <History className="h-4 w-4" />,
+      onClick: handleHistoryClick,
+      color: "blue",
+    },
     {
       label: "Approve",
       icon: <Check className="h-4 w-4" />,
@@ -471,6 +486,12 @@ export const ManageExpensesPage = () => {
         variant="danger"
         icon={<AlertCircle className="h-6 w-6 text-red-600" />}
         onConfirm={() => setOpenRejectErrorDialog(false)}
+      />
+
+      <ExpenseHistoryDialog
+        open={openHistoryDialog}
+        onOpenChange={setOpenHistoryDialog}
+        expenseId={historyExpenseId}
       />
     </div>
   );

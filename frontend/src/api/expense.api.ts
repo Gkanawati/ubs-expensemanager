@@ -89,6 +89,28 @@ export interface Currency {
 }
 
 /**
+ * Expense audit history entry
+ */
+export interface ExpenseAuditEntry {
+  id: number;
+  amount: number;
+  description: string | null;
+  expenseDate: string;
+  userId: number;
+  userName: string;
+  expenseCategoryId: number;
+  expenseCategoryName: string;
+  currencyName: string;
+  exchangeRate: number;
+  receiptUrl: string | null;
+  status: ExpenseStatus;
+  revisionNumber: number;
+  revisionType: number; // 0: create, 1: update
+  revisionDate: string;
+  revisionUserEmail: string;
+}
+
+/**
  * Fetch paginated list of expenses with optional filters
  */
 export async function getExpenses(params: {
@@ -192,3 +214,12 @@ export async function getCurrencies(): Promise<Currency[]> {
   const response = await api.get<Currency[]>("/api/currencies");
   return response.data;
 }
+
+/**
+ * Fetch audit history for an expense
+ */
+export async function getExpenseAuditHistory(id: number): Promise<ExpenseAuditEntry[]> {
+  const response = await api.get<ExpenseAuditEntry[]>(`/api/expenses/${id}/audit`);
+  return response.data;
+}
+

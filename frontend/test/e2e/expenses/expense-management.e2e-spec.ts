@@ -210,7 +210,7 @@ test.describe('Expense Management', () => {
     await amountInput.fill(testExpense.amount.toString());
 
     // Fill description
-    await page.locator('#description').fill(testExpense.description);
+    await page.locator('#description').fill(testExpense.description!);
 
     // Submit form
     const submitButton = page.getByRole('button', { name: /submit/i });
@@ -226,8 +226,7 @@ test.describe('Expense Management', () => {
     await expect(page.getByText('Pending')).toBeVisible();
   });
 
-  test('should create expense successfully', async ({ page }) => {
-    // Create a new expense
+  test('should create a new expense in workflow', async ({ page }) => {
     await page.getByRole('button', { name: /add new expense/i }).click();
     await expect(page.getByRole('heading', { name: 'Expense Submission' })).toBeVisible();
 
@@ -239,14 +238,13 @@ test.describe('Expense Management', () => {
     await expect(amountInput).toBeEnabled();
     await amountInput.fill(testExpense.amount.toString());
 
-    await page.locator('#description').fill(testExpense.description);
+    await page.locator('#description').fill(testExpense.description!);
 
     // Submit
     await page.getByRole('button', { name: /submit/i }).click();
     await expect(page.getByText('Expense Created')).toBeVisible();
     await page.getByRole('button', { name: /done/i }).click();
 
-    // Verify expense appears in table
     await expect(page.getByText('Travel')).toBeVisible();
     await expect(page.getByText('Pending')).toBeVisible();
   });
