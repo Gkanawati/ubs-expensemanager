@@ -219,4 +219,55 @@ public interface ExpenseRepository extends
             LocalDate endDate,
             ExpenseStatus status
     );
+
+    /**
+     * Finds all expenses for a specific user excluding REJECTED expenses.
+     * Used for personal expense reports.
+     *
+     * @param userId the user ID
+     * @return list of user's expenses
+     */
+    List<Expense> findAllByUserIdAndStatusNot(Long userId, ExpenseStatus status);
+
+    /**
+     * Finds the most recent expenses for a specific user, excluding REJECTED expenses.
+     * Orders by expense date descending and then by ID descending.
+     *
+     * @param userId the user ID
+     * @param status the status to exclude
+     * @param limit the maximum number of results
+     * @return list of recent expenses
+     */
+    @Query("SELECT e FROM Expense e WHERE e.user.id = :userId AND e.status != :status " +
+           "ORDER BY e.expenseDate DESC, e.id DESC")
+    List<Expense> findTopByUserIdAndStatusNotOrderByExpenseDateDesc(
+            @Param("userId") Long userId,
+            @Param("status") ExpenseStatus status,
+            @Param("limit") org.springframework.data.domain.Pageable pageable
+    );
+
+    /**
+     * Finds all expenses for a specific user within a date range, excluding REJECTED expenses.
+     *
+     * @param userId the user ID
+     * @param startDate the start date of the range (inclusive)
+     * @param endDate the end date of the range (inclusive)
+     * @param status the status to exclude
+     * @return list of user's expenses within the date range
+     */
+    List<Expense> findAllByUserIdAndExpenseDateBetweenAndStatusNot(
+            Long userId,
+            LocalDate startDate,
+            LocalDate endDate,
+            ExpenseStatus status
+    );
+
+    /**
+     * Finds all expenses for a specific user with a specific status.
+     *
+     * @param userId the user ID
+     * @param status the expense status
+     * @return list of user's expenses with the specified status
+     */
+    List<Expense> findAllByUserIdAndStatus(Long userId, ExpenseStatus status);
 }

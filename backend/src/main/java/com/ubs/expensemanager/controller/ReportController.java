@@ -4,6 +4,7 @@ import com.ubs.expensemanager.dto.response.CategoryExpenseReportResponse;
 import com.ubs.expensemanager.dto.response.DepartmentExpenseReportResponse;
 import com.ubs.expensemanager.dto.response.EmployeeExpenseReportResponse;
 import com.ubs.expensemanager.dto.response.ErrorResponse;
+import com.ubs.expensemanager.dto.response.PersonalExpenseSummaryResponse;
 import com.ubs.expensemanager.service.ReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -377,5 +378,42 @@ public class ReportController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.parseMediaType("text/csv"))
                 .body(csv);
+    }
+
+    @Operation(
+            summary = "Get personal expense summary",
+            description = "Returns a summary of the current employee's expenses including: " +
+                    "total expenses (all time), count of approved expenses (APPROVED_BY_FINANCE), " +
+                    "count of pending expenses (PENDING, APPROVED_BY_MANAGER, REQUIRES_REVISION), " +
+                    "expenses this month, and the last 3 expenses. All amounts are converted to USD. " +
+                    "Available for all authenticated employees."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Personal summary generated successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = PersonalExpenseSummaryResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)
+                    )
+            )
+    })
+    @GetMapping("/expenses/personal-summary")
+    @PreAuthorize("hasAnyRole('EMPLOYEE')")
+    public ResponseEntity<PersonalExpenseSummaryResponse> getPersonalExpenseSummary() {
+        log.info("Request received for personal expense summary");
+        
+        PersonalExpenseSummaryResponse summary = reportService.getPersonalExpenseSummary();
+        
+        log.info("Successfully generated personal expense summary");
+        return ResponseEntity.ok(summary);
     }
 }

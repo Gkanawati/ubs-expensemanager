@@ -3,15 +3,20 @@ package com.ubs.expensemanager.service;
 import com.ubs.expensemanager.dto.response.CategoryExpenseReportResponse;
 import com.ubs.expensemanager.dto.response.DepartmentExpenseReportResponse;
 import com.ubs.expensemanager.dto.response.EmployeeExpenseReportResponse;
+import com.ubs.expensemanager.dto.response.LastExpenseDto;
+import com.ubs.expensemanager.dto.response.PersonalExpenseSummaryResponse;
 import com.ubs.expensemanager.model.Department;
 import com.ubs.expensemanager.model.Expense;
 import com.ubs.expensemanager.model.ExpenseStatus;
+import com.ubs.expensemanager.model.User;
 import com.ubs.expensemanager.repository.DepartmentRepository;
 import com.ubs.expensemanager.repository.ExpenseRepository;
 import com.ubs.expensemanager.util.CurrencyConverter;
 import com.ubs.expensemanager.util.DateRangeValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -516,5 +521,84 @@ public class ReportService {
             return "\"" + value.replace("\"", "\"\"") + "\"";
         }
         return value;
+    }
+
+    /**
+     * Generates a personal expense summary for the currently authenticated employee.
+     * Includes total expenses, approved expense count, pending expense count, expenses this month,
+     * and the last 3 expenses. All amounts are converted to USD.
+     *
+     * @return personal expense summary
+     */
+    @Transactional(readOnly = true)
+    public PersonalExpenseSummaryResponse getPersonalExpenseSummary() {
+        User currentUser = getCurrentUser();
+        Long userId = currentUser.getId();
+        
+        log.info("Generating personal expense summary for user {}", userId);
+        
+        // Get all expenses (excluding REJECTED)
+        List<Expense> allExpenses = expenseRepository.findAllByUserIdAndStatusNot(userId, ExpenseStatus.REJECTED);
+        
+        // Calculate total expenses in USD
+        BigDecimal totalExpenses = allExpenses.stream()
+                .map(CurrencyConverter::convertToUsd)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+        
+        // Count approved expenses (APPROVED_BY_FINANCE)
+        Integer approvedExpensesCount = (int) allExpenses.stream()
+                .filter(expense -> expense.getStatus() == ExpenseStatus.APPROVED_BY_FINANCE)
+                .count();
+        
+        // Count pending expenses (PENDING, APPROVED_BY_MANAGER, REQUIRES_REVISION)
+        Integer pendingExpensesCount = (int) allExpenses.stream()
+                .filter(expense -> expense.getStatus() == ExpenseStatus.PENDING || 
+                                 expense.getStatus() == ExpenseStatus.APPROVED_BY_MANAGER ||
+                                 expense.getStatus() == ExpenseStatus.REQUIRES_REVISION)
+                .count();
+        
+        // Calculate this month's expenses in USD
+        LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
+        LocalDate endOfMonth = LocalDate.now();
+        List<Expense> thisMonthExpenses = expenseRepository.findAllByUserIdAndExpenseDateBetweenAndStatusNot(
+                userId, startOfMonth, endOfMonth, ExpenseStatus.REJECTED);
+        
+        BigDecimal expensesThisMonth = thisMonthExpenses.stream()
+                .map(CurrencyConverter::convertToUsd)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+        
+        // Get last 3 expenses
+        List<Expense> recentExpenses = expenseRepository.findTopByUserIdAndStatusNotOrderByExpenseDateDesc(
+                userId, ExpenseStatus.REJECTED, PageRequest.of(0, 3));
+        
+        List<LastExpenseDto> lastExpenses = recentExpenses.stream()
+                .map(expense -> LastExpenseDto.builder()
+                        .description(expense.getDescription())
+                        .date(expense.getExpenseDate())
+                        .status(expense.getStatus())
+                        .build())
+                .collect(Collectors.toList());
+        
+        log.info("Personal summary generated: total={}, approvedCount={}, pendingCount={}, thisMonth={}, lastExpenses={}",
+                totalExpenses, approvedExpensesCount, pendingExpensesCount, expensesThisMonth, lastExpenses.size());
+        
+        return PersonalExpenseSummaryResponse.builder()
+                .totalExpenses(totalExpenses)
+                .approvedExpensesCount(approvedExpensesCount)
+                .pendingExpensesCount(pendingExpensesCount)
+                .expensesThisMonth(expensesThisMonth)
+                .lastExpenses(lastExpenses)
+                .build();
+    }
+
+    /**
+     * Gets the currently authenticated user from the security context.
+     *
+     * @return the current user
+     */
+    private User getCurrentUser() {
+        return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 }
