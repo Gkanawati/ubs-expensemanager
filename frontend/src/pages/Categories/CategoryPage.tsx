@@ -149,7 +149,7 @@ export const CategoriesPage = () => {
       headerAlign: 'right',
       render: (row: Category) => (
         <span className='text-right block'>
-          {formatCurrency(row.dailyBudget, row.currencyName)}
+          {formatCurrency(row.dailyBudget, row.currencyName as 'USD' | 'BRL')}
         </span>
       ),
     },
@@ -159,7 +159,7 @@ export const CategoriesPage = () => {
       headerAlign: 'right',
       render: (row: Category) => (
         <span className='text-right block'>
-          {formatCurrency(row.monthlyBudget, row.currencyName)}
+          {formatCurrency(row.monthlyBudget, row.currencyName as 'USD' | 'BRL')}
         </span>
       ),
     },
