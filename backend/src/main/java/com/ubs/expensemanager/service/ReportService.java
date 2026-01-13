@@ -1,9 +1,12 @@
 package com.ubs.expensemanager.service;
 
 import com.ubs.expensemanager.dto.response.CategoryExpenseReportResponse;
+import com.ubs.expensemanager.dto.response.DepartmentExpenseReportResponse;
 import com.ubs.expensemanager.dto.response.EmployeeExpenseReportResponse;
+import com.ubs.expensemanager.model.Department;
 import com.ubs.expensemanager.model.Expense;
 import com.ubs.expensemanager.model.ExpenseStatus;
+import com.ubs.expensemanager.repository.DepartmentRepository;
 import com.ubs.expensemanager.repository.ExpenseRepository;
 import com.ubs.expensemanager.util.CurrencyConverter;
 import com.ubs.expensemanager.util.DateRangeValidator;
@@ -31,6 +34,7 @@ import java.util.stream.Collectors;
 public class ReportService {
 
     private final ExpenseRepository expenseRepository;
+    private final DepartmentRepository departmentRepository;
 
     /**
      * Generates expense report grouped by employee for a given date range.
@@ -73,7 +77,7 @@ public class ReportService {
         log.info("Generating CSV expense report by employee from {} to {}", effectiveStartDate, effectiveEndDate);
         
         List<EmployeeExpenseReportResponse> report = getExpensesByEmployee(effectiveStartDate, effectiveEndDate);
-        String csv = generateCsv(report);
+        String csv = generateEmployeeCsv(report);
         
         log.info("CSV report generated with {} employees", report.size());
         return csv;
@@ -82,16 +86,18 @@ public class ReportService {
     /**
      * Generates filename for CSV download.
      * 
+     * @param baseName base name for the file (e.g., "expenses-by-employee", "expenses-by-category")
      * @param startDate start date (nullable, defaults to first day of current month)
      * @param endDate end date (nullable, defaults to current date)
      * @return filename
      */
-    public String generateCsvFilename(LocalDate startDate, LocalDate endDate) {
+    public String generateCsvFilename(String baseName, LocalDate startDate, LocalDate endDate) {
         LocalDate effectiveStartDate = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
         LocalDate effectiveEndDate = endDate != null ? endDate : LocalDate.now();
         
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        return String.format("expenses-by-employee_%s_to_%s.csv", 
+        return String.format("%s_%s_to_%s.csv", 
+                baseName,
                 effectiveStartDate.format(formatter), 
                 effectiveEndDate.format(formatter));
     }
@@ -137,12 +143,12 @@ public class ReportService {
     }
 
     /**
-     * Generates CSV content from report data.
+     * Generates CSV content from employee report data.
      * 
      * @param report the report data
      * @return CSV formatted string
      */
-    private String generateCsv(List<EmployeeExpenseReportResponse> report) {
+    private String generateEmployeeCsv(List<EmployeeExpenseReportResponse> report) {
         StringBuilder csv = new StringBuilder();
         csv.append("Employee,Total (USD)\n");
         
@@ -216,6 +222,227 @@ public class ReportService {
                 .collect(Collectors.toList());
         
         return report;
+    }
+
+    /**
+     * Generates CSV report grouped by category for a given date range.
+     * Applies defaults and validates dates.
+     * 
+     * @param startDate start date (nullable, defaults to first day of current month)
+     * @param endDate end date (nullable, defaults to current date)
+     * @return CSV formatted string
+     */
+    @Transactional(readOnly = true)
+    public String getExpensesByCategoryCsvReport(LocalDate startDate, LocalDate endDate) {
+        LocalDate effectiveStartDate = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
+        LocalDate effectiveEndDate = endDate != null ? endDate : LocalDate.now();
+        
+        DateRangeValidator.validate(effectiveStartDate, effectiveEndDate);
+        
+        log.info("Generating CSV expense report by category from {} to {}", effectiveStartDate, effectiveEndDate);
+        
+        List<CategoryExpenseReportResponse> report = getExpensesByCategory(effectiveStartDate, effectiveEndDate);
+        String csv = generateCategoryCsv(report);
+        
+        log.info("CSV report generated with {} categories", report.size());
+        return csv;
+    }
+
+    /**
+     * Generates CSV content from category report data.
+     * 
+     * @param report the report data
+     * @return CSV formatted string
+     */
+    private String generateCategoryCsv(List<CategoryExpenseReportResponse> report) {
+        StringBuilder csv = new StringBuilder();
+        csv.append("Category,Total (USD)\n");
+        
+        for (CategoryExpenseReportResponse row : report) {
+            csv.append(escapeCsv(row.getCategory()))
+               .append(",")
+               .append(row.getTotal())
+               .append("\n");
+        }
+        
+        return csv.toString();
+    }
+
+    /**
+     * Generates expense report grouped by department with budget tracking.
+     * Applies defaults and validates dates.
+     * 
+     * @param startDate start date (nullable, defaults to current date)
+     * @param endDate end date (nullable, defaults to current date)
+     * @return list of department expense reports with budget information in USD
+     */
+    @Transactional(readOnly = true)
+    public List<DepartmentExpenseReportResponse> getExpensesByDepartmentReport(LocalDate startDate, LocalDate endDate) {
+        LocalDate effectiveStartDate = startDate != null ? startDate : LocalDate.now();
+        LocalDate effectiveEndDate = endDate != null ? endDate : LocalDate.now();
+        
+        // Special validation for department reports: same month/year or single day
+        DateRangeValidator.validateSameMonthOrSingleDay(effectiveStartDate, effectiveEndDate);
+        
+        log.info("Generating expense report by department from {} to {}", effectiveStartDate, effectiveEndDate);
+        
+        List<DepartmentExpenseReportResponse> report;
+        
+        // Check if it's a daily report or period report
+        if (effectiveStartDate.equals(effectiveEndDate)) {
+            report = getExpensesByDepartmentDaily(effectiveStartDate);
+        } else {
+            report = getExpensesByDepartmentPeriod(effectiveStartDate, effectiveEndDate);
+        }
+        
+        log.info("Report generated with {} departments", report.size());
+        return report;
+    }
+
+    /**
+     * Generates expense report grouped by department for a period within the same month.
+     * Uses monthly budget for comparison.
+     * 
+     * @param startDate start date (inclusive)
+     * @param endDate end date (inclusive)
+     * @return list of department expense reports with budget information
+     */
+    private List<DepartmentExpenseReportResponse> getExpensesByDepartmentPeriod(LocalDate startDate, LocalDate endDate) {
+        // Fetch all expenses within the date range (excluding REJECTED)
+        List<Expense> expenses = expenseRepository.findAllByExpenseDateBetweenAndStatusNot(
+                startDate, 
+                endDate,
+                ExpenseStatus.REJECTED
+        );
+        
+        // Group by department and sum amounts (converted to USD)
+        Map<Department, BigDecimal> departmentTotals = expenses.stream()
+                .filter(expense -> expense.getUser().getDepartment() != null)
+                .collect(Collectors.groupingBy(
+                        expense -> expense.getUser().getDepartment(),
+                        Collectors.reducing(
+                                BigDecimal.ZERO,
+                                CurrencyConverter::convertToUsd,
+                                BigDecimal::add
+                        )
+                ));
+        
+        // Get all departments to include those with no expenses
+        List<Department> allDepartments = departmentRepository.findAll();
+        
+        // Convert map to list of DTOs with budget calculations (using monthly budget)
+        List<DepartmentExpenseReportResponse> report = allDepartments.stream()
+                .map(department -> {
+                    BigDecimal used = departmentTotals.getOrDefault(department, BigDecimal.ZERO)
+                            .setScale(2, RoundingMode.HALF_UP);
+                    
+                    // Use monthly budget for period reports
+                    BigDecimal budgetInUsd = department.getMonthlyBudget();
+                    
+                    BigDecimal remaining;
+                    BigDecimal overBudget;
+                    
+                    if (used.compareTo(budgetInUsd) <= 0) {
+                        // Within budget
+                        remaining = budgetInUsd.subtract(used).setScale(2, RoundingMode.HALF_UP);
+                        overBudget = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+                    } else {
+                        // Over budget
+                        remaining = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+                        overBudget = used.subtract(budgetInUsd).setScale(2, RoundingMode.HALF_UP);
+                    }
+                    
+                    return DepartmentExpenseReportResponse.builder()
+                            .department(department.getName())
+                            .used(used)
+                            .remaining(remaining)
+                            .overBudget(overBudget)
+                            .build();
+                })
+                .sorted((a, b) -> b.getUsed().compareTo(a.getUsed()))
+                .collect(Collectors.toList());
+        
+        return report;
+    }
+
+    /**
+     * Generates expense report grouped by department for a single day.
+     * Uses daily budget for comparison.
+     * 
+     * @param date the date to report on
+     * @return list of department expense reports with budget information
+     */
+    private List<DepartmentExpenseReportResponse> getExpensesByDepartmentDaily(LocalDate date) {
+        // Fetch all expenses for the specific date (excluding REJECTED)
+        List<Expense> expenses = expenseRepository.findAllByExpenseDateBetweenAndStatusNot(
+                date, 
+                date,
+                ExpenseStatus.REJECTED
+        );
+        
+        // Group by department and sum amounts (converted to USD)
+        Map<Department, BigDecimal> departmentTotals = expenses.stream()
+                .filter(expense -> expense.getUser().getDepartment() != null)
+                .collect(Collectors.groupingBy(
+                        expense -> expense.getUser().getDepartment(),
+                        Collectors.reducing(
+                                BigDecimal.ZERO,
+                                CurrencyConverter::convertToUsd,
+                                BigDecimal::add
+                        )
+                ));
+        
+        // Get all departments to include those with no expenses
+        List<Department> allDepartments = departmentRepository.findAll();
+        
+        // Convert map to list of DTOs with budget calculations (using daily budget)
+        List<DepartmentExpenseReportResponse> report = allDepartments.stream()
+                .map(department -> {
+                    BigDecimal used = departmentTotals.getOrDefault(department, BigDecimal.ZERO)
+                            .setScale(2, RoundingMode.HALF_UP);
+                    
+                    // Use daily budget for single-day reports (if available, otherwise use monthly)
+                    BigDecimal budgetInUsd = department.getDailyBudget() != null 
+                            ? department.getDailyBudget() 
+                            : department.getMonthlyBudget();
+                    
+                    BigDecimal remaining;
+                    BigDecimal overBudget;
+                    
+                    if (used.compareTo(budgetInUsd) <= 0) {
+                        // Within budget
+                        remaining = budgetInUsd.subtract(used).setScale(2, RoundingMode.HALF_UP);
+                        overBudget = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+                    } else {
+                        // Over budget
+                        remaining = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+                        overBudget = used.subtract(budgetInUsd).setScale(2, RoundingMode.HALF_UP);
+                    }
+                    
+                    return DepartmentExpenseReportResponse.builder()
+                            .department(department.getName())
+                            .used(used)
+                            .remaining(remaining)
+                            .overBudget(overBudget)
+                            .build();
+                })
+                .sorted((a, b) -> b.getUsed().compareTo(a.getUsed()))
+                .collect(Collectors.toList());
+        
+        return report;
+    }
+
+    /**
+     * Converts department monthly budget to USD.
+     * 
+     * @param department the department
+     * @return budget in USD
+     */
+    private BigDecimal convertDepartmentBudgetToUsd(Department department) {
+        // For now, assume department budgets are stored directly in their currency
+        // If currency is not USD, we would need to convert it
+        // Since we don't have exchange rate info in Department, we assume it's in USD
+        return department.getMonthlyBudget();
     }
 
     /**

@@ -28,4 +28,27 @@ public class DateRangeValidator {
             throw new IllegalArgumentException("End date cannot be in the future");
         }
     }
+
+    /**
+     * Validates that a date range is within the same month and year.
+     * Only used for department budget reports that require same-month validation.
+     * 
+     * @param startDate the start date
+     * @param endDate the end date
+     * @throws IllegalArgumentException if dates are not in the same month/year
+     */
+    public static void validateSameMonthOrSingleDay(LocalDate startDate, LocalDate endDate) {
+        // First validate basic rules
+        validate(startDate, endDate);
+        
+        // If it's a single day, it's always valid
+        if (startDate.equals(endDate)) {
+            return;
+        }
+        
+        // For date ranges, must be in the same month and year
+        if (startDate.getYear() != endDate.getYear() || startDate.getMonth() != endDate.getMonth()) {
+            throw new IllegalArgumentException("Date range must be within the same month and year, or a single day");
+        }
+    }
 }
