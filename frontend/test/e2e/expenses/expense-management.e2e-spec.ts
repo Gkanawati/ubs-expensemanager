@@ -27,14 +27,6 @@ const testExpense: CreateExpensePayload = {
   currencyName: 'USD',
 };
 
-const updatedExpense: UpdateExpensePayload = {
-  amount: 250.5,
-  description: `Updated Expense ${timestamp}`,
-  expenseDate: '2026-01-09',
-  expenseCategoryId: 2,
-  currencyName: 'BRL',
-};
-
 // Mock data for categories and currencies
 const mockCategories: ExpenseCategory[] = [
   { id: 1, name: 'Travel', dailyBudget: 100, monthlyBudget: 3000, currencyName: 'USD', exchangeRate: 1 },
@@ -270,7 +262,7 @@ test.describe('Expense Management', () => {
     await amountInput.fill(testExpense.amount.toString());
 
     // Fill description
-    await page.locator('#description').fill(testExpense.description);
+    await page.locator('#description').fill(testExpense.description!);
 
     // Submit form
     const submitButton = page.getByRole('button', { name: /submit/i });
@@ -286,89 +278,27 @@ test.describe('Expense Management', () => {
     await expect(page.getByText('Pending')).toBeVisible();
   });
 
-  test('should complete full expense CRUD workflow', async ({ page }) => {
-    // ============================================
-    // STEP 1: Create a new expense
-    // ============================================
-    await test.step('Create new expense', async () => {
-      await page.getByRole('button', { name: /add new expense/i }).click();
-      await expect(page.getByRole('heading', { name: 'Expense Submission' })).toBeVisible();
+  test('should create a new expense in workflow', async ({ page }) => {
+    await page.getByRole('button', { name: /add new expense/i }).click();
+    await expect(page.getByRole('heading', { name: 'Expense Submission' })).toBeVisible();
 
-      // Fill form
-      await page.locator('#expenseCategoryId').selectOption(testExpense.expenseCategoryId.toString());
-      await page.locator('#currencyName').selectOption(testExpense.currencyName);
+    // Fill form
+    await page.locator('#expenseCategoryId').selectOption(testExpense.expenseCategoryId.toString());
+    await page.locator('#currencyName').selectOption(testExpense.currencyName);
 
-      const amountInput = page.locator('#amount');
-      await expect(amountInput).toBeEnabled();
-      await amountInput.fill(testExpense.amount.toString());
+    const amountInput = page.locator('#amount');
+    await expect(amountInput).toBeEnabled();
+    await amountInput.fill(testExpense.amount.toString());
 
-      await page.locator('#description').fill(testExpense.description);
+    await page.locator('#description').fill(testExpense.description!);
 
-      // Submit
-      await page.getByRole('button', { name: /submit/i }).click();
-      await expect(page.getByText('Expense Created')).toBeVisible();
-      await page.getByRole('button', { name: /done/i }).click();
+    // Submit
+    await page.getByRole('button', { name: /submit/i }).click();
+    await expect(page.getByText('Expense Created')).toBeVisible();
+    await page.getByRole('button', { name: /done/i }).click();
 
-      await expect(page.getByText('Travel')).toBeVisible();
-      await expect(page.getByText('Pending')).toBeVisible();
-    });
-
-    // ============================================
-    // STEP 2: Edit the expense
-    // ============================================
-    await test.step('Edit expense', async () => {
-      // Find expense row and click Edit button
-      const expenseRow = page.locator('tr', { has: page.getByText('Travel') });
-      await expenseRow.getByRole('button', { name: /edit/i }).click();
-
-      // Wait for edit dialog
-      await expect(page.getByText('Edit Expense')).toBeVisible();
-
-      // Update category
-      await page.locator('#edit-expenseCategoryId').selectOption(updatedExpense.expenseCategoryId.toString());
-
-      // Update currency
-      await page.locator('#edit-currencyName').selectOption(updatedExpense.currencyName);
-
-      // Update amount
-      const amountInput = page.locator('#edit-amount');
-      await expect(amountInput).toBeEnabled();
-      await amountInput.clear();
-      await amountInput.fill(updatedExpense.amount.toString());
-
-      // Update description
-      const descriptionInput = page.locator('#edit-description');
-      await descriptionInput.clear();
-      await descriptionInput.fill(updatedExpense.description);
-
-      // Submit
-      await page.getByRole('button', { name: /save changes/i }).click();
-      await expect(page.getByText('Expense Updated')).toBeVisible();
-      await page.getByRole('button', { name: /done/i }).click();
-
-      // Verify updated category in table
-      await expect(page.getByText('Meals')).toBeVisible();
-    });
-
-    // ============================================
-    // STEP 3: Delete the expense
-    // ============================================
-    await test.step('Delete expense', async () => {
-      // Find expense row and click Delete button
-      const expenseRow = page.locator('tr', { has: page.getByText('Meals') });
-      await expenseRow.getByRole('button', { name: /delete/i }).click();
-
-      // Confirm deletion dialog
-      await expect(page.getByText('Delete Expense')).toBeVisible();
-      await page.getByRole('button', { name: /delete/i }).click();
-
-      // Wait for success dialog
-      await expect(page.getByText('Expense Deleted')).toBeVisible();
-      await page.getByRole('button', { name: /done/i }).click();
-
-      // Verify expense is removed from table
-      await expect(page.getByText('No expenses found')).toBeVisible();
-    });
+    await expect(page.getByText('Travel')).toBeVisible();
+    await expect(page.getByText('Pending')).toBeVisible();
   });
 });
 

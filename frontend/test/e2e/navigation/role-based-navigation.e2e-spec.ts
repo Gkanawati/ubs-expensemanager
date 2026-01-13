@@ -22,8 +22,8 @@ test.describe('Role-Based Navigation', () => {
     await expect(page.getByRole('link', { name: /dashboard/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /my expenses/i })).toBeVisible();
 
-    // Check that finance/manager/finance-only items are NOT visible
-    await expect(page.getByRole('link', { name: /approvals/i })).toBeHidden();
+    // Check that finance/manager-only items are NOT visible
+    await expect(page.getByRole('link', { name: /manage expenses/i })).toBeHidden();
     await expect(page.getByRole('link', { name: /user management/i })).toBeHidden();
   });
 
@@ -35,7 +35,7 @@ test.describe('Role-Based Navigation', () => {
     // Check that employee menu items are visible
     await expect(page.getByRole('link', { name: /dashboard/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /my expenses/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /approvals/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /manage expenses/i })).toBeVisible();
 
     // Check that finance-only items are NOT visible
     await expect(page.getByRole('link', { name: /user management/i })).toBeHidden();
@@ -49,7 +49,7 @@ test.describe('Role-Based Navigation', () => {
     // Check that employee menu items are visible
     await expect(page.getByRole('link', { name: /dashboard/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /my expenses/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /approvals/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /manage expenses/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /user management/i })).toBeVisible();
   });
 
