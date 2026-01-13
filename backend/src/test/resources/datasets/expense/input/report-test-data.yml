@@ -1,0 +1,197 @@
+PUBLIC.DEPARTMENTS:
+  - ID: 201
+    NAME: "IT Department"
+    DAILY_BUDGET: 500.0
+    MONTHLY_BUDGET: 15000.0
+    CURRENCY: "USD"
+  - ID: 202
+    NAME: "Finance Department"
+    DAILY_BUDGET: 600.0
+    MONTHLY_BUDGET: 18000.0
+    CURRENCY: "USD"
+
+PUBLIC.CURRENCIES:
+  - ID: 201
+    NAME: "USD"
+    EXCHANGE_RATE: 1.000000
+  - ID: 202
+    NAME: "BRL"
+    EXCHANGE_RATE: 5.000000
+  - ID: 203
+    NAME: "EUR"
+    EXCHANGE_RATE: 0.900000
+
+PUBLIC.EXPENSE_CATEGORIES:
+  - ID: 201
+    NAME: "Food"
+    DAILY_BUDGET: 150.0
+    MONTHLY_BUDGET: 4500.0
+    CURRENCY_ID: 201
+  - ID: 202
+    NAME: "Transport"
+    DAILY_BUDGET: 80.0
+    MONTHLY_BUDGET: 2400.0
+    CURRENCY_ID: 201
+  - ID: 203
+    NAME: "Office Supplies"
+    DAILY_BUDGET: 100.0
+    MONTHLY_BUDGET: 3000.0
+    CURRENCY_ID: 201
+
+PUBLIC.USERS:
+  # Managers
+  - ID: 201
+    NAME: "Jane Manager IT"
+    EMAIL: "manager@ubs.com"
+    PASSWORD: "$2a$10$fakehashedpassword"
+    ROLE: "MANAGER"
+    MANAGER_ID: null
+    DEPARTMENT_ID: 201
+    ACTIVE: true
+  - ID: 202
+    NAME: "Bob Manager Finance"
+    EMAIL: "manager2@ubs.com"
+    PASSWORD: "$2a$10$fakehashedpassword"
+    ROLE: "MANAGER"
+    MANAGER_ID: null
+    DEPARTMENT_ID: 202
+    ACTIVE: true
+  # Finance
+  - ID: 203
+    NAME: "Alice Finance"
+    EMAIL: "finance@ubs.com"
+    PASSWORD: "$2a$10$fakehashedpassword"
+    ROLE: "FINANCE"
+    MANAGER_ID: null
+    DEPARTMENT_ID: 202
+    ACTIVE: true
+  # IT Department Employees
+  - ID: 204
+    NAME: "John Employee IT"
+    EMAIL: "employee@ubs.com"
+    PASSWORD: "$2a$10$fakehashedpassword"
+    ROLE: "EMPLOYEE"
+    MANAGER_ID: 201
+    DEPARTMENT_ID: 201
+    ACTIVE: true
+  - ID: 205
+    NAME: "Mary Employee IT"
+    EMAIL: "employee2@ubs.com"
+    PASSWORD: "$2a$10$fakehashedpassword"
+    ROLE: "EMPLOYEE"
+    MANAGER_ID: 201
+    DEPARTMENT_ID: 201
+    ACTIVE: true
+  # Finance Department Employees
+  - ID: 206
+    NAME: "Peter Employee Finance"
+    EMAIL: "employee3@ubs.com"
+    PASSWORD: "$2a$10$fakehashedpassword"
+    ROLE: "EMPLOYEE"
+    MANAGER_ID: 202
+    DEPARTMENT_ID: 202
+    ACTIVE: true
+  - ID: 207
+    NAME: "Susan Employee Finance"
+    EMAIL: "employee4@ubs.com"
+    PASSWORD: "$2a$10$fakehashedpassword"
+    ROLE: "EMPLOYEE"
+    MANAGER_ID: 202
+    DEPARTMENT_ID: 202
+    ACTIVE: true
+
+PUBLIC.EXPENSES:
+  # John Employee IT - 3 expenses
+  - ID: 201
+    AMOUNT: 50.00
+    DESCRIPTION: "Team lunch with clients"
+    EXPENSE_DATE: "2026-01-08"
+    USER_ID: 204
+    EXPENSE_CATEGORY_ID: 201
+    CURRENCY_ID: 201
+    RECEIPT_URL: "https://example.com/receipts/201.pdf"
+    STATUS: "APPROVED_BY_FINANCE"
+  - ID: 202
+    AMOUNT: 30.00
+    DESCRIPTION: "Taxi to meeting"
+    EXPENSE_DATE: "2026-01-09"
+    USER_ID: 204
+    EXPENSE_CATEGORY_ID: 202
+    CURRENCY_ID: 201
+    RECEIPT_URL: null
+    STATUS: "PENDING"
+  - ID: 203
+    AMOUNT: 25.00
+    DESCRIPTION: "Office supplies"
+    EXPENSE_DATE: "2026-01-10"
+    USER_ID: 204
+    EXPENSE_CATEGORY_ID: 203
+    CURRENCY_ID: 201
+    RECEIPT_URL: null
+    STATUS: "APPROVED_BY_MANAGER"
+  # Mary Employee IT - 3 expenses
+  - ID: 204
+    AMOUNT: 75.00
+    DESCRIPTION: "Client dinner"
+    EXPENSE_DATE: "2026-01-07"
+    USER_ID: 205
+    EXPENSE_CATEGORY_ID: 201
+    CURRENCY_ID: 201
+    RECEIPT_URL: "https://example.com/receipts/204.pdf"
+    STATUS: "APPROVED_BY_FINANCE"
+  - ID: 205
+    AMOUNT: 40.00
+    DESCRIPTION: "Uber to office"
+    EXPENSE_DATE: "2026-01-08"
+    USER_ID: 205
+    EXPENSE_CATEGORY_ID: 202
+    CURRENCY_ID: 201
+    RECEIPT_URL: null
+    STATUS: "PENDING"
+  - ID: 206
+    AMOUNT: 15.00
+    DESCRIPTION: "Printer paper"
+    EXPENSE_DATE: "2026-01-11"
+    USER_ID: 205
+    EXPENSE_CATEGORY_ID: 203
+    CURRENCY_ID: 201
+    RECEIPT_URL: null
+    STATUS: "REQUIRES_REVISION"
+  # Peter Employee Finance - 2 expenses
+  - ID: 207
+    AMOUNT: 100.00
+    DESCRIPTION: "Conference meals"
+    EXPENSE_DATE: "2026-01-05"
+    USER_ID: 206
+    EXPENSE_CATEGORY_ID: 201
+    CURRENCY_ID: 201
+    RECEIPT_URL: "https://example.com/receipts/207.pdf"
+    STATUS: "APPROVED_BY_FINANCE"
+  - ID: 208
+    AMOUNT: 250.00
+    DESCRIPTION: "Team lunch in BRL"
+    EXPENSE_DATE: "2026-01-06"
+    USER_ID: 206
+    EXPENSE_CATEGORY_ID: 201
+    CURRENCY_ID: 202
+    RECEIPT_URL: "https://example.com/receipts/208.pdf"
+    STATUS: "APPROVED_BY_MANAGER"
+  # Susan Employee Finance - 2 expenses
+  - ID: 209
+    AMOUNT: 60.00
+    DESCRIPTION: "Airport taxi"
+    EXPENSE_DATE: "2026-01-09"
+    USER_ID: 207
+    EXPENSE_CATEGORY_ID: 202
+    CURRENCY_ID: 201
+    RECEIPT_URL: null
+    STATUS: "PENDING"
+  - ID: 210
+    AMOUNT: 90.00
+    DESCRIPTION: "Business lunch in EUR"
+    EXPENSE_DATE: "2026-01-10"
+    USER_ID: 207
+    EXPENSE_CATEGORY_ID: 201
+    CURRENCY_ID: 203
+    RECEIPT_URL: "https://example.com/receipts/210.pdf"
+    STATUS: "APPROVED_BY_FINANCE"
