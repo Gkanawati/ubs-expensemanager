@@ -375,8 +375,10 @@ public class ReportService {
                     BigDecimal used = departmentTotals.getOrDefault(department, BigDecimal.ZERO)
                             .setScale(2, RoundingMode.HALF_UP);
                     
-                    // Use monthly budget for period reports
-                    BigDecimal budgetInUsd = department.getMonthlyBudget();
+                    // Convert monthly budget to USD using department's currency exchange rate
+                    BigDecimal exchangeRate = department.getCurrency().getExchangeRate();
+                    BigDecimal budgetInUsd = department.getMonthlyBudget()
+                            .divide(exchangeRate, 2, RoundingMode.HALF_UP);
                     
                     BigDecimal remaining;
                     BigDecimal overBudget;
@@ -441,9 +443,14 @@ public class ReportService {
                             .setScale(2, RoundingMode.HALF_UP);
                     
                     // Use daily budget for single-day reports (if available, otherwise use monthly)
-                    BigDecimal budgetInUsd = department.getDailyBudget() != null 
+                    // Convert to USD using department's currency exchange rate
+                    BigDecimal budgetInDepartmentCurrency = department.getDailyBudget() != null 
                             ? department.getDailyBudget() 
                             : department.getMonthlyBudget();
+                    
+                    BigDecimal exchangeRate = department.getCurrency().getExchangeRate();
+                    BigDecimal budgetInUsd = budgetInDepartmentCurrency
+                            .divide(exchangeRate, 2, RoundingMode.HALF_UP);
                     
                     BigDecimal remaining;
                     BigDecimal overBudget;
@@ -493,19 +500,6 @@ public class ReportService {
         }
         
         return csv.toString();
-    }
-
-    /**
-     * Converts department monthly budget to USD.
-     * 
-     * @param department the department
-     * @return budget in USD
-     */
-    private BigDecimal convertDepartmentBudgetToUsd(Department department) {
-        // For now, assume department budgets are stored directly in their currency
-        // If currency is not USD, we would need to convert it
-        // Since we don't have exchange rate info in Department, we assume it's in USD
-        return department.getMonthlyBudget();
     }
 
     /**
