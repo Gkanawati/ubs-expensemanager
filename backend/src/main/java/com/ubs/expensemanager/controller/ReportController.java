@@ -1,5 +1,6 @@
 package com.ubs.expensemanager.controller;
 
+import com.ubs.expensemanager.dto.response.CategoryExpenseReportResponse;
 import com.ubs.expensemanager.dto.response.EmployeeExpenseReportResponse;
 import com.ubs.expensemanager.dto.response.ErrorResponse;
 import com.ubs.expensemanager.service.ReportService;
@@ -153,5 +154,50 @@ public class ReportController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.parseMediaType("text/csv"))
                 .body(csv);
+    }
+
+    @Operation(
+            summary = "Get expense report by category",
+            description = "Returns total expenses grouped by category within a date range. All amounts are converted to USD."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Report generated successfully"),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid date parameters",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - Only MANAGER and FINANCE roles can access reports",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)
+                    )
+            )
+    })
+    @GetMapping("/expenses/by-category")
+    @PreAuthorize("hasAnyRole('MANAGER', 'FINANCE')")
+    public ResponseEntity<List<CategoryExpenseReportResponse>> getExpensesByCategory(
+            @Parameter(description = "Start date (inclusive). Defaults to first day of current month.", example = "2026-01-01")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            
+            @Parameter(description = "End date (inclusive). Defaults to current date.", example = "2026-01-31")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        log.info("Request received for expense report by category: startDate={}, endDate={}", startDate, endDate);
+        
+        List<CategoryExpenseReportResponse> report = reportService.getExpensesByCategoryReport(startDate, endDate);
+        
+        log.info("Successfully generated report with {} categories", report.size());
+        return ResponseEntity.ok(report);
     }
 }

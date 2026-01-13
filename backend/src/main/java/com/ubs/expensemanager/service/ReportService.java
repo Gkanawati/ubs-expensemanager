@@ -1,5 +1,6 @@
 package com.ubs.expensemanager.service;
 
+import com.ubs.expensemanager.dto.response.CategoryExpenseReportResponse;
 import com.ubs.expensemanager.dto.response.EmployeeExpenseReportResponse;
 import com.ubs.expensemanager.model.Expense;
 import com.ubs.expensemanager.model.ExpenseStatus;
@@ -153,6 +154,68 @@ public class ReportService {
         }
         
         return csv.toString();
+    }
+
+    /**
+     * Generates expense report grouped by category for a given date range.
+     * Applies defaults and validates dates.
+     * 
+     * @param startDate start date (nullable, defaults to first day of current month)
+     * @param endDate end date (nullable, defaults to current date)
+     * @return list of category expense totals in USD
+     */
+    @Transactional(readOnly = true)
+    public List<CategoryExpenseReportResponse> getExpensesByCategoryReport(LocalDate startDate, LocalDate endDate) {
+        LocalDate effectiveStartDate = startDate != null ? startDate : LocalDate.now().withDayOfMonth(1);
+        LocalDate effectiveEndDate = endDate != null ? endDate : LocalDate.now();
+        
+        DateRangeValidator.validate(effectiveStartDate, effectiveEndDate);
+        
+        log.info("Generating expense report by category from {} to {}", effectiveStartDate, effectiveEndDate);
+        
+        List<CategoryExpenseReportResponse> report = getExpensesByCategory(effectiveStartDate, effectiveEndDate);
+        
+        log.info("Report generated with {} categories", report.size());
+        return report;
+    }
+
+    /**
+     * Generates expense report grouped by category for a given date range.
+     * All amounts are converted to USD for comparison.
+     * 
+     * @param startDate start date (inclusive)
+     * @param endDate end date (inclusive)
+     * @return list of category expense totals in USD
+     */
+    private List<CategoryExpenseReportResponse> getExpensesByCategory(LocalDate startDate, LocalDate endDate) {
+        // Fetch all expenses within the date range (excluding REJECTED)
+        List<Expense> expenses = expenseRepository.findAllByExpenseDateBetweenAndStatusNot(
+                startDate, 
+                endDate,
+                ExpenseStatus.REJECTED
+        );
+        
+        // Group by category and sum amounts (converted to USD)
+        Map<String, BigDecimal> categoryTotals = expenses.stream()
+                .collect(Collectors.groupingBy(
+                        expense -> expense.getExpenseCategory().getName(),
+                        Collectors.reducing(
+                                BigDecimal.ZERO,
+                                CurrencyConverter::convertToUsd,
+                                BigDecimal::add
+                        )
+                ));
+        
+        // Convert map to list of DTOs and sort by total (descending)
+        List<CategoryExpenseReportResponse> report = categoryTotals.entrySet().stream()
+                .map(entry -> CategoryExpenseReportResponse.builder()
+                        .category(entry.getKey())
+                        .total(entry.getValue().setScale(2, RoundingMode.HALF_UP))
+                        .build())
+                .sorted((a, b) -> b.getTotal().compareTo(a.getTotal()))
+                .collect(Collectors.toList());
+        
+        return report;
     }
 
     /**
