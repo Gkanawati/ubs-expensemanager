@@ -21,7 +21,7 @@ public class CustomRevisionListener implements RevisionListener {
             if (authentication != null && authentication.isAuthenticated() 
                     && authentication.getPrincipal() instanceof User) {
                 User user = (User) authentication.getPrincipal();
-                customRevisionEntity.setUserEmail(user.getEmail());
+                customRevisionEntity.setModifiedBy(user.getEmail());
             }
         } catch (Exception e) {
             // If we can't get the user, just leave it null

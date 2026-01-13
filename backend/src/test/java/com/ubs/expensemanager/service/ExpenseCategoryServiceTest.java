@@ -286,21 +286,21 @@ class ExpenseCategoryServiceTest {
         rev1.setId(1);
         rev1.setTimestamp(OffsetDateTime.of(2026, 1, 1, 10, 0, 0, 0, ZoneOffset.UTC)
                 .toInstant().toEpochMilli());
-        rev1.setUserEmail("admin@ubs.com");
+        rev1.setModifiedBy("admin@ubs.com");
 
         // Revision 2: January 2, 2026 02:00 PM (first update - MOD)
         CustomRevisionEntity rev2 = new CustomRevisionEntity();
         rev2.setId(2);
         rev2.setTimestamp(OffsetDateTime.of(2026, 1, 2, 14, 0, 0, 0, ZoneOffset.UTC)
                 .toInstant().toEpochMilli());
-        rev2.setUserEmail("manager@ubs.com");
+        rev2.setModifiedBy("manager@ubs.com");
 
         // Revision 3: January 3, 2026 04:00 PM (second update - MOD)
         CustomRevisionEntity rev3 = new CustomRevisionEntity();
         rev3.setId(3);
         rev3.setTimestamp(OffsetDateTime.of(2026, 1, 3, 16, 0, 0, 0, ZoneOffset.UTC)
                 .toInstant().toEpochMilli());
-        rev3.setUserEmail("user@ubs.com");
+        rev3.setModifiedBy("user@ubs.com");
 
         List<Object[]> auditResults = List.of(
                 new Object[]{foodCategoryFirstVersion, rev1, RevisionType.ADD},

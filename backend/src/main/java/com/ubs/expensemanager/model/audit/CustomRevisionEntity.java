@@ -33,6 +33,6 @@ public class CustomRevisionEntity {
     @Column(name = "revtstmp")
     private long timestamp;
 
-    @Column(name = "user_email", length = 255)
-    private String userEmail;
+    @Column(name = "modified_by", length = 255)
+    private String modifiedBy;
 }

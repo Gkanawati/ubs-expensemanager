@@ -157,7 +157,7 @@ public class ExpenseCategoryService {
                     CustomRevisionEntity revEntity = (CustomRevisionEntity) result[1];
                     Number revNumber = revEntity.getId();
                     long revTimestamp = revEntity.getTimestamp();
-                    String revUserEmail = revEntity.getUserEmail();
+                    String revUserEmail = revEntity.getModifiedBy();
                     RevisionType revType = (RevisionType) result[2];
 
                     return ExpenseCategoryAuditResponse.builder()

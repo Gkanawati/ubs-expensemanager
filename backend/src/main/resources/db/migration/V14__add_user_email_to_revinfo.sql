@@ -1,3 +1,3 @@
--- Add user_email column to revinfo table to track who made each revision
+-- Add modified_by column to revinfo table to track who made each revision
 ALTER TABLE revinfo
-ADD COLUMN user_email VARCHAR(255);
+ADD COLUMN modified_by VARCHAR(255);
