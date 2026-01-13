@@ -1,9 +1,14 @@
+PUBLIC.CURRENCIES:
+  - id: 1
+    NAME: "USD"
+    EXCHANGE_RATE: 1.000000
+
 PUBLIC.DEPARTMENTS:
   - id: 1
     name: "TI"
     daily_budget: 10.0
     monthly_budget: 10.0
-    currency: "USD"
+    CURRENCY_ID: 1
 
 PUBLIC.USERS:
   - id: 1
@@ -14,3 +19,4 @@ PUBLIC.USERS:
     manager_id: null
     department_id: 1
     active: true
+

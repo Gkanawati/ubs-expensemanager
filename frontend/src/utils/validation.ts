@@ -122,7 +122,7 @@ export const departmentSchema = z
       .nullable()
       .optional(),
 
-    currency: z.enum(["USD", "BRL"]),
+    currencyId: z.number().min(1, "Currency is required"),
   })
   .refine(
     (data) =>
@@ -173,12 +173,20 @@ export type CreateCategoryFormData = z.infer<typeof categorySchema>;
 /**
  * Formats a number as currency with the specified currency code
  */
-export const formatCurrency = (amount: number, currency: string): string => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency,
+export const formatCurrency = (value: number, currency?: string) => {
+  const currencyCode = currency || 'USD';
+
+  const formatted = new Intl.NumberFormat(currencyCode === 'BRL' ? 'pt-BR' : 'en-US', {
+    style: 'currency',
+    currency: currencyCode,
     minimumFractionDigits: 2,
-  }).format(amount);
+  }).format(value);
+
+  // Ensure consistent spacing for USD (add space after $ if not present)
+  if (currencyCode === 'USD' && formatted.startsWith('$')) {
+    return formatted.replace('$', '$ ');
+  }
+  return formatted;
 };
 
 /**

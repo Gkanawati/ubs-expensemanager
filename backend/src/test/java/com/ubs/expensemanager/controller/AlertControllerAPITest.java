@@ -108,7 +108,7 @@ public class AlertControllerAPITest extends ControllerAPITest {
    * Verifies if {@link AlertController#resolveAlert} will successfully resolve an alert when finance user requests.
    */
   @Test
-  @DataSet(value = BASE_DATASET + "input/alerts.yml", tableOrdering = {"DEPARTMENTS", "USERS", "CURRENCIES", "EXPENSE_CATEGORIES", "EXPENSES", "ALERTS"})
+  @DataSet(value = BASE_DATASET + "input/alerts.yml")
   @ExpectedDataSet(BASE_DATASET + "expected/after-resolve-alert.yml")
   void shouldResolveAlertWhenFinanceUserRequests() {
     // given
@@ -136,7 +136,7 @@ public class AlertControllerAPITest extends ControllerAPITest {
    * Verifies if {@link AlertController#resolveAlert} will return 403 when non-finance user requests.
    */
   @Test
-  @DataSet(value = BASE_DATASET + "input/alerts.yml", tableOrdering = {"DEPARTMENTS", "USERS", "CURRENCIES", "EXPENSE_CATEGORIES", "EXPENSES", "ALERTS"})
+  @DataSet(value = BASE_DATASET + "input/alerts.yml")
   @ExpectedDataSet(BASE_DATASET + "input/alerts.yml")
   void shouldReturn403WhenNonFinanceUserTriesToResolveAlert() {
     // given

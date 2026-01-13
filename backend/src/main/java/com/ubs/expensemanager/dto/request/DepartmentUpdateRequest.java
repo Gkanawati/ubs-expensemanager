@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Positive;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -29,9 +30,10 @@ public class DepartmentUpdateRequest {
     @PositiveOrZero(message = "monthly budget must be zero or positive")
     private BigDecimal monthlyBudget;
 
-    @Schema(description = "Currency code (ISO 4217)", example = "USD")
-    @NotBlank(message = "currency is required")
-    private String currency;
+    @Schema(description = "Currency ID (foreign key reference)", example = "1")
+    @NotNull(message = "currency ID is required")
+    @Positive(message = "currency ID must be positive")
+    private Long currencyId;
 
     @Schema(description = "Daily budget allocated to the department", example = "700.00")
     @PositiveOrZero(message = "daily budget must be zero or positive")
