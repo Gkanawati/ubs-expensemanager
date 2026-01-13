@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Edit } from 'lucide-react';
+import { Plus, Edit, CheckCircle } from 'lucide-react';
 import { DataTable, ColumnDef, RowAction } from '@/components/DataTable';
 import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { ActionButton } from '@/components/ui/ActionButton';
@@ -15,8 +15,10 @@ export const DepartmentPage = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [openCreate, setOpenCreate] = useState(false);
+  const [openCreateSuccessDialog, setOpenCreateSuccessDialog] = useState(false);
   const [createErrorMessage, setCreateErrorMessage] = useState<string>('');
   const [editing, setEditing] = useState<Department | null>(null);
+  const [openEditSuccessDialog, setOpenEditSuccessDialog] = useState(false);
   const [editErrorMessage, setEditErrorMessage] = useState<string>('');
   const [toDelete, setToDelete] = useState<Department | null>(null);
 
@@ -109,17 +111,26 @@ export const DepartmentPage = () => {
 
   return (
     <div className='space-y-6'>
-      <div className='flex items-center justify-between'>
-        <h1 className='text-3xl font-bold'>Departments</h1>
-
-        {canEdit && (
-          <ActionButton
-            label='Create Department'
-            icon={<Plus className='h-4 w-4' />}
-            onClick={() => setOpenCreate(true)}
-          />
-        )}
+      <div>
+        <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
+          Departments
+        </h1>
+        <p className='mt-2 text-sm text-gray-600 dark:text-gray-400'>
+          Manage departments and budgets
+        </p>
       </div>
+
+      {canEdit && (
+        <div className='rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900'>
+          <div className='flex items-center justify-end'>
+            <ActionButton
+              label='Create Department'
+              icon={<Plus className='h-4 w-4' />}
+              onClick={() => setOpenCreate(true)}
+            />
+          </div>
+        </div>
+      )}
 
       <DataTable
         columns={columns}
@@ -140,9 +151,21 @@ export const DepartmentPage = () => {
           setOpenCreate(false);
           setCreateErrorMessage('');
           await load();
+          setOpenCreateSuccessDialog(true);
         }}
         error={createErrorMessage}
         onError={setCreateErrorMessage}
+      />
+
+      <ConfirmationDialog
+        open={openCreateSuccessDialog}
+        onOpenChange={setOpenCreateSuccessDialog}
+        title='Department Created'
+        description='The department has been successfully created.'
+        confirmText='Done'
+        variant='success'
+        icon={<CheckCircle className='h-6 w-6 text-green-600' />}
+        onConfirm={() => setOpenCreateSuccessDialog(false)}
       />
 
       {editing && (
@@ -161,11 +184,23 @@ export const DepartmentPage = () => {
             setEditing(null);
             setEditErrorMessage('');
             load();
+            setOpenEditSuccessDialog(true);
           }}
           error={editErrorMessage}
           onError={setEditErrorMessage}
         />
       )}
+
+      <ConfirmationDialog
+        open={openEditSuccessDialog}
+        onOpenChange={setOpenEditSuccessDialog}
+        title='Department Updated'
+        description='The department has been successfully updated.'
+        confirmText='Done'
+        variant='success'
+        icon={<CheckCircle className='h-6 w-6 text-green-600' />}
+        onConfirm={() => setOpenEditSuccessDialog(false)}
+      />
 
       {toDelete && (
         <ConfirmationDialog
