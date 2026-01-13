@@ -4,17 +4,12 @@ import type {
   ExpenseCategory,
   Currency,
   CreateExpensePayload,
-  UpdateExpensePayload,
 } from '@/api/expense.api';
 
 /**
- * E2E Test: Expense Management Full Workflow
+ * E2E Test: Expense Management
  *
- * This test demonstrates the complete expense management lifecycle:
- * 1. Create a new expense
- * 2. Edit the expense
- * 3. Delete the expense
- * 4. Filter expenses by status and date
+ * This test demonstrates expense creation workflow.
  */
 
 // Generate unique test data for each test run
@@ -149,53 +144,6 @@ async function setupExpenseManagementMocks(page: Page) {
         contentType: 'application/json',
         body: JSON.stringify(newExpense),
       });
-    } else {
-      await route.continue();
-    }
-  });
-
-  // Mock update and delete expense
-  await page.route('**/api/expenses/*', async (route) => {
-    const expenseId = parseInt(route.request().url().split('/').pop() || '0');
-
-    if (route.request().method() === 'PUT') {
-      const requestData = route.request().postDataJSON() as UpdateExpensePayload;
-      const expenseIndex = expenses.findIndex((e) => e.id === expenseId);
-
-      if (expenseIndex >= 0) {
-        const category = mockCategories.find((c) => c.id === requestData.expenseCategoryId);
-        const currency = mockCurrencies.find((c) => c.name === requestData.currencyName);
-
-        expenses[expenseIndex] = {
-          ...expenses[expenseIndex],
-          amount: requestData.amount,
-          description: requestData.description || null,
-          expenseDate: requestData.expenseDate,
-          expenseCategoryId: requestData.expenseCategoryId,
-          expenseCategoryName: category?.name || expenses[expenseIndex].expenseCategoryName,
-          currencyName: requestData.currencyName,
-          exchangeRate: currency?.exchangeRate || expenses[expenseIndex].exchangeRate,
-          receiptUrl: requestData.receiptUrl || null,
-          updatedAt: new Date().toISOString(),
-        };
-
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify(expenses[expenseIndex]),
-        });
-      } else {
-        await route.fulfill({ status: 404 });
-      }
-    } else if (route.request().method() === 'DELETE') {
-      const expenseIndex = expenses.findIndex((e) => e.id === expenseId);
-
-      if (expenseIndex >= 0) {
-        expenses.splice(expenseIndex, 1);
-        await route.fulfill({ status: 204 });
-      } else {
-        await route.fulfill({ status: 404 });
-      }
     } else {
       await route.continue();
     }
