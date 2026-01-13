@@ -27,13 +27,14 @@ public interface ExpenseRepository extends
     /**
      * Calculates the total expense amount for a user in a specific category on a specific date.
      * Excludes REJECTED expenses from the calculation.
+     * All amounts are converted to USD before summing.
      *
      * @param userId the user ID
      * @param categoryId the expense category ID
      * @param date the expense date
-     * @return the sum of all expense amounts, or 0 if no expenses found
+     * @return the sum of all expense amounts in USD, or 0 if no expenses found
      */
-    @Query("SELECT COALESCE(SUM(e.amount), 0) FROM Expense e " +
+    @Query("SELECT COALESCE(ROUND(SUM(e.amount / e.currency.exchangeRate), 2), 0) FROM Expense e " +
            "WHERE e.user.id = :userId " +
            "AND e.expenseCategory.id = :categoryId " +
            "AND e.expenseDate = :date " +
@@ -48,14 +49,15 @@ public interface ExpenseRepository extends
      * Calculates the total expense amount for a user in a specific category on a specific date,
      * excluding a specific expense.
      * Excludes REJECTED expenses and the specified expense from the calculation.
+     * All amounts are converted to USD before summing.
      *
      * @param userId the user ID
      * @param categoryId the expense category ID
      * @param date the expense date
      * @param expenseId the expense ID to exclude from calculation
-     * @return the sum of all expense amounts, or 0 if no expenses found
+     * @return the sum of all expense amounts in USD, or 0 if no expenses found
      */
-    @Query("SELECT COALESCE(SUM(e.amount), 0) FROM Expense e " +
+    @Query("SELECT COALESCE(ROUND(SUM(e.amount / e.currency.exchangeRate), 2), 0) FROM Expense e " +
            "WHERE e.user.id = :userId " +
            "AND e.expenseCategory.id = :categoryId " +
            "AND e.expenseDate = :date " +
@@ -71,14 +73,15 @@ public interface ExpenseRepository extends
     /**
      * Calculates the total expense amount for a user in a specific category within a date range.
      * Excludes REJECTED expenses from the calculation.
+     * All amounts are converted to USD before summing.
      *
      * @param userId the user ID
      * @param categoryId the expense category ID
      * @param startDate the start date of the range (inclusive)
      * @param endDate the end date of the range (inclusive)
-     * @return the sum of all expense amounts, or 0 if no expenses found
+     * @return the sum of all expense amounts in USD, or 0 if no expenses found
      */
-    @Query("SELECT COALESCE(SUM(e.amount), 0) FROM Expense e " +
+    @Query("SELECT COALESCE(ROUND(SUM(e.amount / e.currency.exchangeRate), 2), 0) FROM Expense e " +
            "WHERE e.user.id = :userId " +
            "AND e.expenseCategory.id = :categoryId " +
            "AND e.expenseDate BETWEEN :startDate AND :endDate " +
@@ -94,15 +97,16 @@ public interface ExpenseRepository extends
      * Calculates the total expense amount for a user in a specific category within a date range,
      * excluding a specific expense.
      * Excludes REJECTED expenses and the specified expense from the calculation.
+     * All amounts are converted to USD before summing.
      *
      * @param userId the user ID
      * @param categoryId the expense category ID
      * @param startDate the start date of the range (inclusive)
      * @param endDate the end date of the range (inclusive)
      * @param expenseId the expense ID to exclude from calculation
-     * @return the sum of all expense amounts, or 0 if no expenses found
+     * @return the sum of all expense amounts in USD, or 0 if no expenses found
      */
-    @Query("SELECT COALESCE(SUM(e.amount), 0) FROM Expense e " +
+    @Query("SELECT COALESCE(ROUND(SUM(e.amount / e.currency.exchangeRate), 2), 0) FROM Expense e " +
            "WHERE e.user.id = :userId " +
            "AND e.expenseCategory.id = :categoryId " +
            "AND e.expenseDate BETWEEN :startDate AND :endDate " +
@@ -129,12 +133,13 @@ public interface ExpenseRepository extends
     /**
      * Calculates the total expense amount for a department on a specific date.
      * Excludes REJECTED expenses from the calculation.
+     * All amounts are converted to USD before summing.
      *
      * @param departmentId the department ID
      * @param date the expense date
-     * @return the sum of all expense amounts, or 0 if no expenses found
+     * @return the sum of all expense amounts in USD, or 0 if no expenses found
      */
-    @Query("SELECT COALESCE(SUM(e.amount), 0) FROM Expense e " +
+    @Query("SELECT COALESCE(ROUND(SUM(e.amount / e.currency.exchangeRate), 2), 0) FROM Expense e " +
            "WHERE e.user.department.id = :departmentId " +
            "AND e.expenseDate = :date " +
            "AND e.status != 'REJECTED'")
@@ -147,13 +152,14 @@ public interface ExpenseRepository extends
      * Calculates the total expense amount for a department on a specific date,
      * excluding a specific expense.
      * Excludes REJECTED expenses and the specified expense from the calculation.
+     * All amounts are converted to USD before summing.
      *
      * @param departmentId the department ID
      * @param date the expense date
      * @param expenseId the expense ID to exclude from calculation
-     * @return the sum of all expense amounts, or 0 if no expenses found
+     * @return the sum of all expense amounts in USD, or 0 if no expenses found
      */
-    @Query("SELECT COALESCE(SUM(e.amount), 0) FROM Expense e " +
+    @Query("SELECT COALESCE(ROUND(SUM(e.amount / e.currency.exchangeRate), 2), 0) FROM Expense e " +
            "WHERE e.user.department.id = :departmentId " +
            "AND e.expenseDate = :date " +
            "AND e.id != :expenseId " +
@@ -167,13 +173,14 @@ public interface ExpenseRepository extends
     /**
      * Calculates the total expense amount for a department within a date range.
      * Excludes REJECTED expenses from the calculation.
+     * All amounts are converted to USD before summing.
      *
      * @param departmentId the department ID
      * @param startDate the start date of the range (inclusive)
      * @param endDate the end date of the range (inclusive)
-     * @return the sum of all expense amounts, or 0 if no expenses found
+     * @return the sum of all expense amounts in USD, or 0 if no expenses found
      */
-    @Query("SELECT COALESCE(SUM(e.amount), 0) FROM Expense e " +
+    @Query("SELECT COALESCE(ROUND(SUM(e.amount / e.currency.exchangeRate), 2), 0) FROM Expense e " +
            "WHERE e.user.department.id = :departmentId " +
            "AND e.expenseDate BETWEEN :startDate AND :endDate " +
            "AND e.status != 'REJECTED'")
@@ -187,14 +194,15 @@ public interface ExpenseRepository extends
      * Calculates the total expense amount for a department within a date range,
      * excluding a specific expense.
      * Excludes REJECTED expenses and the specified expense from the calculation.
+     * All amounts are converted to USD before summing.
      *
      * @param departmentId the department ID
      * @param startDate the start date of the range (inclusive)
      * @param endDate the end date of the range (inclusive)
      * @param expenseId the expense ID to exclude from calculation
-     * @return the sum of all expense amounts, or 0 if no expenses found
+     * @return the sum of all expense amounts in USD, or 0 if no expenses found
      */
-    @Query("SELECT COALESCE(SUM(e.amount), 0) FROM Expense e " +
+    @Query("SELECT COALESCE(ROUND(SUM(e.amount / e.currency.exchangeRate), 2), 0) FROM Expense e " +
            "WHERE e.user.department.id = :departmentId " +
            "AND e.expenseDate BETWEEN :startDate AND :endDate " +
            "AND e.id != :expenseId " +
