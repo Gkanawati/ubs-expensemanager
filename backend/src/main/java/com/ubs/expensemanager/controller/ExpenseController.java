@@ -184,8 +184,7 @@ public class ExpenseController {
       summary = "Update Expense",
       description = "Updates an existing expense. " +
           "Only the expense owner can update. " +
-          "Only expenses with status PENDING or REQUIRES_REVISION can be updated. " +
-          "Status is reset to PENDING if it was REQUIRES_REVISION."
+          "Only expenses with status PENDING can be updated."
   )
   @ApiResponses({
       @ApiResponse(
@@ -298,8 +297,8 @@ public class ExpenseController {
   @Operation(
       summary = "Reject Expense",
       description = "Rejects an expense based on user role. " +
-          "MANAGER: PENDING or REQUIRES_REVISION → REJECTED. " +
-          "FINANCE: APPROVED_BY_MANAGER or REQUIRES_REVISION → REJECTED."
+          "MANAGER: PENDING → REJECTED. " +
+          "FINANCE: APPROVED_BY_MANAGER → REJECTED."
   )
   @ApiResponses({
       @ApiResponse(
@@ -348,62 +347,6 @@ public class ExpenseController {
   public ResponseEntity<ExpenseResponse> reject(@PathVariable Long id) {
     log.info("Rejecting expense with id={}", id);
     ExpenseResponse response = expenseService.reject(id);
-    return ResponseEntity.ok(response);
-  }
-
-  @Operation(
-      summary = "Request Expense Revision",
-      description = "Requests revision for an expense. " +
-          "Can be used for any status except REJECTED or APPROVED_BY_FINANCE. " +
-          "Changes status to REQUIRES_REVISION."
-  )
-  @ApiResponses({
-      @ApiResponse(
-          responseCode = "200",
-          description = "Revision requested successfully",
-          content = @Content(
-              mediaType = "application/json",
-              schema = @Schema(implementation = ExpenseResponse.class)
-          )
-      ),
-      @ApiResponse(
-          responseCode = "400",
-          description = "Invalid status transition",
-          content = @Content(
-              mediaType = "application/json",
-              schema = @Schema(implementation = ErrorResponse.class)
-          )
-      ),
-      @ApiResponse(
-          responseCode = "401",
-          description = "Unauthorized",
-          content = @Content(
-              mediaType = "application/json",
-              schema = @Schema(implementation = ErrorResponse.class)
-          )
-      ),
-      @ApiResponse(
-          responseCode = "403",
-          description = "Forbidden - Insufficient permissions",
-          content = @Content(
-              mediaType = "application/json",
-              schema = @Schema(implementation = ErrorResponse.class)
-          )
-      ),
-      @ApiResponse(
-          responseCode = "404",
-          description = "Expense not found",
-          content = @Content(
-              mediaType = "application/json",
-              schema = @Schema(implementation = ErrorResponse.class)
-          )
-      )
-  })
-  @PatchMapping("/{id}/request-revision")
-  @PreAuthorize("hasAnyRole('MANAGER', 'FINANCE')")
-  public ResponseEntity<ExpenseResponse> requestRevision(@PathVariable Long id) {
-    log.info("Requesting revision for expense with id={}", id);
-    ExpenseResponse response = expenseService.requestRevision(id);
     return ResponseEntity.ok(response);
   }
 

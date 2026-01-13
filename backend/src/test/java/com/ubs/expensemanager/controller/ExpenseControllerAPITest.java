@@ -68,7 +68,8 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
         endpointPath,
         HttpMethod.GET,
         new HttpEntity<>(headers),
-        new ParameterizedTypeReference<RestResponsePage<ExpenseResponse>>() {}
+        new ParameterizedTypeReference<>() {
+        }
     );
 
     // then
@@ -310,7 +311,8 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
         endpointPath,
         HttpMethod.GET,
         new HttpEntity<>(headers),
-        new ParameterizedTypeReference<RestResponsePage<ExpenseResponse>>() {}
+        new ParameterizedTypeReference<>() {
+        }
     );
 
     // then
@@ -461,62 +463,6 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
     );
   }
 
-  /**
-   * Verifies if {@link ExpenseController#requestRevision} will successfully request revision when
-   * manager is from same department.
-   */
-  @Test
-  @DataSet(BASE_DATASET + "input/expense-only-employee-and-manager.yml")
-  @ExpectedDataSet(BASE_DATASET + "expected/after-manager-requests-revision.yml")
-  void shouldRequestRevisionWhenManagerFromSameDepartment() {
-    // given
-    final String endpointPath = getPath() + "/101/request-revision";
-    authenticateAsManager();
-
-    // when
-    ResponseEntity<ExpenseResponse> response = restTemplate.exchange(
-        endpointPath,
-        HttpMethod.PATCH,
-        new HttpEntity<>(headers),
-        ExpenseResponse.class
-    );
-
-    // then
-    assertAll(
-        () -> assertNotNull(response),
-        () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-        () -> assertNotNull(response.getBody()),
-        () -> assertEquals("REQUIRES_REVISION", Objects.requireNonNull(response.getBody()).getStatus().toString())
-    );
-  }
-
-  /**
-   * Verifies if {@link ExpenseController#requestRevision} will return 403 when manager from
-   * different department tries to request revision.
-   */
-  @Test
-  @DataSet(BASE_DATASET + "input/expenses.yml")
-  @ExpectedDataSet(BASE_DATASET + "input/expenses.yml")
-  void shouldReturn403WhenManagerFromDifferentDepartmentTriesToRequestRevision() {
-    // given
-    final String endpointPath = getPath() + "/101/request-revision";
-    authenticateAsManagerFromDifferentDepartment();
-
-    // when
-    ResponseEntity<String> response = restTemplate.exchange(
-        endpointPath,
-        HttpMethod.PATCH,
-        new HttpEntity<>(headers),
-        String.class
-    );
-
-    // then
-    assertAll(
-        () -> assertNotNull(response),
-        () -> assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode())
-    );
-  }
-
   // ==================== FINANCE TESTS ====================
 
   /**
@@ -534,7 +480,8 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
         endpointPath,
         HttpMethod.GET,
         new HttpEntity<>(headers),
-        new ParameterizedTypeReference<RestResponsePage<ExpenseResponse>>() {}
+        new ParameterizedTypeReference<>() {
+        }
     );
 
     // then
@@ -628,94 +575,6 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
         () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
         () -> assertNotNull(response.getBody()),
         () -> assertEquals("REJECTED", Objects.requireNonNull(response.getBody()).getStatus().toString())
-    );
-  }
-
-  /**
-   * Verifies if {@link ExpenseController#requestRevision} will successfully request revision when
-   * finance requests for any expense (any department).
-   */
-  @Test
-  @DataSet(BASE_DATASET + "input/expense.yml")
-  @ExpectedDataSet(BASE_DATASET + "expected/after-finance-requests-revision.yml")
-  void shouldRequestRevisionWhenFinanceRequestsForAnyDepartment() {
-    // given
-    final String endpointPath = getPath() + "/101/request-revision";
-    authenticateAsFinance();
-
-    // when
-    ResponseEntity<ExpenseResponse> response = restTemplate.exchange(
-        endpointPath,
-        HttpMethod.PATCH,
-        new HttpEntity<>(headers),
-        ExpenseResponse.class
-    );
-
-    // then
-    assertAll(
-        () -> assertNotNull(response),
-        () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-        () -> assertNotNull(response.getBody()),
-        () -> assertEquals("REQUIRES_REVISION", Objects.requireNonNull(response.getBody()).getStatus().toString())
-    );
-  }
-
-  /**
-   * Verifies if {@link ExpenseController#requestRevision} will return 400 when trying to request
-   * revision for already APPROVED_BY_FINANCE expense.
-   */
-  @Test
-  @DataSet(BASE_DATASET + "input/expenses.yml")
-  @ExpectedDataSet(BASE_DATASET + "input/expenses.yml")
-  void shouldReturn400WhenTryingToRequestRevisionForApprovedByFinanceExpense() {
-    // given
-    final String endpointPath = getPath() + "/104/request-revision";
-    authenticateAsFinance();
-
-    // when
-    ResponseEntity<String> response = restTemplate.exchange(
-        endpointPath,
-        HttpMethod.PATCH,
-        new HttpEntity<>(headers),
-        String.class
-    );
-
-    // then
-    assertAll(
-        () -> assertNotNull(response),
-        () -> assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode())
-    );
-  }
-
-  // ==================== WORKFLOW TESTS ====================
-
-  /**
-   * Verifies if {@link ExpenseController#update} will reset status to PENDING when employee
-   * updates REQUIRES_REVISION expense.
-   */
-  @Test
-  @DataSet(BASE_DATASET + "input/expense.yml")
-  @ExpectedDataSet(BASE_DATASET + "expected/after-employee-updates-requires-revision-expense.yml")
-  void shouldResetStatusToPendingWhenEmployeeUpdatesRequiresRevisionExpense() {
-    // given
-    final String endpointPath = getPath() + "/101";
-    final String data = readFixtureFile("__files/expense/request/update-expense.json");
-    authenticateAsEmployee();
-
-    // when
-    ResponseEntity<ExpenseResponse> response = restTemplate.exchange(
-        endpointPath,
-        HttpMethod.PUT,
-        new HttpEntity<>(data, headers),
-        ExpenseResponse.class
-    );
-
-    // then
-    assertAll(
-        () -> assertNotNull(response),
-        () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-        () -> assertNotNull(response.getBody()),
-        () -> assertEquals("PENDING", Objects.requireNonNull(response.getBody()).getStatus().toString())
     );
   }
 

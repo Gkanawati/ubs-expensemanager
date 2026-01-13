@@ -139,7 +139,7 @@ public class ExpenseService {
 
     /**
      * Updates an existing expense.
-     * Only allowed for PENDING or REQUIRES_REVISION status.
+     * Only allowed for PENDING status.
      * Only the expense owner can update.
      *
      * @param id expense identifier
@@ -155,10 +155,10 @@ public class ExpenseService {
         // Validate ownership
         validateOwnership(expense);
 
-        // Validate status - only PENDING or REQUIRES_REVISION can be updated
-        if (expense.getStatus() != ExpenseStatus.PENDING && expense.getStatus() != ExpenseStatus.REQUIRES_REVISION) {
+        // Validate status - only PENDING can be updated
+        if (expense.getStatus() != ExpenseStatus.PENDING) {
             throw new InvalidStatusTransitionException(
-                    "Cannot update expense with status " + expense.getStatus() + ". Only PENDING or REQUIRES_REVISION expenses can be updated."
+                    "Cannot update expense with status " + expense.getStatus() + ". Only PENDING expenses can be updated."
             );
         }
 
@@ -274,9 +274,9 @@ public class ExpenseService {
                 currentUser.getId(), currentUser.getRole(), id, currentStatus);
 
         if (currentUser.getRole() == UserRole.MANAGER) {
-            if (currentStatus != ExpenseStatus.PENDING && currentStatus != ExpenseStatus.REQUIRES_REVISION) {
+            if (currentStatus != ExpenseStatus.PENDING) {
                 throw new InvalidStatusTransitionException(
-                        "Manager can only reject expenses with status PENDING or REQUIRES_REVISION. Current status: " + currentStatus
+                        "Manager can only reject expenses with status PENDING. Current status: " + currentStatus
                 );
             }
 
@@ -287,9 +287,9 @@ public class ExpenseService {
                 );
             }
         } else if (currentUser.getRole() == UserRole.FINANCE) {
-            if (currentStatus != ExpenseStatus.APPROVED_BY_MANAGER && currentStatus != ExpenseStatus.REQUIRES_REVISION) {
+            if (currentStatus != ExpenseStatus.APPROVED_BY_MANAGER) {
                 throw new InvalidStatusTransitionException(
-                        "Finance can only reject expenses with status APPROVED_BY_MANAGER or REQUIRES_REVISION. Current status: " + currentStatus
+                        "Finance can only reject expenses with status APPROVED_BY_MANAGER. Current status: " + currentStatus
                 );
             }
         } else {
@@ -298,44 +298,6 @@ public class ExpenseService {
 
         expense.setStatus(ExpenseStatus.REJECTED);
         log.info("Expense {} rejected by {} with role {}", id, currentUser.getId(), currentUser.getRole());
-
-        Expense updatedExpense = expenseRepository.save(expense);
-        return expenseMapper.toResponse(updatedExpense);
-    }
-
-    /**
-     * Requests revision for an expense.
-     * MANAGER/FINANCE: Any status except REJECTED or APPROVED_BY_FINANCE → REQUIRES_REVISION
-     *
-     * @param id expense identifier
-     * @return updated expense as response DTO
-     */
-    @Transactional
-    public ExpenseResponse requestRevision(Long id) {
-        User currentUser = getCurrentUser();
-        Expense expense = expenseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
-
-        ExpenseStatus currentStatus = expense.getStatus();
-        log.info("User {} (role: {}) requesting revision for expense {} with status {}",
-                currentUser.getId(), currentUser.getRole(), id, currentStatus);
-
-        if (currentStatus == ExpenseStatus.REJECTED || currentStatus == ExpenseStatus.APPROVED_BY_FINANCE) {
-            throw new InvalidStatusTransitionException(
-                    "Cannot request revision for expense with status " + currentStatus
-            );
-        }
-
-        // Validate that manager is in the same department as the employee
-        if (currentUser.getRole() == UserRole.MANAGER &&
-                !expense.getUser().getDepartment().getId().equals(currentUser.getDepartment().getId())) {
-            throw new UnauthorizedExpenseAccessException(
-                    "You can only request revision for expenses from employees in your department"
-            );
-        }
-
-        expense.setStatus(ExpenseStatus.REQUIRES_REVISION);
-        log.info("Expense {} status changed to REQUIRES_REVISION", id);
 
         Expense updatedExpense = expenseRepository.save(expense);
         return expenseMapper.toResponse(updatedExpense);
