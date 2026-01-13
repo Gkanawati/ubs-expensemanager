@@ -300,6 +300,39 @@ public class ReportService {
     }
 
     /**
+     * Generates CSV report grouped by department with budget tracking.
+     * Applies defaults and validates dates.
+     * 
+     * @param startDate start date (nullable, defaults to current date)
+     * @param endDate end date (nullable, defaults to current date)
+     * @return CSV formatted string
+     */
+    @Transactional(readOnly = true)
+    public String getExpensesByDepartmentCsvReport(LocalDate startDate, LocalDate endDate) {
+        LocalDate effectiveStartDate = startDate != null ? startDate : LocalDate.now();
+        LocalDate effectiveEndDate = endDate != null ? endDate : LocalDate.now();
+        
+        // Special validation for department reports: same month/year or single day
+        DateRangeValidator.validateSameMonthOrSingleDay(effectiveStartDate, effectiveEndDate);
+        
+        log.info("Generating CSV expense report by department from {} to {}", effectiveStartDate, effectiveEndDate);
+        
+        List<DepartmentExpenseReportResponse> report;
+        
+        // Check if it's a daily report or period report
+        if (effectiveStartDate.equals(effectiveEndDate)) {
+            report = getExpensesByDepartmentDaily(effectiveStartDate);
+        } else {
+            report = getExpensesByDepartmentPeriod(effectiveStartDate, effectiveEndDate);
+        }
+        
+        String csv = generateDepartmentCsv(report);
+        
+        log.info("CSV report generated with {} departments", report.size());
+        return csv;
+    }
+
+    /**
      * Generates expense report grouped by department for a period within the same month.
      * Uses monthly budget for comparison.
      * 
@@ -430,6 +463,30 @@ public class ReportService {
                 .collect(Collectors.toList());
         
         return report;
+    }
+
+    /**
+     * Generates CSV content from department report data.
+     * 
+     * @param report the report data
+     * @return CSV formatted string
+     */
+    private String generateDepartmentCsv(List<DepartmentExpenseReportResponse> report) {
+        StringBuilder csv = new StringBuilder();
+        csv.append("Department,Used (USD),Remaining (USD),Over Budget (USD)\n");
+        
+        for (DepartmentExpenseReportResponse row : report) {
+            csv.append(escapeCsv(row.getDepartment()))
+               .append(",")
+               .append(row.getUsed())
+               .append(",")
+               .append(row.getRemaining())
+               .append(",")
+               .append(row.getOverBudget())
+               .append("\n");
+        }
+        
+        return csv.toString();
     }
 
     /**

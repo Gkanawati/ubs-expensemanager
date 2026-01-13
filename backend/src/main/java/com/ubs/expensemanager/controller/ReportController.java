@@ -317,4 +317,65 @@ public class ReportController {
         log.info("Successfully generated report with {} departments", report.size());
         return ResponseEntity.ok(report);
     }
+
+    @Operation(
+            summary = "Download department budget vs expenses as CSV",
+            description = "Generates and downloads a CSV file with department expenses and budget comparison. " +
+                    "All amounts are converted to USD. " +
+                    "Single day reports (when startDate equals endDate) use daily budget for comparison. " +
+                    "Period reports use monthly budget and must be within the same month and year. " +
+                    "Defaults to first day of current month until today if no dates are provided. " +
+                    "Only MANAGER and FINANCE roles can access this endpoint."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "CSV file generated successfully",
+                    content = @Content(mediaType = "text/csv")
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid date range",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Access denied",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)
+                    )
+            )
+    })
+    @GetMapping("/department/budgets-vs-expenses/csv")
+    @PreAuthorize("hasAnyRole('MANAGER', 'FINANCE')")
+    public ResponseEntity<String> getExpensesByDepartmentCsv(
+            @Parameter(description = "Start date (inclusive). Defaults to first day of current month.", example = "2026-01-01")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            
+            @Parameter(description = "End date (inclusive). Defaults to current date.", example = "2026-01-13")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        log.info("Request received for CSV expense report by department: startDate={}, endDate={}", startDate, endDate);
+        
+        String csv = reportService.getExpensesByDepartmentCsvReport(startDate, endDate);
+        String filename = reportService.generateCsvFilename("expenses-by-department", startDate, endDate);
+        
+        log.info("Successfully generated CSV report: {}", filename);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.parseMediaType("text/csv"))
+                .body(csv);
+    }
 }
