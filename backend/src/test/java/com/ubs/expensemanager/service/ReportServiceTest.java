@@ -56,13 +56,20 @@ class ReportServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Setup Currency first (needed by Department)
+        usdCurrency = Currency.builder()
+                .id(1L)
+                .name("USD")
+                .exchangeRate(BigDecimal.ONE)
+                .build();
+
         // Setup Department
         itDepartment = Department.builder()
                 .id(1L)
                 .name("IT")
                 .dailyBudget(BigDecimal.valueOf(400))
                 .monthlyBudget(BigDecimal.valueOf(12000))
-                .currency("USD")
+                .currency(usdCurrency)
                 .build();
 
         // Setup Users
@@ -82,13 +89,6 @@ class ReportServiceTest {
                 .role(UserRole.MANAGER)
                 .department(itDepartment)
                 .active(true)
-                .build();
-
-        // Setup Currency
-        usdCurrency = Currency.builder()
-                .id(1L)
-                .name("USD")
-                .exchangeRate(BigDecimal.ONE)
                 .build();
 
         // Setup ExpenseCategory
