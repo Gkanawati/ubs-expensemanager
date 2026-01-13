@@ -1,6 +1,7 @@
 package com.ubs.expensemanager.repository;
 
 import com.ubs.expensemanager.model.Expense;
+import com.ubs.expensemanager.model.ExpenseStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Repository responsible for data access operations related to {@link Expense}.
@@ -202,5 +204,94 @@ public interface ExpenseRepository extends
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate,
             @Param("expenseId") Long expenseId
+    );
+
+    /**
+     * Finds all expenses within a date range excluding REJECTED expenses.
+     * Used for generating reports.
+     *
+     * @param startDate the start date of the range (inclusive)
+     * @param endDate the end date of the range (inclusive)
+     * @return list of expenses within the date range
+     */
+    List<Expense> findAllByExpenseDateBetweenAndStatusNot(
+            LocalDate startDate,
+            LocalDate endDate,
+            ExpenseStatus status
+    );
+
+    /**
+     * Finds all expenses for a specific user excluding REJECTED expenses.
+     * Used for personal expense reports.
+     *
+     * @param userId the user ID
+     * @return list of user's expenses
+     */
+    List<Expense> findAllByUserIdAndStatusNot(Long userId, ExpenseStatus status);
+
+    /**
+     * Finds the most recent expenses for a specific user, excluding REJECTED expenses.
+     * Orders by expense date descending and then by ID descending.
+     *
+     * @param userId the user ID
+     * @param status the status to exclude
+     * @param limit the maximum number of results
+     * @return list of recent expenses
+     */
+    @Query("SELECT e FROM Expense e WHERE e.user.id = :userId AND e.status != :status " +
+           "ORDER BY e.expenseDate DESC, e.id DESC")
+    List<Expense> findTopByUserIdAndStatusNotOrderByExpenseDateDesc(
+            @Param("userId") Long userId,
+            @Param("status") ExpenseStatus status,
+            @Param("limit") org.springframework.data.domain.Pageable pageable
+    );
+
+    /**
+     * Finds all expenses for a specific user within a date range, excluding REJECTED expenses.
+     *
+     * @param userId the user ID
+     * @param startDate the start date of the range (inclusive)
+     * @param endDate the end date of the range (inclusive)
+     * @param status the status to exclude
+     * @return list of user's expenses within the date range
+     */
+    List<Expense> findAllByUserIdAndExpenseDateBetweenAndStatusNot(
+            Long userId,
+            LocalDate startDate,
+            LocalDate endDate,
+            ExpenseStatus status
+    );
+
+    /**
+     * Finds all expenses for a specific user with a specific status.
+     *
+     * @param userId the user ID
+     * @param status the expense status
+     * @return list of user's expenses with the specified status
+     */
+    List<Expense> findAllByUserIdAndStatus(Long userId, ExpenseStatus status);
+
+    /**
+     * Finds all expenses excluding a specific status.
+     * Used for generating overall reports.
+     *
+     * @param status the status to exclude
+     * @return list of all expenses excluding the specified status
+     */
+    List<Expense> findAllByStatusNot(ExpenseStatus status);
+
+    /**
+     * Finds the most recent expenses, excluding a specific status.
+     * Orders by expense date descending and then by ID descending.
+     *
+     * @param status the status to exclude
+     * @param pageable the pagination information
+     * @return list of recent expenses
+     */
+    @Query("SELECT e FROM Expense e WHERE e.status != :status " +
+           "ORDER BY e.expenseDate DESC, e.id DESC")
+    List<Expense> findTopByStatusNotOrderByExpenseDateDesc(
+            @Param("status") ExpenseStatus status,
+            org.springframework.data.domain.Pageable pageable
     );
 }
