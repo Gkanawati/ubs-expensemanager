@@ -355,6 +355,44 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
    * category budget is exceeded (warning-only behavior).
    */
   @Test
+  @DataSet(BASE_DATASET + "input/expenses-near-daily-category-budget-limit-multiple-employees.yml")
+  @ExpectedDataSet(value = BASE_DATASET + "expected/after-create-expense-daily-category-alert-multiple-employees.yml", ignoreCols = {"id", "expense_id"})
+  void shouldCreateExpenseAndAlertWhenMonthlyCategoryBudgetExceededWhenHavingMultipleUsers() {
+    // given
+    // Category Food has daily budget of 50.00 USD
+    // Existing expense 40.00 USD on 2026-01-09 for user 104 in category Food
+    // New expense of another 25.50 would make total 65.50 > 50.00
+    final String endpointPath = getPath();
+    final String data = readFixtureFile("__files/expense/request/create-expense.json");
+    authenticateAsEmployee();
+
+    // when
+    ResponseEntity<ExpenseResponse> response = restTemplate.exchange(
+        endpointPath,
+        HttpMethod.POST,
+        new HttpEntity<>(data, headers),
+        ExpenseResponse.class
+    );
+
+    // then - expense should be created (warning-only behavior)
+    assertAll(
+        () -> assertNotNull(response),
+        () -> assertEquals(HttpStatus.CREATED, response.getStatusCode()),
+        () -> assertNotNull(response.getBody()),
+        () -> assertEquals(new BigDecimal("25.50"), Objects.requireNonNull(response.getBody()).getAmount())
+    );
+
+    // and - alert should be created for daily category budget exceeded
+    var alerts = alertRepository.findByTypeAndStatus(AlertType.CATEGORY, AlertStatus.NEW);
+    assertAll(
+        () -> assertNotNull(alerts),
+        () -> assertEquals(1, alerts.size()),
+        () -> assertTrue(alerts.getFirst().getMessage().contains("Daily")),
+        () -> assertTrue(alerts.getFirst().getMessage().contains("category"))
+    );
+  }
+
+  @Test
   @DataSet(BASE_DATASET + "input/expenses-near-daily-category-budget-limit.yml")
   @ExpectedDataSet(value = BASE_DATASET + "expected/after-create-expense-daily-category-alert.yml", ignoreCols = {"id", "expense_id"})
   void shouldCreateExpenseAndAlertWhenDailyCategoryBudgetExceeded() {
