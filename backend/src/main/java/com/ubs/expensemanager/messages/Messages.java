@@ -60,6 +60,11 @@ public final class Messages {
   public static final String EMAIL_CANNOT_BE_CHANGED = "Email cannot be changed";
   public static final String ROLE_CANNOT_BE_CHANGED = "Role cannot be changed";
 
+  // ===== Budget Exceeded =====
+  public static final String MONTHLY_DEPARTMENT_BUDGET_EXCEEDED =
+      "Monthly budget exceeded for department '%s' in %s. " +
+      "Current total: %s USD, New total would be: %s USD, Budget limit: %s USD";
+
   /**
    * Formats a message template with parameters using String.format.
    *

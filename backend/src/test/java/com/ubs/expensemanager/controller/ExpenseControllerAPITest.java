@@ -3,6 +3,7 @@ package com.ubs.expensemanager.controller;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -262,6 +263,43 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
           assertEquals(103L, response.getBody().getUserId());
         },
         () -> assertNotNull(response.getHeaders().getLocation())
+    );
+  }
+
+  /**
+   * Verifies if {@link ExpenseController#create} will return 400 when employee tries to create
+   * expense that would exceed the monthly department budget limit.
+   */
+  @Test
+  @DataSet(BASE_DATASET + "input/expenses-near-monthly-budget-limit.yml")
+  @ExpectedDataSet(BASE_DATASET + "expected/expenses-budget-exceeded-no-change.yml")
+  void shouldReturn400WhenEmployeeCreatesExpenseExceedingMonthlyDepartmentBudget() {
+    // given
+    // Department IT has monthly budget of 100.00 USD
+    // Existing expenses total 90.00 USD (45.00 + 45.00)
+    // New expense of 25.50 would make total 115.50 > 100.00
+    final String endpointPath = getPath();
+    final String data = readFixtureFile("__files/expense/request/create-expense.json");
+    authenticateAsEmployee();
+
+    // when
+    ResponseEntity<String> response = restTemplate.exchange(
+        endpointPath,
+        HttpMethod.POST,
+        new HttpEntity<>(data, headers),
+        String.class
+    );
+
+    // then
+    assertAll(
+        () -> assertNotNull(response),
+        () -> assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode()),
+        () -> assertNotNull(response.getBody()),
+        () -> {
+          assertNotNull(response.getBody());
+          assertTrue(response.getBody().contains("Budget exceeded"));
+          assertTrue(response.getBody().contains("Monthly budget exceeded for department"));
+        }
     );
   }
 

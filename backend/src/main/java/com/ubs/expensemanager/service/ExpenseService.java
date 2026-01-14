@@ -27,7 +27,6 @@ import com.ubs.expensemanager.service.expense.state.ExpenseStateFactory;
 import com.ubs.expensemanager.service.expense.state.ExpenseState;
 import com.ubs.expensemanager.service.expense.state.StateContext;
 import jakarta.persistence.EntityManager;
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
@@ -86,10 +85,11 @@ public class ExpenseService {
 
         Expense expense = expenseMapper.toEntity(request, currency, category, currentUser, initialStatus);
 
+        departmentBudgetValidationStrategy.validate(currentUser.getId(), category, expense, request.getAmount());
+
         Expense savedExpense = expenseRepository.save(expense);
 
-        // Perform budget validation (warnings only, does not block creation)
-        validateBudget(currentUser.getId(), category, savedExpense, request.getAmount());
+        categoryBudgetValidationStrategy.validate(currentUser.getId(), category, savedExpense, request.getAmount());
 
         log.info("Expense {} created successfully with status {}", savedExpense.getId(), initialStatus);
 
@@ -266,24 +266,6 @@ public class ExpenseService {
         Expense updatedExpense = currentState.reject(context);
 
         return expenseMapper.toResponse(updatedExpense);
-    }
-
-    /**
-     * Validates budget limits (daily and monthly) for the expense.
-     * Logs warnings if budget is exceeded but does not block creation.
-     * Uses strategy pattern to separate category and department validation.
-     *
-     * @param userId user ID
-     * @param category expense category
-     * @param expense object expense
-     * @param newAmount amount of the new expense
-     */
-    private void validateBudget(Long userId, ExpenseCategory category, Expense expense, BigDecimal newAmount) {
-        // Validate category budget limits
-        categoryBudgetValidationStrategy.validate(userId, category, expense, newAmount);
-
-        // Validate department budget limits
-        departmentBudgetValidationStrategy.validate(userId, category, expense, newAmount);
     }
 
     /**

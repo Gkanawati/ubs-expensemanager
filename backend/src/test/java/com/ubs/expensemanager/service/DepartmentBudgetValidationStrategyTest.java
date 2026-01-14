@@ -2,6 +2,7 @@ package com.ubs.expensemanager.service;
 
 import com.ubs.expensemanager.event.BudgetExceededEvent;
 import com.ubs.expensemanager.event.EventPublisher;
+import com.ubs.expensemanager.exception.BudgetExceededException;
 import com.ubs.expensemanager.model.Currency;
 import com.ubs.expensemanager.model.Department;
 import com.ubs.expensemanager.model.Expense;
@@ -26,6 +27,7 @@ import java.time.YearMonth;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -184,7 +186,7 @@ class DepartmentBudgetValidationStrategyTest {
     }
 
     @Test
-    void validate_monthlyBudgetExceeded_eventPublished() {
+    void validate_monthlyBudgetExceeded_throwsException() {
         // Given
         BigDecimal currentDailyTotal = BigDecimal.valueOf(300);
         BigDecimal currentMonthlyTotal = BigDecimal.valueOf(11980);
@@ -198,30 +200,25 @@ class DepartmentBudgetValidationStrategyTest {
                 eq(itDepartment.getId()), any(LocalDate.class), any(LocalDate.class), eq(expense.getId())))
                 .thenReturn(currentMonthlyTotal);
 
-        // When
-        strategy.validate(employee.getId(), foodCategory, expense, newAmount);
+        // When & Then
+        BudgetExceededException exception = assertThrows(BudgetExceededException.class, () ->
+            strategy.validate(employee.getId(), foodCategory, expense, newAmount)
+        );
 
-        // Then
-        verify(expenseRepository).sumAmountByDepartmentAndDateExcludingExpense(
-                eq(itDepartment.getId()), any(LocalDate.class), eq(expense.getId()));
-        verify(expenseRepository).sumAmountByDepartmentAndDateRangeExcludingExpense(
-                eq(itDepartment.getId()), any(LocalDate.class), any(LocalDate.class), eq(expense.getId()));
-        verify(eventPublisher).publishBudgetExceededEvent(eventCaptor.capture());
+        // Verify exception details
+        assertEquals("IT", exception.getDepartmentName());
+        assertEquals(YearMonth.from(expense.getExpenseDate()), exception.getYearMonth());
+        assertEquals(currentMonthlyTotal, exception.getCurrentTotal());
+        assertEquals(0, new BigDecimal("12030.00").compareTo(exception.getNewTotal()));
+        assertEquals(0, new BigDecimal("12000.00").compareTo(exception.getBudgetLimit()));
 
-        BudgetExceededEvent capturedEvent = eventCaptor.getValue();
-        assertEquals(BudgetExceededEvent.BudgetType.DEPARTAMENT, capturedEvent.getBudgetType());
-        assertEquals(expense, capturedEvent.getExpense());
-        assertEquals(foodCategory, capturedEvent.getCategory());
-        assertEquals(employee.getId(), capturedEvent.getUserId());
-        assertEquals(currentMonthlyTotal, capturedEvent.getCurrentTotal());
-        assertEquals(0, new BigDecimal("12030.00").compareTo(capturedEvent.getNewTotal()));
-        assertEquals(0, new BigDecimal("12000.00").compareTo(capturedEvent.getBudgetLimit()));
-        assertNotNull(capturedEvent.getYearMonth());
-        assertEquals(YearMonth.from(expense.getExpenseDate()), capturedEvent.getYearMonth());
+        // Verify no event was published for monthly budget (since exception is thrown)
+        verify(eventPublisher, never()).publishBudgetExceededEvent(
+                argThat(event -> event.getYearMonth() != null));
     }
 
     @Test
-    void validate_bothBudgetsExceeded_twoEventsPublished() {
+    void validate_bothBudgetsExceeded_dailyEventPublishedThenMonthlyThrowsException() {
         // Given
         BigDecimal currentDailyTotal = BigDecimal.valueOf(360);
         BigDecimal currentMonthlyTotal = BigDecimal.valueOf(11980);
@@ -236,19 +233,23 @@ class DepartmentBudgetValidationStrategyTest {
                 eq(itDepartment.getId()), any(LocalDate.class), any(LocalDate.class), eq(expense.getId())))
                 .thenReturn(currentMonthlyTotal);
 
-        // When
-        strategy.validate(employee.getId(), foodCategory, expense, newAmount);
+        // When & Then
+        BudgetExceededException exception = assertThrows(BudgetExceededException.class, () ->
+            strategy.validate(employee.getId(), foodCategory, expense, newAmount)
+        );
 
-        // Then
-        verify(expenseRepository).sumAmountByDepartmentAndDateExcludingExpense(
-                eq(itDepartment.getId()), any(LocalDate.class), eq(expense.getId()));
-        verify(expenseRepository).sumAmountByDepartmentAndDateRangeExcludingExpense(
-                eq(itDepartment.getId()), any(LocalDate.class), any(LocalDate.class), eq(expense.getId()));
-        verify(eventPublisher, times(2)).publishBudgetExceededEvent(any());
+        // Verify daily budget event was published (warning only)
+        verify(eventPublisher, times(1)).publishBudgetExceededEvent(eventCaptor.capture());
+        BudgetExceededEvent capturedEvent = eventCaptor.getValue();
+        assertEquals(expense.getExpenseDate(), capturedEvent.getDate()); // Daily budget has date, not yearMonth
+
+        // Verify monthly budget threw exception
+        assertEquals("IT", exception.getDepartmentName());
+        assertEquals(YearMonth.from(expense.getExpenseDate()), exception.getYearMonth());
     }
 
     @Test
-    void validate_departmentWithNullDailyBudget_onlyChecksMonthlyBudget() {
+    void validate_departmentWithNullDailyBudget_monthlyBudgetExceeded_throwsException() {
         // Given
         Department departmentWithNullDailyBudget = Department.builder()
                 .id(2L)
@@ -286,14 +287,24 @@ class DepartmentBudgetValidationStrategyTest {
                 eq(departmentWithNullDailyBudget.getId()), any(LocalDate.class), any(LocalDate.class), eq(hrExpense.getId())))
                 .thenReturn(currentMonthlyTotal);
 
-        // When
-        strategy.validate(hrEmployee.getId(), foodCategory, hrExpense, newAmount);
+        // When & Then
+        BudgetExceededException exception = assertThrows(BudgetExceededException.class, () ->
+            strategy.validate(hrEmployee.getId(), foodCategory, hrExpense, newAmount)
+        );
 
-        // Then
+        // Verify daily budget was not checked (null daily budget)
         verify(expenseRepository, never()).sumAmountByDepartmentAndDateExcludingExpense(
                 eq(departmentWithNullDailyBudget.getId()), any(LocalDate.class), any());
+
+        // Verify monthly budget was checked
         verify(expenseRepository).sumAmountByDepartmentAndDateRangeExcludingExpense(
                 eq(departmentWithNullDailyBudget.getId()), any(LocalDate.class), any(LocalDate.class), eq(hrExpense.getId()));
-        verify(eventPublisher).publishBudgetExceededEvent(any());
+
+        // Verify exception details
+        assertEquals("HR", exception.getDepartmentName());
+        assertEquals(YearMonth.from(hrExpense.getExpenseDate()), exception.getYearMonth());
+
+        // Verify no event was published (exception thrown instead)
+        verify(eventPublisher, never()).publishBudgetExceededEvent(any());
     }
 }

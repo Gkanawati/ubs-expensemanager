@@ -1,0 +1,56 @@
+PUBLIC.CURRENCIES:
+  - ID: 1
+    NAME: "USD"
+    EXCHANGE_RATE: 1.000000
+
+PUBLIC.DEPARTMENTS:
+  - ID: 101
+    NAME: "IT"
+    DAILY_BUDGET: 500.0
+    MONTHLY_BUDGET: 100.0
+    CURRENCY_ID: 1
+
+PUBLIC.EXPENSE_CATEGORIES:
+  - ID: 101
+    NAME: "Food"
+    DAILY_BUDGET: 500.0
+    MONTHLY_BUDGET: 5000.0
+    CURRENCY_ID: 1
+
+PUBLIC.USERS:
+  - ID: 101
+    NAME: "Jane Manager"
+    EMAIL: "manager@ubs.com"
+    PASSWORD: "$2a$10$fakehashedpassword"
+    ROLE: "MANAGER"
+    MANAGER_ID: null
+    DEPARTMENT_ID: 101
+    ACTIVE: true
+  - ID: 104
+    NAME: "John Employee"
+    EMAIL: "employee@ubs.com"
+    PASSWORD: "$2a$10$fakehashedpassword"
+    ROLE: "EMPLOYEE"
+    MANAGER_ID: 101
+    DEPARTMENT_ID: 101
+    ACTIVE: true
+
+PUBLIC.EXPENSES:
+  - ID: 101
+    AMOUNT: 45.00
+    DESCRIPTION: "Team lunch"
+    EXPENSE_DATE: "2026-01-08"
+    USER_ID: 104
+    EXPENSE_CATEGORY_ID: 101
+    CURRENCY_ID: 1
+    RECEIPT_URL: "https://example.com/receipts/1.pdf"
+    STATUS: "PENDING"
+  - ID: 102
+    AMOUNT: 45.00
+    DESCRIPTION: "Client dinner"
+    EXPENSE_DATE: "2026-01-07"
+    USER_ID: 104
+    EXPENSE_CATEGORY_ID: 101
+    CURRENCY_ID: 1
+    RECEIPT_URL: "https://example.com/receipts/2.pdf"
+    STATUS: "APPROVED_BY_MANAGER"
