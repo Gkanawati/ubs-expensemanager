@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,6 +32,12 @@ import com.ubs.expensemanager.repository.ExpenseCategoryRepository;
 import com.ubs.expensemanager.repository.ExpenseRepository;
 import com.ubs.expensemanager.service.budget.CategoryBudgetValidationStrategy;
 import com.ubs.expensemanager.service.budget.DepartmentBudgetValidationStrategy;
+import com.ubs.expensemanager.service.expense.state.ExpenseStateFactory;
+import com.ubs.expensemanager.service.expense.state.ExpenseState;
+import com.ubs.expensemanager.service.expense.state.PendingState;
+import com.ubs.expensemanager.service.expense.state.ApprovedByManagerState;
+import com.ubs.expensemanager.service.expense.state.ApprovedByFinanceState;
+import com.ubs.expensemanager.service.expense.state.RejectedState;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -76,6 +83,9 @@ class ExpenseServiceTest {
 
   @Mock
   DepartmentBudgetValidationStrategy departmentBudgetValidationStrategy;
+
+  @Mock
+  ExpenseStateFactory stateFactory;
 
   @InjectMocks
   ExpenseService expenseService;
@@ -193,6 +203,17 @@ class ExpenseServiceTest {
         .userName("John Employee")
         .status(ExpenseStatus.PENDING)
         .build();
+
+    // Setup State pattern mocks with lenient stubbing
+    PendingState pendingState = new PendingState();
+    ApprovedByManagerState approvedByManagerState = new ApprovedByManagerState();
+    ApprovedByFinanceState approvedByFinanceState = new ApprovedByFinanceState();
+    RejectedState rejectedState = new RejectedState();
+
+    lenient().when(stateFactory.getState(ExpenseStatus.PENDING)).thenReturn(pendingState);
+    lenient().when(stateFactory.getState(ExpenseStatus.APPROVED_BY_MANAGER)).thenReturn(approvedByManagerState);
+    lenient().when(stateFactory.getState(ExpenseStatus.APPROVED_BY_FINANCE)).thenReturn(approvedByFinanceState);
+    lenient().when(stateFactory.getState(ExpenseStatus.REJECTED)).thenReturn(rejectedState);
 
     SecurityContextHolder.setContext(securityContext);
   }
@@ -527,7 +548,7 @@ class ExpenseServiceTest {
     when(expenseRepository.findById(2L)).thenReturn(Optional.of(approvedByManagerExpense));
 
     assertAll(
-        () -> assertThrows(InvalidStatusTransitionException.class,
+        () -> assertThrows(UnauthorizedExpenseAccessException.class,
             () -> expenseService.approve(2L)),
         () -> verify(expenseRepository, never()).save(any())
     );
@@ -557,7 +578,7 @@ class ExpenseServiceTest {
     when(expenseRepository.findById(1L)).thenReturn(Optional.of(pendingExpense));
 
     assertAll(
-        () -> assertThrows(InvalidStatusTransitionException.class,
+        () -> assertThrows(UnauthorizedExpenseAccessException.class,
             () -> expenseService.approve(1L)),
         () -> verify(expenseRepository, never()).save(any())
     );
@@ -570,7 +591,7 @@ class ExpenseServiceTest {
     when(expenseRepository.findById(1L)).thenReturn(Optional.of(pendingExpense));
 
     assertAll(
-        () -> assertThrows(InvalidStatusTransitionException.class,
+        () -> assertThrows(UnauthorizedExpenseAccessException.class,
             () -> expenseService.approve(1L)),
         () -> verify(expenseRepository, never()).save(any())
     );

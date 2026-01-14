@@ -403,7 +403,7 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
     // then
     assertAll(
         () -> assertNotNull(response),
-        () -> assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode())
+        () -> assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode())
     );
   }
 
@@ -545,7 +545,7 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
     // then
     assertAll(
         () -> assertNotNull(response),
-        () -> assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode())
+        () -> assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode())
     );
   }
 
