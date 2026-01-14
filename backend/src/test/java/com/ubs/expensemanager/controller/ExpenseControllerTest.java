@@ -310,35 +310,6 @@ class ExpenseControllerTest {
     }
 
     @Test
-    void requestRevision_success_returnsOk() throws Exception {
-        ExpenseResponse revisionResponse = ExpenseResponse.builder()
-                .id(1L)
-                .amount(new BigDecimal("150.50"))
-                .description("Team lunch at restaurant")
-                .expenseDate(LocalDate.of(2026, 1, 8))
-                .userId(1L)
-                .userName("John Doe")
-                .userEmail("john.doe@ubs.com")
-                .expenseCategoryId(1L)
-                .expenseCategoryName("Food")
-                .currencyName("USD")
-                .exchangeRate(new BigDecimal("1.000000"))
-                .status(ExpenseStatus.REQUIRES_REVISION)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-
-        when(expenseService.requestRevision(1L)).thenReturn(revisionResponse);
-
-        mockMvc.perform(patch(BASE_URL + "/{id}/request-revision", 1L))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.status").value("REQUIRES_REVISION"));
-
-        verify(expenseService).requestRevision(1L);
-    }
-
-    @Test
     void delete_success_returnsNoContent() throws Exception {
         doNothing().when(expenseService).delete(1L);
 

@@ -5,6 +5,7 @@ import com.ubs.expensemanager.dto.response.AlertListResponse;
 import com.ubs.expensemanager.dto.response.AlertResponse;
 import com.ubs.expensemanager.exception.ResourceNotFoundException;
 import com.ubs.expensemanager.mapper.AlertMapper;
+import com.ubs.expensemanager.messages.Messages;
 import com.ubs.expensemanager.model.Alert;
 import com.ubs.expensemanager.model.AlertStatus;
 import com.ubs.expensemanager.model.AlertType;
@@ -81,7 +82,7 @@ public class AlertService {
         log.info("Resolving alert with id={}", id);
 
         Alert alert = alertRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Alert not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(Messages.ALERT_NOT_FOUND));
 
         // Create an update request with RESOLVED status
         AlertUpdateRequest updateRequest = AlertUpdateRequest.builder()

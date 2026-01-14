@@ -68,7 +68,8 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
         endpointPath,
         HttpMethod.GET,
         new HttpEntity<>(headers),
-        new ParameterizedTypeReference<RestResponsePage<ExpenseResponse>>() {}
+        new ParameterizedTypeReference<>() {
+        }
     );
 
     // then
@@ -118,8 +119,8 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
   }
 
   /**
-   * Verifies if {@link ExpenseController#create} will successfully create expense when employee
-   * provides valid data.
+   * Verifies if {@link ExpenseController#create} will successfully create expense as PENDING
+   * when employee (who has a manager) provides valid data.
    */
   @Test
   @DataSet(BASE_DATASET + "input/expenses.yml")
@@ -146,8 +147,119 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
         () -> assertEquals(new BigDecimal("25.50"), Objects.requireNonNull(response.getBody()).getAmount()),
         () -> {
           assertNotNull(response.getBody());
-          assertEquals("PENDING", response.getBody().getStatus().toString());
+          assertEquals("PENDING", response.getBody().getStatus().toString(),
+              "User with manager should create expense as PENDING");
           assertNotNull(response.getBody().getUserId());
+        },
+        () -> assertNotNull(response.getHeaders().getLocation())
+    );
+  }
+
+  /**
+   * Verifies if {@link ExpenseController#create} will successfully create expense as PENDING
+   * when manager has a manager above them (manager@ubs.com reports to manager2@ubs.com).
+   */
+  @Test
+  @DataSet(BASE_DATASET + "input/expenses.yml")
+  @ExpectedDataSet(value = BASE_DATASET + "expected/after-create-expense-manager-pending.yml", ignoreCols = "id")
+  void shouldCreateExpenseAsPendingWhenManagerHasManager() {
+    // given
+    final String endpointPath = getPath();
+    final String data = readFixtureFile("__files/expense/request/create-expense.json");
+    authenticateAsManager(); // manager@ubs.com (ID 101) has MANAGER_ID: 102
+
+    // when
+    ResponseEntity<ExpenseResponse> response = restTemplate.exchange(
+        endpointPath,
+        HttpMethod.POST,
+        new HttpEntity<>(data, headers),
+        ExpenseResponse.class
+    );
+
+    // then
+    assertAll(
+        () -> assertNotNull(response),
+        () -> assertEquals(HttpStatus.CREATED, response.getStatusCode()),
+        () -> assertNotNull(response.getBody()),
+        () -> assertEquals(new BigDecimal("25.50"), Objects.requireNonNull(response.getBody()).getAmount()),
+        () -> {
+          assertNotNull(response.getBody());
+          assertEquals("PENDING", response.getBody().getStatus().toString());
+          assertEquals(101L, response.getBody().getUserId());
+        },
+        () -> assertNotNull(response.getHeaders().getLocation())
+    );
+  }
+
+  /**
+   * Verifies if {@link ExpenseController#create} will successfully create expense as
+   * APPROVED_BY_MANAGER when user has no manager above them (top-level manager).
+   * This allows the expense to skip manager approval and go directly to finance approval.
+   */
+  @Test
+  @DataSet(BASE_DATASET + "input/expenses.yml")
+  @ExpectedDataSet(value = BASE_DATASET + "expected/after-create-expense-top-manager-approved.yml", ignoreCols = "id")
+  void shouldCreateExpenseAsApprovedByManagerWhenUserHasNoManager() {
+    // given
+    final String endpointPath = getPath();
+    final String data = readFixtureFile("__files/expense/request/create-expense.json");
+    authenticateAsTopManager(); // manager2@ubs.com (ID 102) has MANAGER_ID: null
+
+    // when
+    ResponseEntity<ExpenseResponse> response = restTemplate.exchange(
+        endpointPath,
+        HttpMethod.POST,
+        new HttpEntity<>(data, headers),
+        ExpenseResponse.class
+    );
+
+    // then
+    assertAll(
+        () -> assertNotNull(response),
+        () -> assertEquals(HttpStatus.CREATED, response.getStatusCode()),
+        () -> assertNotNull(response.getBody()),
+        () -> assertEquals(new BigDecimal("25.50"), Objects.requireNonNull(response.getBody()).getAmount()),
+        () -> {
+          assertNotNull(response.getBody());
+          assertEquals("APPROVED_BY_MANAGER", response.getBody().getStatus().toString());
+          assertEquals(102L, response.getBody().getUserId());
+        },
+        () -> assertNotNull(response.getHeaders().getLocation())
+    );
+  }
+
+  /**
+   * Verifies if {@link ExpenseController#create} will successfully create expense as PENDING
+   * when finance user has a manager above them (finance@ubs.com reports to manager2@ubs.com).
+   */
+  @Test
+  @DataSet(BASE_DATASET + "input/expenses-finance-with-manager.yml")
+  @ExpectedDataSet(value = BASE_DATASET + "expected/after-create-expense-finance-pending.yml", ignoreCols = "id")
+  void shouldCreateExpenseAsPendingWhenFinanceHasManager() {
+    // given
+    final String endpointPath = getPath();
+    final String data = readFixtureFile("__files/expense/request/create-expense.json");
+    authenticateAsFinance();
+
+    // when
+    ResponseEntity<ExpenseResponse> response = restTemplate.exchange(
+        endpointPath,
+        HttpMethod.POST,
+        new HttpEntity<>(data, headers),
+        ExpenseResponse.class
+    );
+
+    // then
+    assertAll(
+        () -> assertNotNull(response),
+        () -> assertEquals(HttpStatus.CREATED, response.getStatusCode()),
+        () -> assertNotNull(response.getBody()),
+        () -> assertEquals(new BigDecimal("25.50"), Objects.requireNonNull(response.getBody()).getAmount()),
+        () -> {
+          assertNotNull(response.getBody());
+          assertEquals("PENDING", response.getBody().getStatus().toString(),
+              "Finance user with manager should create expense as PENDING");
+          assertEquals(103L, response.getBody().getUserId());
         },
         () -> assertNotNull(response.getHeaders().getLocation())
     );
@@ -190,7 +302,7 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
    */
   @Test
   @DataSet(BASE_DATASET + "input/expenses.yml")
-  @ExpectedDataSet(BASE_DATASET + "input/expenses.yml")
+  @ExpectedDataSet(BASE_DATASET + "expected/expenses-no-change.yml")
   void shouldReturn400WhenEmployeeTriesToUpdateApprovedExpense() {
     // given
     final String endpointPath = getPath() + "/102";
@@ -245,7 +357,7 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
    */
   @Test
   @DataSet(BASE_DATASET + "input/expenses.yml")
-  @ExpectedDataSet(BASE_DATASET + "input/expenses.yml")
+  @ExpectedDataSet(BASE_DATASET + "expected/expenses-no-change.yml")
   void shouldReturn400WhenEmployeeTriesToDeleteApprovedExpense() {
     // given
     final String endpointPath = getPath() + "/102";
@@ -272,7 +384,7 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
    */
   @Test
   @DataSet(BASE_DATASET + "input/expenses.yml")
-  @ExpectedDataSet(BASE_DATASET + "input/expenses.yml")
+  @ExpectedDataSet(BASE_DATASET + "expected/expenses-no-change.yml")
   void shouldReturn403WhenEmployeeTriesToApproveExpense() {
     // given
     final String endpointPath = getPath() + "/101/approve";
@@ -310,7 +422,8 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
         endpointPath,
         HttpMethod.GET,
         new HttpEntity<>(headers),
-        new ParameterizedTypeReference<RestResponsePage<ExpenseResponse>>() {}
+        new ParameterizedTypeReference<>() {
+        }
     );
 
     // then
@@ -357,7 +470,7 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
    */
   @Test
   @DataSet(BASE_DATASET + "input/expenses.yml")
-  @ExpectedDataSet(BASE_DATASET + "input/expenses.yml")
+  @ExpectedDataSet(BASE_DATASET + "expected/expenses-no-change.yml")
   void shouldReturn403WhenManagerFromDifferentDepartmentTriesToApprove() {
     // given
     final String endpointPath = getPath() + "/101/approve";
@@ -384,7 +497,7 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
    */
   @Test
   @DataSet(BASE_DATASET + "input/expenses.yml")
-  @ExpectedDataSet(BASE_DATASET + "input/expenses.yml")
+  @ExpectedDataSet(BASE_DATASET + "expected/expenses-no-change.yml")
   void shouldReturn400WhenManagerTriesToApproveAlreadyApprovedExpense() {
     // given
     final String endpointPath = getPath() + "/102/approve";
@@ -401,7 +514,7 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
     // then
     assertAll(
         () -> assertNotNull(response),
-        () -> assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode())
+        () -> assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode())
     );
   }
 
@@ -440,66 +553,10 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
    */
   @Test
   @DataSet(BASE_DATASET + "input/expenses.yml")
-  @ExpectedDataSet(BASE_DATASET + "input/expenses.yml")
+  @ExpectedDataSet(BASE_DATASET + "expected/expenses-no-change.yml")
   void shouldReturn403WhenManagerFromDifferentDepartmentTriesToReject() {
     // given
     final String endpointPath = getPath() + "/101/reject";
-    authenticateAsManagerFromDifferentDepartment();
-
-    // when
-    ResponseEntity<String> response = restTemplate.exchange(
-        endpointPath,
-        HttpMethod.PATCH,
-        new HttpEntity<>(headers),
-        String.class
-    );
-
-    // then
-    assertAll(
-        () -> assertNotNull(response),
-        () -> assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode())
-    );
-  }
-
-  /**
-   * Verifies if {@link ExpenseController#requestRevision} will successfully request revision when
-   * manager is from same department.
-   */
-  @Test
-  @DataSet(BASE_DATASET + "input/expense-only-employee-and-manager.yml")
-  @ExpectedDataSet(BASE_DATASET + "expected/after-manager-requests-revision.yml")
-  void shouldRequestRevisionWhenManagerFromSameDepartment() {
-    // given
-    final String endpointPath = getPath() + "/101/request-revision";
-    authenticateAsManager();
-
-    // when
-    ResponseEntity<ExpenseResponse> response = restTemplate.exchange(
-        endpointPath,
-        HttpMethod.PATCH,
-        new HttpEntity<>(headers),
-        ExpenseResponse.class
-    );
-
-    // then
-    assertAll(
-        () -> assertNotNull(response),
-        () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-        () -> assertNotNull(response.getBody()),
-        () -> assertEquals("REQUIRES_REVISION", Objects.requireNonNull(response.getBody()).getStatus().toString())
-    );
-  }
-
-  /**
-   * Verifies if {@link ExpenseController#requestRevision} will return 403 when manager from
-   * different department tries to request revision.
-   */
-  @Test
-  @DataSet(BASE_DATASET + "input/expenses.yml")
-  @ExpectedDataSet(BASE_DATASET + "input/expenses.yml")
-  void shouldReturn403WhenManagerFromDifferentDepartmentTriesToRequestRevision() {
-    // given
-    final String endpointPath = getPath() + "/101/request-revision";
     authenticateAsManagerFromDifferentDepartment();
 
     // when
@@ -534,7 +591,8 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
         endpointPath,
         HttpMethod.GET,
         new HttpEntity<>(headers),
-        new ParameterizedTypeReference<RestResponsePage<ExpenseResponse>>() {}
+        new ParameterizedTypeReference<>() {
+        }
     );
 
     // then
@@ -581,7 +639,7 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
    */
   @Test
   @DataSet(BASE_DATASET + "input/expenses.yml")
-  @ExpectedDataSet(BASE_DATASET + "input/expenses.yml")
+  @ExpectedDataSet(BASE_DATASET + "expected/expenses-no-change.yml")
   void shouldReturn400WhenFinanceTriesToApprovePendingExpense() {
     // given
     final String endpointPath = getPath() + "/101/approve";
@@ -598,7 +656,7 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
     // then
     assertAll(
         () -> assertNotNull(response),
-        () -> assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode())
+        () -> assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode())
     );
   }
 
@@ -631,94 +689,6 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
     );
   }
 
-  /**
-   * Verifies if {@link ExpenseController#requestRevision} will successfully request revision when
-   * finance requests for any expense (any department).
-   */
-  @Test
-  @DataSet(BASE_DATASET + "input/expense.yml")
-  @ExpectedDataSet(BASE_DATASET + "expected/after-finance-requests-revision.yml")
-  void shouldRequestRevisionWhenFinanceRequestsForAnyDepartment() {
-    // given
-    final String endpointPath = getPath() + "/101/request-revision";
-    authenticateAsFinance();
-
-    // when
-    ResponseEntity<ExpenseResponse> response = restTemplate.exchange(
-        endpointPath,
-        HttpMethod.PATCH,
-        new HttpEntity<>(headers),
-        ExpenseResponse.class
-    );
-
-    // then
-    assertAll(
-        () -> assertNotNull(response),
-        () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-        () -> assertNotNull(response.getBody()),
-        () -> assertEquals("REQUIRES_REVISION", Objects.requireNonNull(response.getBody()).getStatus().toString())
-    );
-  }
-
-  /**
-   * Verifies if {@link ExpenseController#requestRevision} will return 400 when trying to request
-   * revision for already APPROVED_BY_FINANCE expense.
-   */
-  @Test
-  @DataSet(BASE_DATASET + "input/expenses.yml")
-  @ExpectedDataSet(BASE_DATASET + "input/expenses.yml")
-  void shouldReturn400WhenTryingToRequestRevisionForApprovedByFinanceExpense() {
-    // given
-    final String endpointPath = getPath() + "/104/request-revision";
-    authenticateAsFinance();
-
-    // when
-    ResponseEntity<String> response = restTemplate.exchange(
-        endpointPath,
-        HttpMethod.PATCH,
-        new HttpEntity<>(headers),
-        String.class
-    );
-
-    // then
-    assertAll(
-        () -> assertNotNull(response),
-        () -> assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode())
-    );
-  }
-
-  // ==================== WORKFLOW TESTS ====================
-
-  /**
-   * Verifies if {@link ExpenseController#update} will reset status to PENDING when employee
-   * updates REQUIRES_REVISION expense.
-   */
-  @Test
-  @DataSet(BASE_DATASET + "input/expense.yml")
-  @ExpectedDataSet(BASE_DATASET + "expected/after-employee-updates-requires-revision-expense.yml")
-  void shouldResetStatusToPendingWhenEmployeeUpdatesRequiresRevisionExpense() {
-    // given
-    final String endpointPath = getPath() + "/101";
-    final String data = readFixtureFile("__files/expense/request/update-expense.json");
-    authenticateAsEmployee();
-
-    // when
-    ResponseEntity<ExpenseResponse> response = restTemplate.exchange(
-        endpointPath,
-        HttpMethod.PUT,
-        new HttpEntity<>(data, headers),
-        ExpenseResponse.class
-    );
-
-    // then
-    assertAll(
-        () -> assertNotNull(response),
-        () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-        () -> assertNotNull(response.getBody()),
-        () -> assertEquals("PENDING", Objects.requireNonNull(response.getBody()).getStatus().toString())
-    );
-  }
-
   // ==================== HELPER METHODS ====================
 
   private void authenticateAsEmployee() {
@@ -733,10 +703,17 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
   }
 
   private void authenticateAsManager() {
-    // Create minimal User object just for token generation
-    // The real user will be loaded from database by UserDetailsService
     User manager = User.builder()
         .email("manager@ubs.com")
+        .build();
+
+    String token = jwtUtil.generateToken(manager);
+    headers.set("Authorization", "Bearer " + token);
+  }
+
+  private void authenticateAsTopManager() {
+    User manager = User.builder()
+        .email("manager2@ubs.com")
         .build();
 
     String token = jwtUtil.generateToken(manager);

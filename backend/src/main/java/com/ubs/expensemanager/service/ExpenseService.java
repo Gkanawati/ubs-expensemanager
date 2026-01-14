@@ -9,6 +9,7 @@ import com.ubs.expensemanager.exception.InvalidStatusTransitionException;
 import com.ubs.expensemanager.exception.ResourceNotFoundException;
 import com.ubs.expensemanager.exception.UnauthorizedExpenseAccessException;
 import com.ubs.expensemanager.mapper.ExpenseMapper;
+import com.ubs.expensemanager.messages.Messages;
 import com.ubs.expensemanager.model.Currency;
 import com.ubs.expensemanager.model.Expense;
 import com.ubs.expensemanager.model.ExpenseCategory;
@@ -22,6 +23,9 @@ import com.ubs.expensemanager.repository.ExpenseRepository;
 import com.ubs.expensemanager.repository.specification.ExpenseSpecifications;
 import com.ubs.expensemanager.service.budget.CategoryBudgetValidationStrategy;
 import com.ubs.expensemanager.service.budget.DepartmentBudgetValidationStrategy;
+import com.ubs.expensemanager.service.expense.state.ExpenseStateFactory;
+import com.ubs.expensemanager.service.expense.state.ExpenseState;
+import com.ubs.expensemanager.service.expense.state.StateContext;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -58,6 +62,7 @@ public class ExpenseService {
     private final EntityManager entityManager;
     private final CategoryBudgetValidationStrategy categoryBudgetValidationStrategy;
     private final DepartmentBudgetValidationStrategy departmentBudgetValidationStrategy;
+    private final ExpenseStateFactory stateFactory;
 
     /**
      * Creates a new expense with budget validation.
@@ -71,19 +76,22 @@ public class ExpenseService {
         log.info("Creating expense for user {} in category {}", currentUser.getId(), request.getExpenseCategoryId());
 
         ExpenseCategory category = expenseCategoryRepository.findById(request.getExpenseCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Expense category not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(Messages.EXPENSE_CATEGORY_NOT_FOUND));
 
         Currency currency = currencyRepository.findByName(request.getCurrencyName())
-                .orElseThrow(() -> new ResourceNotFoundException("Currency not found: " + request.getCurrencyName()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Messages.formatMessage(Messages.CURRENCY_NOT_FOUND, request.getCurrencyName())));
 
-        Expense expense = expenseMapper.toEntity(request, currency, category, currentUser, ExpenseStatus.PENDING);
+        ExpenseStatus initialStatus = determineInitialStatus(currentUser);
+
+        Expense expense = expenseMapper.toEntity(request, currency, category, currentUser, initialStatus);
 
         Expense savedExpense = expenseRepository.save(expense);
 
         // Perform budget validation (warnings only, does not block creation)
         validateBudget(currentUser.getId(), category, savedExpense, request.getAmount());
 
-        log.info("Expense {} created successfully with status PENDING", savedExpense.getId());
+        log.info("Expense {} created successfully with status {}", savedExpense.getId(), initialStatus);
 
         return expenseMapper.toResponse(savedExpense);
     }
@@ -131,7 +139,7 @@ public class ExpenseService {
     @Transactional(readOnly = true)
     public ExpenseResponse findById(Long id) {
         Expense expense = expenseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(Messages.EXPENSE_NOT_FOUND));
 
         validateAccess(expense);
         return expenseMapper.toResponse(expense);
@@ -139,7 +147,7 @@ public class ExpenseService {
 
     /**
      * Updates an existing expense.
-     * Only allowed for PENDING or REQUIRES_REVISION status.
+     * Only allowed for PENDING status.
      * Only the expense owner can update.
      *
      * @param id expense identifier
@@ -150,25 +158,26 @@ public class ExpenseService {
     public ExpenseResponse update(Long id, ExpenseUpdateRequest request) {
         User currentUser = getCurrentUser();
         Expense expense = expenseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(Messages.EXPENSE_NOT_FOUND));
 
         // Validate ownership
         validateOwnership(expense);
 
-        // Validate status - only PENDING or REQUIRES_REVISION can be updated
-        if (expense.getStatus() != ExpenseStatus.PENDING && expense.getStatus() != ExpenseStatus.REQUIRES_REVISION) {
+        // Validate status - only PENDING can be updated
+        if (expense.getStatus() != ExpenseStatus.PENDING) {
             throw new InvalidStatusTransitionException(
-                    "Cannot update expense with status " + expense.getStatus() + ". Only PENDING or REQUIRES_REVISION expenses can be updated."
+                    Messages.formatMessage(Messages.CANNOT_UPDATE_EXPENSE_STATUS, expense.getStatus())
             );
         }
 
         log.info("Updating expense {} by user {}", id, currentUser.getId());
 
         ExpenseCategory category = expenseCategoryRepository.findById(request.getExpenseCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Expense category not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(Messages.EXPENSE_CATEGORY_NOT_FOUND));
 
         Currency currency = currencyRepository.findByName(request.getCurrencyName())
-                .orElseThrow(() -> new ResourceNotFoundException("Currency not found: " + request.getCurrencyName()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Messages.formatMessage(Messages.CURRENCY_NOT_FOUND, request.getCurrencyName())));
 
         expense = expenseMapper.updateEntity(expense, request, currency, category, ExpenseStatus.PENDING);
 
@@ -187,13 +196,13 @@ public class ExpenseService {
     public void delete(Long id) {
         User currentUser = getCurrentUser();
         Expense expense = expenseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(Messages.EXPENSE_NOT_FOUND));
 
         validateOwnership(expense);
 
         if (expense.getStatus() != ExpenseStatus.PENDING) {
             throw new InvalidStatusTransitionException(
-                    "Cannot delete expense with status " + expense.getStatus() + ". Only PENDING expenses can be deleted."
+                    Messages.formatMessage(Messages.CANNOT_DELETE_EXPENSE_STATUS, expense.getStatus())
             );
         }
 
@@ -202,9 +211,8 @@ public class ExpenseService {
     }
 
     /**
-     * Approves an expense.
-     * MANAGER: PENDING → APPROVED_BY_MANAGER
-     * FINANCE: APPROVED_BY_MANAGER → APPROVED_BY_FINANCE
+     * Approves an expense using the State pattern. Delegates to the current state implementation for
+     * authorization and transition logic.
      *
      * @param id expense identifier
      * @return updated expense as response DTO
@@ -213,52 +221,27 @@ public class ExpenseService {
     public ExpenseResponse approve(Long id) {
         User currentUser = getCurrentUser();
         Expense expense = expenseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
 
-        ExpenseStatus currentStatus = expense.getStatus();
-        log.info("User {} (role: {}) attempting to approve expense {} with status {}",
-                currentUser.getId(), currentUser.getRole(), id, currentStatus);
+        log.debug(Messages.formatMessage(Messages.USER_ATTEMPTING_ACTION,
+            currentUser.getId(), currentUser.getRole(), "approve", id, expense.getStatus()));
 
-        if (currentUser.getRole() == UserRole.MANAGER) {
-            if (currentStatus != ExpenseStatus.PENDING) {
-                throw new InvalidStatusTransitionException(
-                        "Manager can only approve expenses with status PENDING. Current status: " + currentStatus
-                );
-            }
+        ExpenseState currentState = stateFactory.getState(expense.getStatus());
 
-            // Validate that manager is in the same department as the employee
-            if (!expense.getUser().getDepartment().getId().equals(currentUser.getDepartment().getId())) {
-                throw new UnauthorizedExpenseAccessException(
-                        "You can only approve expenses for employees in your department"
-                );
-            }
+        StateContext context = StateContext.builder()
+            .expense(expense)
+            .currentUser(currentUser)
+            .expenseRepository(expenseRepository)
+            .build();
 
-            expense.setStatus(ExpenseStatus.APPROVED_BY_MANAGER);
-            log.info("Manager approved expense {}. Status: PENDING → APPROVED_BY_MANAGER", id);
+        Expense updatedExpense = currentState.approve(context);
 
-        } else if (currentUser.getRole() == UserRole.FINANCE) {
-            if (currentStatus != ExpenseStatus.APPROVED_BY_MANAGER) {
-                throw new InvalidStatusTransitionException(
-                        "Finance can only approve expenses with status APPROVED_BY_MANAGER. Current status: " + currentStatus
-                );
-            }
-            expense.setStatus(ExpenseStatus.APPROVED_BY_FINANCE);
-            log.info("Finance approved expense {}. Status: APPROVED_BY_MANAGER → APPROVED_BY_FINANCE", id);
-
-        } else {
-            throw new InvalidStatusTransitionException("Only MANAGER or FINANCE can approve expenses");
-        }
-
-        // TODO: implement permission_audit table logging for approvals
-
-        Expense updatedExpense = expenseRepository.save(expense);
         return expenseMapper.toResponse(updatedExpense);
     }
 
     /**
-     * Rejects an expense.
-     * MANAGER: PENDING → REJECTED
-     * FINANCE: APPROVED_BY_MANAGER → REJECTED
+     * Rejects an expense using the State pattern. Delegates to the current state implementation for
+     * authorization and transition logic.
      *
      * @param id expense identifier
      * @return updated expense as response DTO
@@ -267,77 +250,21 @@ public class ExpenseService {
     public ExpenseResponse reject(Long id) {
         User currentUser = getCurrentUser();
         Expense expense = expenseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
 
-        ExpenseStatus currentStatus = expense.getStatus();
-        log.info("User {} (role: {}) attempting to reject expense {} with status {}",
-                currentUser.getId(), currentUser.getRole(), id, currentStatus);
+        log.debug(Messages.formatMessage(Messages.USER_ATTEMPTING_ACTION,
+            currentUser.getId(), currentUser.getRole(), "reject", id, expense.getStatus()));
 
-        if (currentUser.getRole() == UserRole.MANAGER) {
-            if (currentStatus != ExpenseStatus.PENDING && currentStatus != ExpenseStatus.REQUIRES_REVISION) {
-                throw new InvalidStatusTransitionException(
-                        "Manager can only reject expenses with status PENDING or REQUIRES_REVISION. Current status: " + currentStatus
-                );
-            }
+        ExpenseState currentState = stateFactory.getState(expense.getStatus());
 
-            // Validate that manager is in the same department as the employee
-            if (!expense.getUser().getDepartment().getId().equals(currentUser.getDepartment().getId())) {
-                throw new UnauthorizedExpenseAccessException(
-                        "You can only reject expenses for employees in your department"
-                );
-            }
-        } else if (currentUser.getRole() == UserRole.FINANCE) {
-            if (currentStatus != ExpenseStatus.APPROVED_BY_MANAGER && currentStatus != ExpenseStatus.REQUIRES_REVISION) {
-                throw new InvalidStatusTransitionException(
-                        "Finance can only reject expenses with status APPROVED_BY_MANAGER or REQUIRES_REVISION. Current status: " + currentStatus
-                );
-            }
-        } else {
-            throw new InvalidStatusTransitionException("Only MANAGER or FINANCE can reject expenses");
-        }
+        StateContext context = StateContext.builder()
+            .expense(expense)
+            .currentUser(currentUser)
+            .expenseRepository(expenseRepository)
+            .build();
 
-        expense.setStatus(ExpenseStatus.REJECTED);
-        log.info("Expense {} rejected by {} with role {}", id, currentUser.getId(), currentUser.getRole());
+        Expense updatedExpense = currentState.reject(context);
 
-        Expense updatedExpense = expenseRepository.save(expense);
-        return expenseMapper.toResponse(updatedExpense);
-    }
-
-    /**
-     * Requests revision for an expense.
-     * MANAGER/FINANCE: Any status except REJECTED or APPROVED_BY_FINANCE → REQUIRES_REVISION
-     *
-     * @param id expense identifier
-     * @return updated expense as response DTO
-     */
-    @Transactional
-    public ExpenseResponse requestRevision(Long id) {
-        User currentUser = getCurrentUser();
-        Expense expense = expenseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
-
-        ExpenseStatus currentStatus = expense.getStatus();
-        log.info("User {} (role: {}) requesting revision for expense {} with status {}",
-                currentUser.getId(), currentUser.getRole(), id, currentStatus);
-
-        if (currentStatus == ExpenseStatus.REJECTED || currentStatus == ExpenseStatus.APPROVED_BY_FINANCE) {
-            throw new InvalidStatusTransitionException(
-                    "Cannot request revision for expense with status " + currentStatus
-            );
-        }
-
-        // Validate that manager is in the same department as the employee
-        if (currentUser.getRole() == UserRole.MANAGER &&
-                !expense.getUser().getDepartment().getId().equals(currentUser.getDepartment().getId())) {
-            throw new UnauthorizedExpenseAccessException(
-                    "You can only request revision for expenses from employees in your department"
-            );
-        }
-
-        expense.setStatus(ExpenseStatus.REQUIRES_REVISION);
-        log.info("Expense {} status changed to REQUIRES_REVISION", id);
-
-        Expense updatedExpense = expenseRepository.save(expense);
         return expenseMapper.toResponse(updatedExpense);
     }
 
@@ -383,7 +310,7 @@ public class ExpenseService {
                 !expense.getUser().getId().equals(currentUser.getId())) {
             log.warn("User {} attempted to access expense {} owned by user {}",
                     currentUser.getId(), expense.getId(), expense.getUser().getId());
-            throw new UnauthorizedExpenseAccessException("You do not have permission to access this expense");
+            throw new UnauthorizedExpenseAccessException(Messages.formatMessage(Messages.UNAUTHORIZED_ACCESS_EXPENSE));
         }
     }
 
@@ -400,7 +327,7 @@ public class ExpenseService {
         if (!expense.getUser().getId().equals(currentUser.getId())) {
             log.warn("User {} attempted to modify expense {} owned by user {}",
                     currentUser.getId(), expense.getId(), expense.getUser().getId());
-            throw new UnauthorizedExpenseAccessException("You do not have permission to modify this expense");
+            throw new UnauthorizedExpenseAccessException(Messages.formatMessage(Messages.UNAUTHORIZED_ACCESS_EXPENSE));
         }
     }
 
@@ -413,7 +340,7 @@ public class ExpenseService {
     @SuppressWarnings("unchecked")
     public List<ExpenseAuditResponse> getAuditHistory(Long id) {
         if (!expenseRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Expense not found");
+            throw new ResourceNotFoundException(Messages.EXPENSE_NOT_FOUND);
         }
 
         var auditReader = AuditReaderFactory.get(entityManager);
@@ -453,5 +380,20 @@ public class ExpenseService {
                             .build();
                 })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Determines the initial status for a new expense based on the user's manager hierarchy.
+     * If the user has no manager above them, expense skips PENDING and goes directly to APPROVED_BY_MANAGER.
+     *
+     * @param user the user creating the expense
+     * @return APPROVED_BY_MANAGER if user has no manager, PENDING otherwise
+     */
+    private ExpenseStatus determineInitialStatus(User user) {
+        if (user.getManager() == null) {
+            log.info("User {} has no manager - expense will be created as APPROVED_BY_MANAGER", user.getId());
+            return ExpenseStatus.APPROVED_BY_MANAGER;
+        }
+        return ExpenseStatus.PENDING;
     }
 }

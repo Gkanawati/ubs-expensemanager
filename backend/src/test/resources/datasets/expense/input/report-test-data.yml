@@ -156,7 +156,7 @@ PUBLIC.EXPENSES:
     EXPENSE_CATEGORY_ID: 203
     CURRENCY_ID: 201
     RECEIPT_URL: null
-    STATUS: "REQUIRES_REVISION"
+    STATUS: "PENDING"
   # Peter Employee Finance - 2 expenses
   - ID: 207
     AMOUNT: 100.00

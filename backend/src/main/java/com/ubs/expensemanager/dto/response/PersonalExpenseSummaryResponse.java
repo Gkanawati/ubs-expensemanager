@@ -25,7 +25,7 @@ public class PersonalExpenseSummaryResponse {
     @Schema(description = "Count of approved expenses (APPROVED_BY_FINANCE)", example = "15")
     private Integer approvedExpensesCount;
 
-    @Schema(description = "Count of pending expenses (PENDING, APPROVED_BY_MANAGER, REQUIRES_REVISION)", example = "3")
+    @Schema(description = "Count of pending expenses (PENDING, APPROVED_BY_MANAGER)", example = "3")
     private Integer pendingExpensesCount;
 
     @Schema(description = "Total expenses this month in USD", example = "720.00")

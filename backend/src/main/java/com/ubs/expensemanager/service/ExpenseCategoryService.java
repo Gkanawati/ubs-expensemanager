@@ -8,6 +8,7 @@ import com.ubs.expensemanager.dto.response.ExpenseCategoryResponse;
 import com.ubs.expensemanager.exception.ConflictException;
 import com.ubs.expensemanager.exception.ResourceNotFoundException;
 import com.ubs.expensemanager.mapper.ExpenseCategoryMapper;
+import com.ubs.expensemanager.messages.Messages;
 import com.ubs.expensemanager.model.Currency;
 import com.ubs.expensemanager.model.ExpenseCategory;
 import com.ubs.expensemanager.model.audit.CustomRevisionEntity;
@@ -19,6 +20,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -55,11 +57,12 @@ public class ExpenseCategoryService {
     public ExpenseCategoryResponse create(ExpenseCategoryCreateRequest request) {
 
         if (expenseCategoryRepository.existsByNameIgnoreCase(request.getName())) {
-            throw new ConflictException("Expense category with this name already exists");
+            throw new ConflictException(Messages.EXPENSE_CATEGORY_NAME_CONFLICT);
         }
 
         Currency currency = currencyRepository.findByName(request.getCurrencyName())
-                .orElseThrow(() -> new ResourceNotFoundException("Currency not found: " + request.getCurrencyName()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Messages.formatMessage(Messages.CURRENCY_NOT_FOUND, request.getCurrencyName())));
 
         ExpenseCategory category = ExpenseCategory.builder()
             .name(request.getName())
@@ -104,7 +107,7 @@ public class ExpenseCategoryService {
         // If no dateTime is provided, return the ExpenseCategory itself
         if (dateTime == null) {
             ExpenseCategory category = expenseCategoryRepository.findById(id)
-                    .orElseThrow(() -> new ResourceNotFoundException("Expense category not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException(Messages.EXPENSE_CATEGORY_NOT_FOUND));
             return expenseCategoryMapper.toResponse(category);
         }
         // Else, find the audit relative to that provided date
@@ -120,13 +123,13 @@ public class ExpenseCategoryService {
                         Date revDate = auditReader.getRevisionDate(rev);
                         return !revDate.after(queryDate);
                     })
-                    .max((a, b) -> Integer.compare(a.intValue(), b.intValue()))
-                    .orElseThrow(() -> new ResourceNotFoundException("No audit record found for category at specified date")))
+                    .max(Comparator.comparingInt(Number::intValue))
+                    .orElseThrow(() -> new ResourceNotFoundException(Messages.NO_AUDIT_RECORD_FOUND)))
                 .add(AuditEntity.id().eq(id))
                 .getResultList();
         
         if (results.isEmpty()) {
-            throw new ResourceNotFoundException("Expense category not found in audit history");
+            throw new ResourceNotFoundException(Messages.EXPENSE_CATEGORY_NOT_FOUND_IN_AUDIT);
         }
         
         return expenseCategoryMapper.toResponse((ExpenseCategory) results.getFirst());
@@ -141,7 +144,7 @@ public class ExpenseCategoryService {
     @SuppressWarnings("unchecked")
     public List<ExpenseCategoryAuditResponse> getAuditHistory(Long id) {
         if (!expenseCategoryRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Expense category not found");
+            throw new ResourceNotFoundException(Messages.EXPENSE_CATEGORY_NOT_FOUND);
         }
 
         var auditReader = AuditReaderFactory.get(entityManager);
@@ -191,11 +194,12 @@ public class ExpenseCategoryService {
 
         if (!category.getName().equalsIgnoreCase(request.getName())
                 && expenseCategoryRepository.existsByNameIgnoreCase(request.getName())) {
-            throw new ConflictException("Expense category with this name already exists");
+            throw new ConflictException(Messages.EXPENSE_CATEGORY_NAME_CONFLICT);
         }
 
         Currency currency = currencyRepository.findByName(request.getCurrencyName())
-                .orElseThrow(() -> new ResourceNotFoundException("Currency not found: " + request.getCurrencyName()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Messages.formatMessage(Messages.CURRENCY_NOT_FOUND, request.getCurrencyName())));
 
         category.setName(request.getName());
         category.setDailyBudget(request.getDailyBudget());

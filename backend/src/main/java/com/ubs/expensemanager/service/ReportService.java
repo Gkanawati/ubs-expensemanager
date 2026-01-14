@@ -627,11 +627,10 @@ public class ReportService {
                 .filter(expense -> expense.getStatus() == ExpenseStatus.APPROVED_BY_FINANCE)
                 .count();
         
-        // Count pending expenses (PENDING, APPROVED_BY_MANAGER, REQUIRES_REVISION)
+        // Count pending expenses (PENDING, APPROVED_BY_MANAGER)
         Integer pendingExpensesCount = (int) allExpenses.stream()
-                .filter(expense -> expense.getStatus() == ExpenseStatus.PENDING || 
-                                 expense.getStatus() == ExpenseStatus.APPROVED_BY_MANAGER ||
-                                 expense.getStatus() == ExpenseStatus.REQUIRES_REVISION)
+                .filter(expense -> expense.getStatus() == ExpenseStatus.PENDING ||
+                                 expense.getStatus() == ExpenseStatus.APPROVED_BY_MANAGER)
                 .count();
         
         // Calculate this month's expenses in USD

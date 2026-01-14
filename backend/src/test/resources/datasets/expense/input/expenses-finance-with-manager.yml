@@ -28,14 +28,6 @@ PUBLIC.EXPENSE_CATEGORIES:
     CURRENCY_ID: 1
 
 PUBLIC.USERS:
-  - ID: 101
-    NAME: "Jane Manager"
-    EMAIL: "manager@ubs.com"
-    PASSWORD: "$2a$10$fakehashedpassword"
-    ROLE: "MANAGER"
-    MANAGER_ID: 102
-    DEPARTMENT_ID: 101
-    ACTIVE: true
   - ID: 102
     NAME: "Bob Manager Other Dept"
     EMAIL: "manager2@ubs.com"
@@ -44,12 +36,20 @@ PUBLIC.USERS:
     MANAGER_ID: null
     DEPARTMENT_ID: 102
     ACTIVE: true
+  - ID: 101
+    NAME: "Jane Manager"
+    EMAIL: "manager@ubs.com"
+    PASSWORD: "$2a$10$fakehashedpassword"
+    ROLE: "MANAGER"
+    MANAGER_ID: 102
+    DEPARTMENT_ID: 101
+    ACTIVE: true
   - ID: 103
     NAME: "Alice Finance"
     EMAIL: "finance@ubs.com"
     PASSWORD: "$2a$10$fakehashedpassword"
     ROLE: "FINANCE"
-    MANAGER_ID: null
+    MANAGER_ID: 102
     DEPARTMENT_ID: 102
     ACTIVE: true
   - ID: 104
@@ -62,17 +62,6 @@ PUBLIC.USERS:
     ACTIVE: true
 
 PUBLIC.EXPENSES:
-  - ID: 1
-    AMOUNT: 25.50
-    DESCRIPTION: "Coffee meeting with client"
-    EXPENSE_DATE: "2026-01-09"
-    USER_ID: 104
-    EXPENSE_CATEGORY_ID: 101
-    CURRENCY_ID: 1
-    RECEIPT_URL: "https://example.com/receipts/new-receipt.pdf"
-    STATUS: "PENDING"
-#    CREATED_AT: "regex:.+"
-#    UPDATED_AT: "regex:.+"
   - ID: 101
     AMOUNT: 50.00
     DESCRIPTION: "Team lunch"
