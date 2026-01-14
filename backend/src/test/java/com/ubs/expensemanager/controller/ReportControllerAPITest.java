@@ -61,7 +61,8 @@ public class ReportControllerAPITest extends ControllerAPITest {
                 endpointPath,
                 HttpMethod.GET,
                 new HttpEntity<>(headers),
-                new ParameterizedTypeReference<List<EmployeeExpenseReportResponse>>() {}
+            new ParameterizedTypeReference<>() {
+            }
         );
 
         // then
@@ -99,7 +100,8 @@ public class ReportControllerAPITest extends ControllerAPITest {
                 endpointPath,
                 HttpMethod.GET,
                 new HttpEntity<>(headers),
-                new ParameterizedTypeReference<List<CategoryExpenseReportResponse>>() {}
+            new ParameterizedTypeReference<>() {
+            }
         );
 
         // then
@@ -136,7 +138,8 @@ public class ReportControllerAPITest extends ControllerAPITest {
                 endpointPath,
                 HttpMethod.GET,
                 new HttpEntity<>(headers),
-                new ParameterizedTypeReference<List<DepartmentExpenseReportResponse>>() {}
+            new ParameterizedTypeReference<>() {
+            }
         );
 
         // then
@@ -307,7 +310,8 @@ public class ReportControllerAPITest extends ControllerAPITest {
                 endpointPath,
                 HttpMethod.GET,
                 new HttpEntity<>(headers),
-                new ParameterizedTypeReference<List<EmployeeExpenseReportResponse>>() {}
+            new ParameterizedTypeReference<>() {
+            }
         );
 
         // then
@@ -333,15 +337,6 @@ public class ReportControllerAPITest extends ControllerAPITest {
                 .build();
 
         String token = jwtUtil.generateToken(manager);
-        headers.set("Authorization", "Bearer " + token);
-    }
-
-    private void authenticateAsFinance() {
-        User finance = User.builder()
-                .email("finance@ubs.com")
-                .build();
-
-        String token = jwtUtil.generateToken(finance);
         headers.set("Authorization", "Bearer " + token);
     }
 

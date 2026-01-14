@@ -386,7 +386,7 @@ public class ReportController {
                     "EMPLOYEE: returns personal expenses only. " +
                     "MANAGER/FINANCE: returns all expenses across the organization. " +
                     "Includes: total expenses (all time), count of approved expenses (APPROVED_BY_FINANCE), " +
-                    "count of pending expenses (PENDING, APPROVED_BY_MANAGER, REQUIRES_REVISION), " +
+                    "count of pending expenses (PENDING, APPROVED_BY_MANAGER), " +
                     "expenses this month, and the last 3 expenses. All amounts are converted to USD."
     )
     @ApiResponses({

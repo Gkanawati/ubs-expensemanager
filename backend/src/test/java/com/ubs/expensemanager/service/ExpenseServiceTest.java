@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,6 +32,12 @@ import com.ubs.expensemanager.repository.ExpenseCategoryRepository;
 import com.ubs.expensemanager.repository.ExpenseRepository;
 import com.ubs.expensemanager.service.budget.CategoryBudgetValidationStrategy;
 import com.ubs.expensemanager.service.budget.DepartmentBudgetValidationStrategy;
+import com.ubs.expensemanager.service.expense.state.ExpenseStateFactory;
+import com.ubs.expensemanager.service.expense.state.ExpenseState;
+import com.ubs.expensemanager.service.expense.state.PendingState;
+import com.ubs.expensemanager.service.expense.state.ApprovedByManagerState;
+import com.ubs.expensemanager.service.expense.state.ApprovedByFinanceState;
+import com.ubs.expensemanager.service.expense.state.RejectedState;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -76,6 +83,9 @@ class ExpenseServiceTest {
 
   @Mock
   DepartmentBudgetValidationStrategy departmentBudgetValidationStrategy;
+
+  @Mock
+  ExpenseStateFactory stateFactory;
 
   @InjectMocks
   ExpenseService expenseService;
@@ -194,6 +204,17 @@ class ExpenseServiceTest {
         .status(ExpenseStatus.PENDING)
         .build();
 
+    // Setup State pattern mocks with lenient stubbing
+    PendingState pendingState = new PendingState();
+    ApprovedByManagerState approvedByManagerState = new ApprovedByManagerState();
+    ApprovedByFinanceState approvedByFinanceState = new ApprovedByFinanceState();
+    RejectedState rejectedState = new RejectedState();
+
+    lenient().when(stateFactory.getState(ExpenseStatus.PENDING)).thenReturn(pendingState);
+    lenient().when(stateFactory.getState(ExpenseStatus.APPROVED_BY_MANAGER)).thenReturn(approvedByManagerState);
+    lenient().when(stateFactory.getState(ExpenseStatus.APPROVED_BY_FINANCE)).thenReturn(approvedByFinanceState);
+    lenient().when(stateFactory.getState(ExpenseStatus.REJECTED)).thenReturn(rejectedState);
+
     SecurityContextHolder.setContext(securityContext);
   }
 
@@ -276,6 +297,122 @@ class ExpenseServiceTest {
 
     assertThrows(ResourceNotFoundException.class, () -> expenseService.create(request));
     verify(expenseRepository, never()).save(any());
+  }
+
+  @Test
+  void create_UserWithManager_CreatesAsPending() {
+    // Setup user WITH a manager
+    User employeeWithManager = User.builder()
+        .id(10L)
+        .name("Employee With Manager")
+        .email("employee.with.manager@ubs.com")
+        .role(UserRole.EMPLOYEE)
+        .department(itDepartment)
+        .manager(manager)  // Has a manager
+        .active(true)
+        .build();
+
+    ExpenseCreateRequest request = ExpenseCreateRequest.builder()
+        .amount(BigDecimal.valueOf(50))
+        .description("Team lunch")
+        .expenseDate(LocalDate.now())
+        .expenseCategoryId(1L)
+        .currencyName("USD")
+        .build();
+
+    Expense expense = Expense.builder()
+        .id(1L)
+        .amount(BigDecimal.valueOf(50))
+        .description("Team lunch")
+        .expenseDate(LocalDate.now())
+        .user(employeeWithManager)
+        .expenseCategory(foodCategory)
+        .currency(usdCurrency)
+        .status(ExpenseStatus.PENDING)
+        .build();
+
+    when(securityContext.getAuthentication()).thenReturn(authentication);
+    when(authentication.getPrincipal()).thenReturn(employeeWithManager);
+    when(expenseCategoryRepository.findById(1L)).thenReturn(Optional.of(foodCategory));
+    when(currencyRepository.findByName("USD")).thenReturn(Optional.of(usdCurrency));
+    when(expenseRepository.save(any(Expense.class))).thenReturn(expense);
+    when(expenseMapper.toResponse(expense)).thenReturn(expenseResponse);
+    when(expenseMapper.toEntity(any(ExpenseCreateRequest.class), any(Currency.class),
+        any(ExpenseCategory.class), any(User.class), eq(ExpenseStatus.PENDING)))
+        .thenReturn(expense);
+    doNothing().when(categoryBudgetValidationStrategy).validate(any(), any(), any(), any());
+    doNothing().when(departmentBudgetValidationStrategy).validate(any(), any(), any(), any());
+
+    ExpenseResponse result = expenseService.create(request);
+
+    assertAll(
+        () -> assertNotNull(result),
+        () -> verify(expenseMapper).toEntity(any(ExpenseCreateRequest.class), any(Currency.class),
+            any(ExpenseCategory.class), any(User.class), eq(ExpenseStatus.PENDING))
+    );
+  }
+
+  @Test
+  void create_UserWithoutManager_CreatesAsApprovedByManager() {
+    // Setup user WITHOUT a manager (top-level manager)
+    User topLevelManager = User.builder()
+        .id(20L)
+        .name("Top Level Manager")
+        .email("top.manager@ubs.com")
+        .role(UserRole.MANAGER)
+        .department(itDepartment)
+        .manager(null)  // No manager above
+        .active(true)
+        .build();
+
+    ExpenseCreateRequest request = ExpenseCreateRequest.builder()
+        .amount(BigDecimal.valueOf(100))
+        .description("Business travel")
+        .expenseDate(LocalDate.now())
+        .expenseCategoryId(1L)
+        .currencyName("USD")
+        .build();
+
+    Expense expense = Expense.builder()
+        .id(2L)
+        .amount(BigDecimal.valueOf(100))
+        .description("Business travel")
+        .expenseDate(LocalDate.now())
+        .user(topLevelManager)
+        .expenseCategory(foodCategory)
+        .currency(usdCurrency)
+        .status(ExpenseStatus.APPROVED_BY_MANAGER)
+        .build();
+
+    ExpenseResponse approvedResponse = ExpenseResponse.builder()
+        .id(2L)
+        .amount(BigDecimal.valueOf(100))
+        .description("Business travel")
+        .userId(20L)
+        .userName("Top Level Manager")
+        .status(ExpenseStatus.APPROVED_BY_MANAGER)
+        .build();
+
+    when(securityContext.getAuthentication()).thenReturn(authentication);
+    when(authentication.getPrincipal()).thenReturn(topLevelManager);
+    when(expenseCategoryRepository.findById(1L)).thenReturn(Optional.of(foodCategory));
+    when(currencyRepository.findByName("USD")).thenReturn(Optional.of(usdCurrency));
+    when(expenseRepository.save(any(Expense.class))).thenReturn(expense);
+    when(expenseMapper.toResponse(expense)).thenReturn(approvedResponse);
+    when(expenseMapper.toEntity(any(ExpenseCreateRequest.class), any(Currency.class),
+        any(ExpenseCategory.class), any(User.class), eq(ExpenseStatus.APPROVED_BY_MANAGER)))
+        .thenReturn(expense);
+    doNothing().when(categoryBudgetValidationStrategy).validate(any(), any(), any(), any());
+    doNothing().when(departmentBudgetValidationStrategy).validate(any(), any(), any(), any());
+
+    ExpenseResponse result = expenseService.create(request);
+
+    assertAll(
+        () -> assertNotNull(result),
+        () -> assertEquals(ExpenseStatus.APPROVED_BY_MANAGER, result.getStatus()),
+        () -> verify(expenseMapper).toEntity(any(ExpenseCreateRequest.class), any(Currency.class),
+            any(ExpenseCategory.class), any(User.class), eq(ExpenseStatus.APPROVED_BY_MANAGER))
+    );
   }
 
   // ==================== FINDALL TESTS ====================
@@ -405,51 +542,6 @@ class ExpenseServiceTest {
   }
 
   @Test
-  void update_AsRequiresRevisionOwner_ResetsStatusToPending() {
-    Expense requiresRevisionExpense = Expense.builder()
-        .id(1L)
-        .user(employee)
-        .status(ExpenseStatus.REQUIRES_REVISION)
-        .expenseCategory(foodCategory)
-        .currency(usdCurrency)
-        .build();
-
-    ExpenseUpdateRequest request = ExpenseUpdateRequest.builder()
-        .amount(BigDecimal.valueOf(60))
-        .expenseDate(LocalDate.now())
-        .expenseCategoryId(1L)
-        .currencyName("USD")
-        .build();
-
-    Expense expense = Expense.builder()
-        .id(1L)
-        .user(employee)
-        .status(ExpenseStatus.PENDING)
-        .expenseCategory(foodCategory)
-        .currency(usdCurrency)
-        .build();
-
-    when(securityContext.getAuthentication()).thenReturn(authentication);
-    when(authentication.getPrincipal()).thenReturn(employee);
-    when(expenseRepository.findById(1L)).thenReturn(Optional.of(requiresRevisionExpense));
-    when(expenseCategoryRepository.findById(1L)).thenReturn(Optional.of(foodCategory));
-    when(currencyRepository.findByName("USD")).thenReturn(Optional.of(usdCurrency));
-    when(expenseRepository.save(any(Expense.class))).thenReturn(requiresRevisionExpense);
-    when(expenseMapper.toResponse(requiresRevisionExpense)).thenReturn(expenseResponse);
-    when(expenseMapper.updateEntity(any(Expense.class), any(ExpenseUpdateRequest.class),
-        any(Currency.class), any(ExpenseCategory.class), any(ExpenseStatus.class))).thenReturn(
-        expense);
-
-    ExpenseResponse result = expenseService.update(1L, request);
-
-    assertAll(
-        () -> assertNotNull(result),
-        () -> assertEquals(ExpenseStatus.PENDING, result.getStatus()),
-        () -> verify(expenseRepository).save(any(Expense.class))
-    );
-  }
-
-  @Test
   void update_AsNonOwner_ThrowsException() {
     ExpenseUpdateRequest request = ExpenseUpdateRequest.builder()
         .expenseCategoryId(1L)
@@ -572,7 +664,7 @@ class ExpenseServiceTest {
     when(expenseRepository.findById(2L)).thenReturn(Optional.of(approvedByManagerExpense));
 
     assertAll(
-        () -> assertThrows(InvalidStatusTransitionException.class,
+        () -> assertThrows(UnauthorizedExpenseAccessException.class,
             () -> expenseService.approve(2L)),
         () -> verify(expenseRepository, never()).save(any())
     );
@@ -602,7 +694,7 @@ class ExpenseServiceTest {
     when(expenseRepository.findById(1L)).thenReturn(Optional.of(pendingExpense));
 
     assertAll(
-        () -> assertThrows(InvalidStatusTransitionException.class,
+        () -> assertThrows(UnauthorizedExpenseAccessException.class,
             () -> expenseService.approve(1L)),
         () -> verify(expenseRepository, never()).save(any())
     );
@@ -615,7 +707,7 @@ class ExpenseServiceTest {
     when(expenseRepository.findById(1L)).thenReturn(Optional.of(pendingExpense));
 
     assertAll(
-        () -> assertThrows(InvalidStatusTransitionException.class,
+        () -> assertThrows(UnauthorizedExpenseAccessException.class,
             () -> expenseService.approve(1L)),
         () -> verify(expenseRepository, never()).save(any())
     );
@@ -667,93 +759,6 @@ class ExpenseServiceTest {
         () -> assertNotNull(result),
         () -> assertEquals(ExpenseStatus.REJECTED, approvedByManagerExpense.getStatus()),
         () -> verify(expenseRepository).save(approvedByManagerExpense)
-    );
-  }
-
-  // ==================== REQUEST REVISION TESTS ====================
-
-  @Test
-  void requestRevision_AsManagerSameDepartment_Success() {
-    when(securityContext.getAuthentication()).thenReturn(authentication);
-    when(authentication.getPrincipal()).thenReturn(manager);
-    when(expenseRepository.findById(1L)).thenReturn(Optional.of(pendingExpense));
-    when(expenseRepository.save(any(Expense.class))).thenReturn(pendingExpense);
-    when(expenseMapper.toResponse(pendingExpense)).thenReturn(expenseResponse);
-
-    ExpenseResponse result = expenseService.requestRevision(1L);
-
-    assertAll(
-        () -> assertNotNull(result),
-        () -> assertEquals(ExpenseStatus.REQUIRES_REVISION, pendingExpense.getStatus()),
-        () -> verify(expenseRepository).save(pendingExpense)
-    );
-  }
-
-  @Test
-  void requestRevision_AsManagerDifferentDepartment_ThrowsException() {
-    when(securityContext.getAuthentication()).thenReturn(authentication);
-    when(authentication.getPrincipal()).thenReturn(managerOtherDept);
-    when(expenseRepository.findById(1L)).thenReturn(Optional.of(pendingExpense));
-
-    assertAll(
-        () -> assertThrows(UnauthorizedExpenseAccessException.class,
-            () -> expenseService.requestRevision(1L)),
-        () -> verify(expenseRepository, never()).save(any())
-    );
-  }
-
-  @Test
-  void requestRevision_AsFinance_Success() {
-    when(securityContext.getAuthentication()).thenReturn(authentication);
-    when(authentication.getPrincipal()).thenReturn(finance);
-    when(expenseRepository.findById(2L)).thenReturn(Optional.of(approvedByManagerExpense));
-    when(expenseRepository.save(any(Expense.class))).thenReturn(approvedByManagerExpense);
-    when(expenseMapper.toResponse(approvedByManagerExpense)).thenReturn(expenseResponse);
-
-    ExpenseResponse result = expenseService.requestRevision(2L);
-
-    assertAll(
-        () -> assertNotNull(result),
-        () -> assertEquals(ExpenseStatus.REQUIRES_REVISION, approvedByManagerExpense.getStatus()),
-        () -> verify(expenseRepository).save(approvedByManagerExpense)
-    );
-  }
-
-  @Test
-  void requestRevision_RejectedExpense_ThrowsException() {
-    Expense rejectedExpense = Expense.builder()
-        .id(3L)
-        .user(employee)
-        .status(ExpenseStatus.REJECTED)
-        .build();
-
-    when(securityContext.getAuthentication()).thenReturn(authentication);
-    when(authentication.getPrincipal()).thenReturn(manager);
-    when(expenseRepository.findById(3L)).thenReturn(Optional.of(rejectedExpense));
-
-    assertAll(
-        () -> assertThrows(InvalidStatusTransitionException.class,
-            () -> expenseService.requestRevision(3L)),
-        () -> verify(expenseRepository, never()).save(any())
-    );
-  }
-
-  @Test
-  void requestRevision_ApprovedByFinanceExpense_ThrowsException() {
-    Expense approvedExpense = Expense.builder()
-        .id(3L)
-        .user(employee)
-        .status(ExpenseStatus.APPROVED_BY_FINANCE)
-        .build();
-
-    when(securityContext.getAuthentication()).thenReturn(authentication);
-    when(authentication.getPrincipal()).thenReturn(manager);
-    when(expenseRepository.findById(3L)).thenReturn(Optional.of(approvedExpense));
-
-    assertAll(
-        () -> assertThrows(InvalidStatusTransitionException.class,
-            () -> expenseService.requestRevision(3L)),
-        () -> verify(expenseRepository, never()).save(any())
     );
   }
 }

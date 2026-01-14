@@ -152,8 +152,8 @@ class ReportServiceTest {
         assertAll(
                 () -> assertNotNull(result),
                 () -> assertEquals(1, result.size()),
-                () -> assertEquals("John Employee", result.get(0).getEmployee()),
-                () -> assertEquals(new BigDecimal("225.00"), result.get(0).getTotal()),
+                () -> assertEquals("John Employee", result.getFirst().getEmployee()),
+                () -> assertEquals(new BigDecimal("225.00"), result.getFirst().getTotal()),
                 () -> verify(expenseRepository).findAllByExpenseDateBetweenAndStatusNot(startDate, endDate, ExpenseStatus.REJECTED)
         );
     }
@@ -187,8 +187,8 @@ class ReportServiceTest {
         assertAll(
                 () -> assertNotNull(result),
                 () -> assertEquals(1, result.size()),
-                () -> assertEquals("Food", result.get(0).getCategory()),
-                () -> assertEquals(new BigDecimal("225.00"), result.get(0).getTotal()),
+                () -> assertEquals("Food", result.getFirst().getCategory()),
+                () -> assertEquals(new BigDecimal("225.00"), result.getFirst().getTotal()),
                 () -> verify(expenseRepository).findAllByExpenseDateBetweenAndStatusNot(startDate, endDate, ExpenseStatus.REJECTED)
         );
     }
@@ -209,9 +209,9 @@ class ReportServiceTest {
         assertAll(
                 () -> assertNotNull(result),
                 () -> assertEquals(1, result.size()),
-                () -> assertEquals("IT", result.get(0).getDepartment()),
-                () -> assertEquals(new BigDecimal("225.00"), result.get(0).getUsed()),
-                () -> assertTrue(result.get(0).getRemaining().compareTo(BigDecimal.ZERO) > 0),
+                () -> assertEquals("IT", result.getFirst().getDepartment()),
+                () -> assertEquals(new BigDecimal("225.00"), result.getFirst().getUsed()),
+                () -> assertTrue(result.getFirst().getRemaining().compareTo(BigDecimal.ZERO) > 0),
                 () -> verify(expenseRepository).findAllByExpenseDateBetweenAndStatusNot(any(), any(), eq(ExpenseStatus.REJECTED)),
                 () -> verify(departmentRepository).findAll()
         );
@@ -369,21 +369,10 @@ class ReportServiceTest {
                 .status(ExpenseStatus.PENDING)
                 .build();
 
-        Expense revisionExpense = Expense.builder()
-                .id(6L)
-                .amount(BigDecimal.valueOf(100))
-                .description("Revision expense")
-                .expenseDate(LocalDate.now())
-                .user(employee)
-                .expenseCategory(foodCategory)
-                .currency(usdCurrency)
-                .status(ExpenseStatus.REQUIRES_REVISION)
-                .build();
-
         when(securityContext.getAuthentication()).thenReturn(authentication);
         when(authentication.getPrincipal()).thenReturn(employee);
         when(expenseRepository.findAllByUserIdAndStatusNot(1L, ExpenseStatus.REJECTED))
-                .thenReturn(List.of(approvedExpense, pendingExpense, revisionExpense));
+                .thenReturn(List.of(approvedExpense, pendingExpense));
         when(expenseRepository.findTopByUserIdAndStatusNotOrderByExpenseDateDesc(
                 eq(1L), eq(ExpenseStatus.REJECTED), any(PageRequest.class)))
                 .thenReturn(List.of(approvedExpense));
@@ -395,7 +384,7 @@ class ReportServiceTest {
 
         assertAll(
                 () -> assertEquals(1, result.getApprovedExpensesCount()),
-                () -> assertEquals(2, result.getPendingExpensesCount())
+                () -> assertEquals(1, result.getPendingExpensesCount())
         );
     }
 }

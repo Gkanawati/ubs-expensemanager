@@ -12,6 +12,7 @@ import com.ubs.expensemanager.exception.SelfManagerException;
 import com.ubs.expensemanager.exception.UserAlreadyActiveException;
 import com.ubs.expensemanager.exception.UserExistsException;
 import com.ubs.expensemanager.mapper.UserMapper;
+import com.ubs.expensemanager.messages.Messages;
 import com.ubs.expensemanager.model.Department;
 import com.ubs.expensemanager.model.User;
 import com.ubs.expensemanager.model.UserRole;
@@ -39,7 +40,8 @@ public class UserService {
      */
     public User createUser(UserCreateRequest request) {
         if (repository.existsByEmail(request.getEmail()))
-            throw new UserExistsException("The email '" + request.getEmail() + "' is already registered");
+            throw new UserExistsException(
+                    Messages.formatMessage(Messages.USER_EMAIL_EXISTS, request.getEmail()));
 
         User user = User.builder()
                 .email(request.getEmail())
@@ -63,11 +65,11 @@ public class UserService {
                         "There is no user with id " + id));
 
         if (!user.getEmail().equals(request.getEmail())) {
-            throw new IllegalArgumentException("Email cannot be changed");
+            throw new IllegalArgumentException(Messages.EMAIL_CANNOT_BE_CHANGED);
         }
 
         if (user.getRole() != request.getRole()) {
-            throw new IllegalArgumentException("Role cannot be changed");
+            throw new IllegalArgumentException(Messages.ROLE_CANNOT_BE_CHANGED);
         }
 
         user.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -93,14 +95,16 @@ public class UserService {
 
     public UserResponse findById(Long id) {
         User user = repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("There is no user with id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Messages.formatMessage(Messages.USER_NOT_FOUND_WITH_ID, id)));
         return userMapper.toResponse(user);
     }
 
     @Transactional
     public void deactivate(Long id) {
         User user = repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("There is no user with id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Messages.formatMessage(Messages.USER_NOT_FOUND_WITH_ID, id)));
 
         // Don't allow deactivation if manager has subordinates
         if (user.getRole() == UserRole.MANAGER) {
@@ -115,7 +119,8 @@ public class UserService {
     @Transactional
     public UserResponse reactivate(Long id) {
         User user = repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("There is no user with id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Messages.formatMessage(Messages.USER_NOT_FOUND_WITH_ID, id)));
 
         if (user.isActive())
             throw new UserAlreadyActiveException();

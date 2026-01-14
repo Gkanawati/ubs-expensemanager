@@ -33,7 +33,7 @@ PUBLIC.USERS:
     EMAIL: "manager@ubs.com"
     PASSWORD: "$2a$10$fakehashedpassword"
     ROLE: "MANAGER"
-    MANAGER_ID: null
+    MANAGER_ID: 102
     DEPARTMENT_ID: 101
     ACTIVE: true
   - ID: 102
@@ -97,5 +97,5 @@ PUBLIC.EXPENSES:
     EXPENSE_CATEGORY_ID: 102
     CURRENCY_ID: 1
     RECEIPT_URL: null
-    STATUS: "REQUIRES_REVISION"
+    STATUS: "PENDING"
 

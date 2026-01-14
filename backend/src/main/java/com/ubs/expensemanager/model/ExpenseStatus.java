@@ -22,10 +22,5 @@ public enum ExpenseStatus {
     /**
      * Expense has been rejected and will not be reimbursed.
      */
-    REJECTED,
-
-    /**
-     * Expense requires revision before it can be approved.
-     */
-    REQUIRES_REVISION
+    REJECTED
 }

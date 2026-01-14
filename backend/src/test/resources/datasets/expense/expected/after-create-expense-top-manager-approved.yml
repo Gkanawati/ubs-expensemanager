@@ -66,13 +66,11 @@ PUBLIC.EXPENSES:
     AMOUNT: 25.50
     DESCRIPTION: "Coffee meeting with client"
     EXPENSE_DATE: "2026-01-09"
-    USER_ID: 104
+    USER_ID: 102
     EXPENSE_CATEGORY_ID: 101
     CURRENCY_ID: 1
     RECEIPT_URL: "https://example.com/receipts/new-receipt.pdf"
-    STATUS: "PENDING"
-#    CREATED_AT: "regex:.+"
-#    UPDATED_AT: "regex:.+"
+    STATUS: "APPROVED_BY_MANAGER"
   - ID: 101
     AMOUNT: 50.00
     DESCRIPTION: "Team lunch"
@@ -118,4 +116,3 @@ PUBLIC.EXPENSES:
     CURRENCY_ID: 1
     RECEIPT_URL: null
     STATUS: "PENDING"
-
