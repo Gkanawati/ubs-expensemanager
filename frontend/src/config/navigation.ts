@@ -19,10 +19,10 @@ export const navigationConfig: MenuItem[] = [
   },
   {
     id: 'expenses',
-    label: 'My Expenses',
+    label: 'Expenses',
     path: '/expenses',
     icon: 'Receipt',
-    allowedRoles: ['ROLE_MANAGER', 'ROLE_EMPLOYEE', 'ROLE_FINANCE'],
+    allowedRoles: ['ROLE_EMPLOYEE',],
   },
   {
     id: 'manage-expenses',
@@ -30,6 +30,13 @@ export const navigationConfig: MenuItem[] = [
     path: '/manage-expenses',
     icon: 'FileCheck',
     allowedRoles: ['ROLE_MANAGER', 'ROLE_FINANCE'],
+  },
+    {
+    id: 'expenses-report',
+    label: 'Expenses Report',
+    path: '/expenses-report',
+    icon: 'ChartLine',
+    allowedRoles: ['ROLE_FINANCE'],
   },
   {
     id: 'department',
