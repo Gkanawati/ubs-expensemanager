@@ -67,4 +67,13 @@ public interface AlertRepository extends
      * @return a list of alerts matching the criteria
      */
     List<Alert> findAllByExpenseAndTypeAndStatus(Expense expense, AlertType type, AlertStatus status);
+
+    /**
+     * Finds all alerts with the specified expense and status.
+     *
+     * @param expense the expense associated with the alerts
+     * @param status the alert status
+     * @return a list of alerts matching the criteria
+     */
+    List<Alert> findByExpenseAndStatus(Expense expense, AlertStatus status);
 }
