@@ -459,9 +459,11 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
     assertAll(
         () -> assertNotNull(response),
         () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-        () -> assertNotNull(response.getBody()),
-        () -> assertEquals(new BigDecimal("60.00"), Objects.requireNonNull(response.getBody()).getAmount()),
-        () -> assertEquals("Updated lunch expense", response.getBody().getDescription())
+        () -> {
+          assertNotNull(response.getBody());
+          assertEquals(new BigDecimal("60.00"), response.getBody().getAmount());
+          assertEquals("Updated lunch expense", response.getBody().getDescription());
+        }
     );
   }
 
@@ -855,6 +857,68 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
         () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
         () -> assertNotNull(response.getBody()),
         () -> assertEquals("REJECTED", Objects.requireNonNull(response.getBody()).getStatus().toString())
+    );
+  }
+
+  // ==================== ALERT VALIDATION TESTS ====================
+
+  /**
+   * Verifies if {@link ExpenseController#approve} will return 400 when manager tries to approve
+   * expense that has a NEW alert.
+   */
+  @Test
+  @DataSet(BASE_DATASET + "input/expense-with-new-alert.yml")
+  @ExpectedDataSet(BASE_DATASET + "expected/expense-with-new-alert-no-change.yml")
+  void shouldReturn400WhenManagerTriesToApproveExpenseWithNewAlert() {
+    // given
+    final String endpointPath = getPath() + "/101/approve";
+    authenticateAsManager();
+
+    // when
+    ResponseEntity<String> response = restTemplate.exchange(
+        endpointPath,
+        HttpMethod.PATCH,
+        new HttpEntity<>(headers),
+        String.class
+    );
+
+    // then
+    assertAll(
+        () -> assertNotNull(response),
+        () -> assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode()),
+        () -> {
+          assertNotNull(response.getBody());
+          assertTrue(response.getBody().contains("unresolved alerts"));
+        }
+    );
+  }
+
+  /**
+   * Verifies if {@link ExpenseController#approve} will succeed when manager approves expense
+   * that has a RESOLVED alert.
+   */
+  @Test
+  @DataSet(BASE_DATASET + "input/expense-with-resolved-alert.yml")
+  @ExpectedDataSet(BASE_DATASET + "expected/after-manager-approves-expense-with-resolved-alert.yml")
+  void shouldApproveExpenseWhenAlertIsResolved() {
+    // given
+    final String endpointPath = getPath() + "/101/approve";
+    authenticateAsManager();
+
+    // when
+    ResponseEntity<ExpenseResponse> response = restTemplate.exchange(
+        endpointPath,
+        HttpMethod.PATCH,
+        new HttpEntity<>(headers),
+        ExpenseResponse.class
+    );
+
+    // then
+    assertAll(
+        () -> assertNotNull(response),
+        () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
+        () -> assertNotNull(response.getBody()),
+        () -> assertEquals("APPROVED_BY_MANAGER", Objects.requireNonNull(response.getBody()).getStatus().toString())
     );
   }
 

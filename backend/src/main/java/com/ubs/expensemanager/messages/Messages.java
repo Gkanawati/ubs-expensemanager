@@ -54,6 +54,7 @@ public final class Messages {
   public static final String CANNOT_APPROVE_TERMINAL_STATUS = "Cannot approve expense with terminal status %s";
   public static final String CANNOT_REJECT_TERMINAL_STATUS = "Cannot reject expense with terminal status %s";
   public static final String NO_STATE_FOUND_FOR_STATUS = "No state found for status: %s";
+  public static final String CANNOT_APPROVE_WITH_NEW_ALERT = "Cannot approve expense with unresolved alerts. Please resolve all alerts first.";
 
   // ===== Validation Errors =====
   public static final String USER_EMAIL_EXISTS = "The email '%s' is already registered";

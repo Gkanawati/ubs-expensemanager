@@ -17,6 +17,8 @@ import com.ubs.expensemanager.model.ExpenseStatus;
 import com.ubs.expensemanager.model.User;
 import com.ubs.expensemanager.model.UserRole;
 import com.ubs.expensemanager.model.audit.CustomRevisionEntity;
+import com.ubs.expensemanager.model.AlertStatus;
+import com.ubs.expensemanager.repository.AlertRepository;
 import com.ubs.expensemanager.repository.CurrencyRepository;
 import com.ubs.expensemanager.repository.ExpenseCategoryRepository;
 import com.ubs.expensemanager.repository.ExpenseRepository;
@@ -62,6 +64,7 @@ public class ExpenseService {
     private final CategoryBudgetValidationStrategy categoryBudgetValidationStrategy;
     private final DepartmentBudgetValidationStrategy departmentBudgetValidationStrategy;
     private final ExpenseStateFactory stateFactory;
+    private final AlertRepository alertRepository;
 
     /**
      * Creates a new expense with budget validation.
@@ -228,6 +231,11 @@ public class ExpenseService {
         User currentUser = getCurrentUser();
         Expense expense = expenseRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
+
+        // Check for unresolved alerts
+        if (!alertRepository.findByExpenseAndStatus(expense, AlertStatus.NEW).isEmpty()) {
+            throw new InvalidStatusTransitionException(Messages.CANNOT_APPROVE_WITH_NEW_ALERT);
+        }
 
         log.debug(Messages.formatMessage(Messages.USER_ATTEMPTING_ACTION,
             currentUser.getId(), currentUser.getRole(), "approve", id, expense.getStatus()));
