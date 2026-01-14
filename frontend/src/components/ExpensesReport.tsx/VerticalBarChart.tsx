@@ -27,14 +27,24 @@ type StackedBarChartProps = {
   emptyMessage?: string;
 };
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+type TooltipProps = {
+  active?: boolean;
+  payload?: Array<{
+    name: string;
+    value: number;
+    color: string;
+  }>;
+  label?: string;
+};
+
+const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg px-3 py-2">
         <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
           {label}
         </p>
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry, index: number) => (
           <p key={index} className="text-xs" style={{ color: entry.color }}>
             {entry.name}: ${entry.value.toFixed(2)}
           </p>

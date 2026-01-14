@@ -31,7 +31,15 @@ const COLORS = [
   "#ec4899",
 ];
 
-const CustomTooltip = ({ active, payload }: any) => {
+type TooltipProps = {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+    payload: HorizontalChart;
+  }>;
+};
+
+const CustomTooltip = ({ active, payload }: TooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg px-3 py-2">

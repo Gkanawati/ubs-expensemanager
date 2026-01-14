@@ -43,7 +43,7 @@ export async function getExpensesByEmployee(
 export async function downloadExpensesByEmployeeCsv(
   params?: DateFilterParams
 ): Promise<Blob> {
-  const response = await api.get(
+  const response = await api.get<Blob>(
     "/api/reports/expenses/by-employee/csv",
     {
       params: buildParams(params),
@@ -75,7 +75,7 @@ export async function getExpensesByCategory(
 export async function downloadExpensesByCategoryCsv(
   params?: DateFilterParams
 ): Promise<Blob> {
-  const response = await api.get(
+  const response = await api.get<Blob>(
     "/api/reports/expenses/by-category/csv",
     {
       params: buildParams(params),
@@ -109,7 +109,7 @@ export async function getDepartmentBudgetsVsExpenses(
 export async function downloadDepartmentBudgetsVsExpensesCsv(
   params?: DateFilterParams
 ): Promise<Blob> {
-  const response = await api.get(
+  const response = await api.get<Blob>(
     "/api/reports/department/budgets-vs-expenses/csv",
     {
       params: buildParams(params),
