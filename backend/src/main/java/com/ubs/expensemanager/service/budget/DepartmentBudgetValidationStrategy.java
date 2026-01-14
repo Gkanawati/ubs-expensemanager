@@ -28,15 +28,29 @@ public class DepartmentBudgetValidationStrategy implements BudgetValidationStrat
     private final ExpenseRepository expenseRepository;
     private final EventPublisher eventPublisher;
 
+    /**
+     * Validates only the monthly department budget limit.
+     * This method should be called BEFORE saving the expense.
+     * Throws BudgetExceededException if monthly limit is exceeded (blocking behavior).
+     */
     @Override
     public void validate(Long userId, ExpenseCategory category, Expense expense, BigDecimal newAmount) {
         Department department = expense.getUser().getDepartment();
         if (department != null) {
-            // Only validate daily budget if the department has a daily budget limit
-            if (department.getDailyBudget() != null) {
-                validateDailyBudget(userId, category, expense, newAmount, department);
-            }
+            // Only validate monthly budget here (blocking) - called BEFORE save
             validateMonthlyBudget(expense, newAmount, department);
+        }
+    }
+
+    /**
+     * Validates only the daily department budget limit.
+     * This method should be called AFTER saving the expense.
+     * Publishes BudgetExceededEvent if daily limit is exceeded (warning-only behavior).
+     */
+    public void validateDailyBudgetOnly(Long userId, ExpenseCategory category, Expense expense, BigDecimal newAmount) {
+        Department department = expense.getUser().getDepartment();
+        if (department != null && department.getDailyBudget() != null) {
+            validateDailyBudget(userId, category, expense, newAmount, department);
         }
     }
 

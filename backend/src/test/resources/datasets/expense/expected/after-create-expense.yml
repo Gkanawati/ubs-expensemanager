@@ -71,8 +71,8 @@ PUBLIC.EXPENSES:
     CURRENCY_ID: 1
     RECEIPT_URL: "https://example.com/receipts/new-receipt.pdf"
     STATUS: "PENDING"
-#    CREATED_AT: "regex:.+"
-#    UPDATED_AT: "regex:.+"
+    CREATED_AT: "regex:.+"
+    UPDATED_AT: "regex:.+"
   - ID: 101
     AMOUNT: 50.00
     DESCRIPTION: "Team lunch"

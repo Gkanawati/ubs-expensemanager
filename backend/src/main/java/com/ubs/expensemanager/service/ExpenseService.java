@@ -85,10 +85,16 @@ public class ExpenseService {
 
         Expense expense = expenseMapper.toEntity(request, currency, category, currentUser, initialStatus);
 
+        // BLOCKING VALIDATION: Monthly department budget - throws exception if exceeded
         departmentBudgetValidationStrategy.validate(currentUser.getId(), category, expense, request.getAmount());
 
+        // Save expense only if blocking validations pass
         Expense savedExpense = expenseRepository.save(expense);
 
+        // WARNING-ONLY VALIDATIONS: These publish events for alerts but don't block
+        // Daily department budget validation
+        departmentBudgetValidationStrategy.validateDailyBudgetOnly(currentUser.getId(), category, savedExpense, request.getAmount());
+        // Category budget validation (daily and monthly)
         categoryBudgetValidationStrategy.validate(currentUser.getId(), category, savedExpense, request.getAmount());
 
         log.info("Expense {} created successfully with status {}", savedExpense.getId(), initialStatus);

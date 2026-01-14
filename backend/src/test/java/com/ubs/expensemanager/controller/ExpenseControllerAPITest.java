@@ -12,7 +12,10 @@ import com.github.database.rider.core.api.dataset.DataSet;
 import com.github.database.rider.core.api.dataset.ExpectedDataSet;
 import com.ubs.expensemanager.config.TestSecurityConfig;
 import com.ubs.expensemanager.dto.response.ExpenseResponse;
+import com.ubs.expensemanager.model.AlertStatus;
+import com.ubs.expensemanager.model.AlertType;
 import com.ubs.expensemanager.model.User;
+import com.ubs.expensemanager.repository.AlertRepository;
 import com.ubs.expensemanager.security.JwtUtil;
 import java.math.BigDecimal;
 import java.util.List;
@@ -41,6 +44,9 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
 
   @Autowired
   private JwtUtil jwtUtil;
+
+  @Autowired
+  private AlertRepository alertRepository;
 
   private HttpHeaders headers;
 
@@ -300,6 +306,131 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
           assertTrue(response.getBody().contains("Budget exceeded"));
           assertTrue(response.getBody().contains("Monthly budget exceeded for department"));
         }
+    );
+  }
+
+  /**
+   * Verifies if {@link ExpenseController#create} will create expense AND alert when daily
+   * department budget is exceeded (warning-only behavior).
+   */
+  @Test
+  @DataSet(BASE_DATASET + "input/expenses-near-daily-department-budget-limit.yml")
+  @ExpectedDataSet(value = BASE_DATASET + "expected/after-create-expense-daily-department-alert.yml", ignoreCols = {"id", "expense_id"})
+  void shouldCreateExpenseAndAlertWhenDailyDepartmentBudgetExceeded() {
+    // given
+    // Department IT has daily budget of 100.00 USD
+    // Existing expense 80.00 USD on 2026-01-09
+    // New expense of 25.50 would make total 105.50 > 100.00
+    final String endpointPath = getPath();
+    final String data = readFixtureFile("__files/expense/request/create-expense.json");
+    authenticateAsEmployee();
+
+    // when
+    ResponseEntity<String> rawResponse = restTemplate.exchange(
+        endpointPath,
+        HttpMethod.POST,
+        new HttpEntity<>(data, headers),
+        String.class
+    );
+
+    // Debug: print response
+    System.out.println("Response status: " + rawResponse.getStatusCode());
+    System.out.println("Response body: " + rawResponse.getBody());
+
+    // then - expense should be created (warning-only behavior)
+    assertEquals(HttpStatus.CREATED, rawResponse.getStatusCode());
+
+    // and - alert should be created for daily department budget exceeded
+    var alerts = alertRepository.findByTypeAndStatus(AlertType.DEPARTMENT, AlertStatus.NEW);
+    assertAll(
+        () -> assertNotNull(alerts),
+        () -> assertEquals(1, alerts.size()),
+        () -> assertTrue(alerts.getFirst().getMessage().contains("Daily")),
+        () -> assertTrue(alerts.getFirst().getMessage().contains("department"))
+    );
+  }
+
+  /**
+   * Verifies if {@link ExpenseController#create} will create expense AND alert when daily
+   * category budget is exceeded (warning-only behavior).
+   */
+  @Test
+  @DataSet(BASE_DATASET + "input/expenses-near-daily-category-budget-limit.yml")
+  @ExpectedDataSet(value = BASE_DATASET + "expected/after-create-expense-daily-category-alert.yml", ignoreCols = {"id", "expense_id"})
+  void shouldCreateExpenseAndAlertWhenDailyCategoryBudgetExceeded() {
+    // given
+    // Category Food has daily budget of 50.00 USD
+    // Existing expense 40.00 USD on 2026-01-09 for user 104 in category Food
+    // New expense of 25.50 would make total 65.50 > 50.00
+    final String endpointPath = getPath();
+    final String data = readFixtureFile("__files/expense/request/create-expense.json");
+    authenticateAsEmployee();
+
+    // when
+    ResponseEntity<ExpenseResponse> response = restTemplate.exchange(
+        endpointPath,
+        HttpMethod.POST,
+        new HttpEntity<>(data, headers),
+        ExpenseResponse.class
+    );
+
+    // then - expense should be created (warning-only behavior)
+    assertAll(
+        () -> assertNotNull(response),
+        () -> assertEquals(HttpStatus.CREATED, response.getStatusCode()),
+        () -> assertNotNull(response.getBody()),
+        () -> assertEquals(new BigDecimal("25.50"), Objects.requireNonNull(response.getBody()).getAmount())
+    );
+
+    // and - alert should be created for daily category budget exceeded
+    var alerts = alertRepository.findByTypeAndStatus(AlertType.CATEGORY, AlertStatus.NEW);
+    assertAll(
+        () -> assertNotNull(alerts),
+        () -> assertEquals(1, alerts.size()),
+        () -> assertTrue(alerts.getFirst().getMessage().contains("Daily")),
+        () -> assertTrue(alerts.getFirst().getMessage().contains("category"))
+    );
+  }
+
+  /**
+   * Verifies if {@link ExpenseController#create} will create expense AND alert when monthly
+   * category budget is exceeded (warning-only behavior).
+   */
+  @Test
+  @DataSet(BASE_DATASET + "input/expenses-near-monthly-category-budget-limit.yml")
+  @ExpectedDataSet(value = BASE_DATASET + "expected/after-create-expense-monthly-category-alert.yml", ignoreCols = {"id", "expense_id"})
+  void shouldCreateExpenseAndAlertWhenMonthlyCategoryBudgetExceeded() {
+    // given
+    // Category Food has monthly budget of 100.00 USD
+    // Existing expenses 90.00 USD (45.00 + 45.00) in January 2026 for user 104 in category Food
+    // New expense of 25.50 would make total 115.50 > 100.00
+    final String endpointPath = getPath();
+    final String data = readFixtureFile("__files/expense/request/create-expense.json");
+    authenticateAsEmployee();
+
+    // when
+    ResponseEntity<ExpenseResponse> response = restTemplate.exchange(
+        endpointPath,
+        HttpMethod.POST,
+        new HttpEntity<>(data, headers),
+        ExpenseResponse.class
+    );
+
+    // then - expense should be created (warning-only behavior)
+    assertAll(
+        () -> assertNotNull(response),
+        () -> assertEquals(HttpStatus.CREATED, response.getStatusCode()),
+        () -> assertNotNull(response.getBody()),
+        () -> assertEquals(new BigDecimal("25.50"), Objects.requireNonNull(response.getBody()).getAmount())
+    );
+
+    // and - alert should be created for monthly category budget exceeded
+    var alerts = alertRepository.findByTypeAndStatus(AlertType.CATEGORY, AlertStatus.NEW);
+    assertAll(
+        () -> assertNotNull(alerts),
+        () -> assertEquals(1, alerts.size()),
+        () -> assertTrue(alerts.getFirst().getMessage().contains("Monthly")),
+        () -> assertTrue(alerts.getFirst().getMessage().contains("category"))
     );
   }
 
