@@ -17,10 +17,10 @@ export const api = axios.create({
   /**
    * Base URL of the backend API.
    *
-   * - Uses VITE_API_BASE_URL if defined in environment variables
+   * - Uses BACKEND_ENDPOINT if defined in environment variables
    * - Falls back to localhost for local development
    */
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080",
+  baseURL: import.meta.env.BACKEND_ENDPOINT ?? "http://localhost:8080",
 
   /**
    * Enable sending cookies with cross-origin requests.
