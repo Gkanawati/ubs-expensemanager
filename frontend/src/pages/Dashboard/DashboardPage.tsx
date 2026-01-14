@@ -1,8 +1,71 @@
 import { useAuth } from '@/hooks/useAuth';
 import { CheckCircle, Clock, Receipt, TrendingUp } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { getExpensesSummary, ExpensesSummary } from '@/api/dashboard.api';
+import { ExpenseStatus } from '@/api/expense.api';
+
+const getStatusBadgeClasses = (status: ExpenseStatus) => {
+  switch (status) {
+    case 'APPROVED_BY_MANAGER':
+    case 'APPROVED_BY_FINANCE':
+      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+    case 'PENDING':
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+    case 'REJECTED':
+      return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+    case 'REQUIRES_REVISION':
+      return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+    default:
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+  }
+};
+
+const getStatusLabel = (status: ExpenseStatus) => {
+  switch (status) {
+    case 'APPROVED_BY_MANAGER':
+      return 'Approved by Manager';
+    case 'APPROVED_BY_FINANCE':
+      return 'Approved';
+    case 'PENDING':
+      return 'Pending';
+    case 'REJECTED':
+      return 'Rejected';
+    default:
+      return status;
+  }
+};
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
 
 export const DashboardPage = () => {
   const { user } = useAuth();
+  const [summary, setSummary] = useState<ExpensesSummary>({
+    totalExpenses: 0,
+    approvedExpensesCount: 0,
+    pendingExpensesCount: 0,
+    expensesThisMonth: 0,
+    lastExpenses: [],
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSummary = async () => {
+      try {
+        const data = await getExpensesSummary();
+        setSummary(data);
+      } catch (error) {
+        console.error('Failed to fetch expenses summary:', error);
+        // Keep default zero values on error
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSummary();
+  }, []);
 
   return (
     <div className='space-y-6'>
@@ -23,7 +86,7 @@ export const DashboardPage = () => {
                 Total Expenses
               </p>
               <p className='mt-2 text-2xl font-bold text-gray-900 dark:text-white'>
-                $12,430
+                ${loading ? '...' : summary.totalExpenses.toFixed(2)}
               </p>
             </div>
             <div className='flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900'>
@@ -39,7 +102,7 @@ export const DashboardPage = () => {
                 Approved
               </p>
               <p className='mt-2 text-2xl font-bold text-gray-900 dark:text-white'>
-                18
+                {loading ? '...' : summary.approvedExpensesCount}
               </p>
             </div>
             <div className='flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900'>
@@ -55,7 +118,7 @@ export const DashboardPage = () => {
                 Pending
               </p>
               <p className='mt-2 text-2xl font-bold text-gray-900 dark:text-white'>
-                5
+                {loading ? '...' : summary.pendingExpensesCount}
               </p>
             </div>
             <div className='flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900'>
@@ -71,7 +134,7 @@ export const DashboardPage = () => {
                 This Month
               </p>
               <p className='mt-2 text-2xl font-bold text-gray-900 dark:text-white'>
-                $3,240
+                ${loading ? '...' : summary.expensesThisMonth.toFixed(2)}
               </p>
             </div>
             <div className='flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900'>
@@ -86,45 +149,40 @@ export const DashboardPage = () => {
           Last Expenses
         </h2>
         <div className='mt-4 space-y-3'>
-          <div className='flex items-center justify-between border-b border-gray-100 pb-3 dark:border-gray-800'>
-            <div>
-              <p className='font-medium text-gray-900 dark:text-white'>
-                Office Supplies
-              </p>
-              <p className='text-sm text-gray-600 dark:text-gray-400'>
-                Dec 24, 2025
-              </p>
-            </div>
-            <span className='inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200'>
-              Approved
-            </span>
-          </div>
-          <div className='flex items-center justify-between border-b border-gray-100 pb-3 dark:border-gray-800'>
-            <div>
-              <p className='font-medium text-gray-900 dark:text-white'>
-                Client Lunch
-              </p>
-              <p className='text-sm text-gray-600 dark:text-gray-400'>
-                Dec 23, 2025
-              </p>
-            </div>
-            <span className='inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'>
-              Pending
-            </span>
-          </div>
-          <div className='flex items-center justify-between'>
-            <div>
-              <p className='font-medium text-gray-900 dark:text-white'>
-                Transportation
-              </p>
-              <p className='text-sm text-gray-600 dark:text-gray-400'>
-                Dec 22, 2025
-              </p>
-            </div>
-            <span className='inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200'>
-              Approved
-            </span>
-          </div>
+          {loading ? (
+            <p className='text-sm text-gray-600 dark:text-gray-400'>Loading...</p>
+          ) : summary.lastExpenses.length === 0 ? (
+            <p className='text-sm text-gray-600 dark:text-gray-400'>
+              No last expenses
+            </p>
+          ) : (
+            summary.lastExpenses.map((expense, index) => (
+              <div
+                key={index}
+                className={`flex items-center justify-between ${
+                  index < summary.lastExpenses.length - 1
+                    ? 'border-b border-gray-100 pb-3 dark:border-gray-800'
+                    : ''
+                }`}
+              >
+                <div>
+                  <p className='font-medium text-gray-900 dark:text-white'>
+                    {expense.description}
+                  </p>
+                  <p className='text-sm text-gray-600 dark:text-gray-400'>
+                    {formatDate(expense.date)}
+                  </p>
+                </div>
+                <span
+                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getStatusBadgeClasses(
+                    expense.status
+                  )}`}
+                >
+                  {getStatusLabel(expense.status)}
+                </span>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

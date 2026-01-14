@@ -177,10 +177,14 @@ export const CategoriesPage = () => {
   return (
     <div className='space-y-6'>
       <header>
-        <h1 className='text-3xl font-bold'>Category Management</h1>
-        <p className='text-sm text-muted-foreground'>
-          Manage categories and budgets
-        </p>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Category Management
+          </h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Manage categories and budgets
+          </p>
+        </div>
       </header>
 
       <div className='rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900'>

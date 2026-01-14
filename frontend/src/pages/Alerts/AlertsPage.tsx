@@ -86,7 +86,8 @@ export const AlertsPage = () => {
 
 
   const columns: ColumnDef<Alert>[] = [
-    { key: "alertType",
+    {
+      key: "alertType",
       label: "Alert Type",
       render: (row: Alert) => {
         return <span className="font-medium">{row.alertType}</span>;
@@ -153,10 +154,14 @@ export const AlertsPage = () => {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-bold">Alert Management</h1>
-        <p className="text-sm text-muted-foreground">
-          Review and resolve expense alerts
-        </p>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Alert Management        
+          </h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Review and resolve expense alerts
+          </p>
+        </div>
       </header>
 
       {/* Table */}

@@ -49,6 +49,7 @@ test.describe('Role-Based Navigation', () => {
     // Check that finance menu items are visible
     await expect(page.getByRole('link', { name: /dashboard/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /manage expenses/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /expenses report/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /user management/i })).toBeVisible();
 
     // Finance should NOT see "Expenses" (employee-only)

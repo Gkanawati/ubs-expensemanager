@@ -31,6 +31,13 @@ export const navigationConfig: MenuItem[] = [
     icon: 'FileCheck',
     allowedRoles: ['ROLE_MANAGER', 'ROLE_FINANCE'],
   },
+    {
+    id: 'expenses-report',
+    label: 'Expenses Report',
+    path: '/expenses-report',
+    icon: 'ChartLine',
+    allowedRoles: ['ROLE_FINANCE'],
+  },
   {
     id: 'department',
     label: 'Department',

@@ -49,6 +49,7 @@ describe('Navigation Config', () => {
         expect.arrayContaining([
           expect.objectContaining({ id: 'dashboard' }),
           expect.objectContaining({ id: 'manage-expenses' }),
+          expect.objectContaining({ id: 'expenses-report' }),
           expect.objectContaining({ id: 'department' }),
           expect.objectContaining({ id: 'users' }),
           expect.objectContaining({ id: 'category' }),
