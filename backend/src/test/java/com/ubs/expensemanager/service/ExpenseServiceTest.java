@@ -299,6 +299,122 @@ class ExpenseServiceTest {
     verify(expenseRepository, never()).save(any());
   }
 
+  @Test
+  void create_UserWithManager_CreatesAsPending() {
+    // Setup user WITH a manager
+    User employeeWithManager = User.builder()
+        .id(10L)
+        .name("Employee With Manager")
+        .email("employee.with.manager@ubs.com")
+        .role(UserRole.EMPLOYEE)
+        .department(itDepartment)
+        .manager(manager)  // Has a manager
+        .active(true)
+        .build();
+
+    ExpenseCreateRequest request = ExpenseCreateRequest.builder()
+        .amount(BigDecimal.valueOf(50))
+        .description("Team lunch")
+        .expenseDate(LocalDate.now())
+        .expenseCategoryId(1L)
+        .currencyName("USD")
+        .build();
+
+    Expense expense = Expense.builder()
+        .id(1L)
+        .amount(BigDecimal.valueOf(50))
+        .description("Team lunch")
+        .expenseDate(LocalDate.now())
+        .user(employeeWithManager)
+        .expenseCategory(foodCategory)
+        .currency(usdCurrency)
+        .status(ExpenseStatus.PENDING)
+        .build();
+
+    when(securityContext.getAuthentication()).thenReturn(authentication);
+    when(authentication.getPrincipal()).thenReturn(employeeWithManager);
+    when(expenseCategoryRepository.findById(1L)).thenReturn(Optional.of(foodCategory));
+    when(currencyRepository.findByName("USD")).thenReturn(Optional.of(usdCurrency));
+    when(expenseRepository.save(any(Expense.class))).thenReturn(expense);
+    when(expenseMapper.toResponse(expense)).thenReturn(expenseResponse);
+    when(expenseMapper.toEntity(any(ExpenseCreateRequest.class), any(Currency.class),
+        any(ExpenseCategory.class), any(User.class), eq(ExpenseStatus.PENDING)))
+        .thenReturn(expense);
+    doNothing().when(categoryBudgetValidationStrategy).validate(any(), any(), any(), any());
+    doNothing().when(departmentBudgetValidationStrategy).validate(any(), any(), any(), any());
+
+    ExpenseResponse result = expenseService.create(request);
+
+    assertAll(
+        () -> assertNotNull(result),
+        () -> verify(expenseMapper).toEntity(any(ExpenseCreateRequest.class), any(Currency.class),
+            any(ExpenseCategory.class), any(User.class), eq(ExpenseStatus.PENDING))
+    );
+  }
+
+  @Test
+  void create_UserWithoutManager_CreatesAsApprovedByManager() {
+    // Setup user WITHOUT a manager (top-level manager)
+    User topLevelManager = User.builder()
+        .id(20L)
+        .name("Top Level Manager")
+        .email("top.manager@ubs.com")
+        .role(UserRole.MANAGER)
+        .department(itDepartment)
+        .manager(null)  // No manager above
+        .active(true)
+        .build();
+
+    ExpenseCreateRequest request = ExpenseCreateRequest.builder()
+        .amount(BigDecimal.valueOf(100))
+        .description("Business travel")
+        .expenseDate(LocalDate.now())
+        .expenseCategoryId(1L)
+        .currencyName("USD")
+        .build();
+
+    Expense expense = Expense.builder()
+        .id(2L)
+        .amount(BigDecimal.valueOf(100))
+        .description("Business travel")
+        .expenseDate(LocalDate.now())
+        .user(topLevelManager)
+        .expenseCategory(foodCategory)
+        .currency(usdCurrency)
+        .status(ExpenseStatus.APPROVED_BY_MANAGER)
+        .build();
+
+    ExpenseResponse approvedResponse = ExpenseResponse.builder()
+        .id(2L)
+        .amount(BigDecimal.valueOf(100))
+        .description("Business travel")
+        .userId(20L)
+        .userName("Top Level Manager")
+        .status(ExpenseStatus.APPROVED_BY_MANAGER)
+        .build();
+
+    when(securityContext.getAuthentication()).thenReturn(authentication);
+    when(authentication.getPrincipal()).thenReturn(topLevelManager);
+    when(expenseCategoryRepository.findById(1L)).thenReturn(Optional.of(foodCategory));
+    when(currencyRepository.findByName("USD")).thenReturn(Optional.of(usdCurrency));
+    when(expenseRepository.save(any(Expense.class))).thenReturn(expense);
+    when(expenseMapper.toResponse(expense)).thenReturn(approvedResponse);
+    when(expenseMapper.toEntity(any(ExpenseCreateRequest.class), any(Currency.class),
+        any(ExpenseCategory.class), any(User.class), eq(ExpenseStatus.APPROVED_BY_MANAGER)))
+        .thenReturn(expense);
+    doNothing().when(categoryBudgetValidationStrategy).validate(any(), any(), any(), any());
+    doNothing().when(departmentBudgetValidationStrategy).validate(any(), any(), any(), any());
+
+    ExpenseResponse result = expenseService.create(request);
+
+    assertAll(
+        () -> assertNotNull(result),
+        () -> assertEquals(ExpenseStatus.APPROVED_BY_MANAGER, result.getStatus()),
+        () -> verify(expenseMapper).toEntity(any(ExpenseCreateRequest.class), any(Currency.class),
+            any(ExpenseCategory.class), any(User.class), eq(ExpenseStatus.APPROVED_BY_MANAGER))
+    );
+  }
+
   // ==================== FINDALL TESTS ====================
 
   @Test

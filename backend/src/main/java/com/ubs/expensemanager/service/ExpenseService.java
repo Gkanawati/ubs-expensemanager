@@ -82,14 +82,16 @@ public class ExpenseService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         Messages.formatMessage(Messages.CURRENCY_NOT_FOUND, request.getCurrencyName())));
 
-        Expense expense = expenseMapper.toEntity(request, currency, category, currentUser, ExpenseStatus.PENDING);
+        ExpenseStatus initialStatus = determineInitialStatus(currentUser);
+
+        Expense expense = expenseMapper.toEntity(request, currency, category, currentUser, initialStatus);
 
         Expense savedExpense = expenseRepository.save(expense);
 
         // Perform budget validation (warnings only, does not block creation)
         validateBudget(currentUser.getId(), category, savedExpense, request.getAmount());
 
-        log.info("Expense {} created successfully with status PENDING", savedExpense.getId());
+        log.info("Expense {} created successfully with status {}", savedExpense.getId(), initialStatus);
 
         return expenseMapper.toResponse(savedExpense);
     }
@@ -378,5 +380,20 @@ public class ExpenseService {
                             .build();
                 })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Determines the initial status for a new expense based on the user's manager hierarchy.
+     * If the user has no manager above them, expense skips PENDING and goes directly to APPROVED_BY_MANAGER.
+     *
+     * @param user the user creating the expense
+     * @return APPROVED_BY_MANAGER if user has no manager, PENDING otherwise
+     */
+    private ExpenseStatus determineInitialStatus(User user) {
+        if (user.getManager() == null) {
+            log.info("User {} has no manager - expense will be created as APPROVED_BY_MANAGER", user.getId());
+            return ExpenseStatus.APPROVED_BY_MANAGER;
+        }
+        return ExpenseStatus.PENDING;
     }
 }
