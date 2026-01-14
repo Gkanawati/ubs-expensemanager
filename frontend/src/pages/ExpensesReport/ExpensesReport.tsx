@@ -90,6 +90,18 @@ export const ExpensesReport = () => {
     return undefined;
   };
 
+  const handleDownloadEmployeeCsv = async () => {
+    return downloadExpensesByEmployeeCsv(buildDateParams());
+  };
+
+  const handleDownloadCategoryCsv = async () => {
+    return downloadExpensesByCategoryCsv(buildDateParams());
+  };
+
+  const handleDownloadDepartmentCsv = async () => {
+    return downloadDepartmentBudgetsVsExpensesCsv(buildDateParams());
+  };
+
   /* ------------------------------------------------------------------ */
   /* Fetches */
   /* ------------------------------------------------------------------ */
@@ -266,7 +278,7 @@ export const ExpensesReport = () => {
             loading={employeeLoading}
             csvFilename="expenses-by-employee.csv"
             jsonFilename="expenses-by-employee.json"
-            onDownloadCsv={downloadExpensesByEmployeeCsv}
+            onDownloadCsv={handleDownloadEmployeeCsv}
           />
         </div>
 
@@ -300,7 +312,7 @@ export const ExpensesReport = () => {
             loading={categoryLoading}
             csvFilename="expenses-by-category.csv"
             jsonFilename="expenses-by-category.json"
-            onDownloadCsv={downloadExpensesByCategoryCsv}
+            onDownloadCsv={handleDownloadCategoryCsv}
           />
         </div>
 
@@ -334,7 +346,7 @@ export const ExpensesReport = () => {
             loading={departmentLoading}
             csvFilename="department-budget.csv"
             jsonFilename="department-budget.json"
-            onDownloadCsv={downloadDepartmentBudgetsVsExpensesCsv}
+            onDownloadCsv={handleDownloadDepartmentCsv}
           />
         </div>
 
