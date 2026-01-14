@@ -202,14 +202,14 @@ export const ManageExpensesPage = () => {
       key: "amount",
       label: "Amount",
       headerAlign: "right",
-      render: (row) => (
-        <span className="text-right block">
-          {new Intl.NumberFormat("en-US", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          }).format(row.amount)}
-        </span>
-      ),
+      render: (row) => {
+        const currency = row.currencyName || 'USD';
+        return (
+          <span className="text-right block">
+            {formatCurrency(row.amount ?? 0, currency)}
+          </span>
+        )
+      },
     },
     {
       key: "currencyName",
