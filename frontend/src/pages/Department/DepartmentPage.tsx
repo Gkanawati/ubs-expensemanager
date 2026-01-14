@@ -1,130 +1,221 @@
-import { useEffect, useState } from "react";
-import { Department } from "@/types/department";
-import { DepartmentFormData } from "@/utils/validation";
-import {
-  listDepartments,
-  createDepartment,
-  updateDepartment,
-  deleteDepartment,
-} from "@/services/department.service";
-import { DepartmentTable } from "./components/DepartmentTable";
-import { DepartmentForm } from "./components/DepartmentForm";
-
-/**
- * DepartmentPage
- *
- * Orchestrates:
- * - Department list
- * - Create / Edit / Delete flows
- *
- * Improvements:
- * - Better UX (clear buttons, better layout)
- * - Proper error handling and feedback
- * - Correct Create flow resets editing state
- */
-
-const getUserRole = (): string | null => {
-  const raw = localStorage.getItem("user");
-  if (!raw) return null;
-
-  try {
-    const user = JSON.parse(raw) as { role: string };
-    return user.role;
-  } catch {
-    return null;
-  }
-};
+import { useEffect, useState } from 'react';
+import { Plus, Edit, CheckCircle } from 'lucide-react';
+import { DataTable, ColumnDef, RowAction } from '@/components/DataTable';
+import { ConfirmationDialog } from '@/components/ConfirmationDialog';
+import { ActionButton } from '@/components/ui/ActionButton';
+import { formatCurrency } from '@/utils/validation';
+import { getDepartments, deleteDepartment } from '@/api/department.api';
+import type { Department } from '@/types/department';
+import { CreateDepartmentDialog } from './components/CreateDepartmentDialog';
+import { EditDepartmentDialog } from './components/EditDepartmentDialog';
 
 export const DepartmentPage = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [editing, setEditing] = useState<Department | null>(null);
-  const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const role = getUserRole();
-  const canEdit = role === "FINANCE" || role === "ROLE_FINANCE";
+  const [openCreate, setOpenCreate] = useState(false);
+  const [openCreateSuccessDialog, setOpenCreateSuccessDialog] = useState(false);
+  const [createErrorMessage, setCreateErrorMessage] = useState<string>('');
+  const [editing, setEditing] = useState<Department | null>(null);
+  const [openEditSuccessDialog, setOpenEditSuccessDialog] = useState(false);
+  const [editErrorMessage, setEditErrorMessage] = useState<string>('');
+  const [toDelete, setToDelete] = useState<Department | null>(null);
 
-  async function loadDepartments() {
-    setError(null);
+  const canEdit = true; // mesmo pattern do UserPage
+
+  async function load() {
     try {
-      const { data } = await listDepartments();
-      setDepartments(data);
-    } catch {
-      setError("Failed to load departments. Please try again.");
+      setLoading(true);
+      const data = await getDepartments();
+      console.log('[DepartmentPage] Loaded departments:', data);
+      // Verify all departments have currencyName
+      data.forEach((d, idx) => {
+        console.log(`[DepartmentPage] Department ${idx}:`, {
+          id: d.id,
+          name: d.name,
+          currencyId: d.currencyId,
+          currencyName: d.currencyName,
+          type: typeof d.currencyName,
+        });
+      });
+      setDepartments([...data]);
+    } catch (err) {
+      console.error('[DepartmentPage] Error loading departments:', err);
+      setError('Failed to load departments');
+    } finally {
+      setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadDepartments();
+    load();
   }, []);
 
-  async function handleSubmit(data: DepartmentFormData) {
-    setError(null);
-    try {
-      if (editing) {
-        await updateDepartment(editing.id, data);
-      } else {
-        await createDepartment(data);
-      }
+  const columns: ColumnDef<Department>[] = [
+    {
+      key: 'name',
+      label: 'Name',
+      render: (row: Department) => {
+        return <span className='font-medium'>{row.name}</span>;
+      },
+    },
+    {
+      key: 'currencyName',
+      label: 'Currency',
+    },
+    {
+      key: 'dailyBudget',
+      label: 'Daily Budget',
+      headerAlign: 'right',
+      render: (row: Department) => {
+        const currency = row.currencyName || 'USD';
+        console.log(
+          `[DepartmentPage:dailyBudget] rendering with currency=${currency}`,
+          row
+        );
+        return (
+          <span className='text-right block'>
+            {formatCurrency(row.dailyBudget ?? 0, currency)}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'monthlyBudget',
+      label: 'Monthly Budget',
+      headerAlign: 'right',
+      render: (row: Department) => {
+        const currency = row.currencyName || 'USD';
+        console.log(
+          `[DepartmentPage:monthlyBudget] rendering with currency=${currency}`,
+          row
+        );
+        return (
+          <span className='text-right block'>
+            {formatCurrency(row.monthlyBudget ?? 0, currency)}
+          </span>
+        );
+      },
+    },
+  ];
 
-      setShowForm(false);
-      setEditing(null);
-      await loadDepartments();
-      alert(editing ? "Department updated successfully!" : "Department created successfully!");
-    } catch {
-      alert("Failed to save department. Check permissions or invalid data.");
-    }
-  }
-
-  async function handleDelete(id: number) {
-    setError(null);
-    try {
-      await deleteDepartment(id);
-      await loadDepartments();
-      alert("Department deleted successfully!");
-    } catch {
-      alert("Failed to delete department. Check permissions.");
-    }
-  }
+  const actions: RowAction<Department>[] = [
+    {
+      label: 'Edit',
+      icon: <Edit className='h-4 w-4' />,
+      onClick: (row) => setEditing(row),
+      shouldShow: () => canEdit,
+    },
+  ];
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold">Departments</h1>
-
-        {canEdit && (
-          <button
-            onClick={() => {
-              setEditing(null);
-              setShowForm(true);
-            }}
-            className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
-          >
-            + Create Department
-          </button>
-        )}
+    <div className='space-y-6'>
+      <div>
+        <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
+          Departments
+        </h1>
+        <p className='mt-2 text-sm text-gray-600 dark:text-gray-400'>
+          Manage departments and budgets
+        </p>
       </div>
 
-      {error && <p className="text-destructive">{error}</p>}
+      {canEdit && (
+        <div className='rounded-lg border border-border bg-card p-6'>
+          <div className='flex items-center justify-end'>
+            <ActionButton
+              label='Create Department'
+              icon={<Plus className='h-4 w-4' />}
+              onClick={() => setOpenCreate(true)}
+            />
+          </div>
+        </div>
+      )}
 
-      <DepartmentTable
-        departments={departments}
-        canEdit={canEdit}
-        onEdit={(d) => {
-          setEditing(d);
-          setShowForm(true);
-        }}
-        onDelete={handleDelete}
+      <DataTable
+        columns={columns}
+        data={departments}
+        actions={actions}
+        emptyMessage={loading ? 'Loading...' : error || 'No departments found'}
       />
 
-      {showForm && (
-        <div className="mt-4">
-          <DepartmentForm
-            initialData={editing}
-            onSubmit={handleSubmit}
-            onCancel={() => setShowForm(false)}
-          />
-        </div>
+      <CreateDepartmentDialog
+        open={openCreate}
+        onOpenChange={(open) => {
+          if (open) {
+            setCreateErrorMessage('');
+          }
+          setOpenCreate(open);
+        }}
+        onSuccess={async () => {
+          setOpenCreate(false);
+          setCreateErrorMessage('');
+          await load();
+          setOpenCreateSuccessDialog(true);
+        }}
+        error={createErrorMessage}
+        onError={setCreateErrorMessage}
+      />
+
+      <ConfirmationDialog
+        open={openCreateSuccessDialog}
+        onOpenChange={setOpenCreateSuccessDialog}
+        title='Department Created'
+        description='The department has been successfully created.'
+        confirmText='Done'
+        variant='success'
+        icon={<CheckCircle className='h-6 w-6 text-green-600' />}
+        onConfirm={() => setOpenCreateSuccessDialog(false)}
+      />
+
+      {editing && (
+        <EditDepartmentDialog
+          department={editing}
+          open={!!editing}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditing(null);
+              setEditErrorMessage('');
+            } else {
+              setEditErrorMessage('');
+            }
+          }}
+          onSuccess={() => {
+            setEditing(null);
+            setEditErrorMessage('');
+            load();
+            setOpenEditSuccessDialog(true);
+          }}
+          error={editErrorMessage}
+          onError={setEditErrorMessage}
+        />
+      )}
+
+      <ConfirmationDialog
+        open={openEditSuccessDialog}
+        onOpenChange={setOpenEditSuccessDialog}
+        title='Department Updated'
+        description='The department has been successfully updated.'
+        confirmText='Done'
+        variant='success'
+        icon={<CheckCircle className='h-6 w-6 text-green-600' />}
+        onConfirm={() => setOpenEditSuccessDialog(false)}
+      />
+
+      {toDelete && (
+        <ConfirmationDialog
+          open={!!toDelete}
+          title='Delete Department'
+          description={`Are you sure you want to delete ${toDelete.name}?`}
+          confirmText='Delete'
+          variant='danger'
+          onConfirm={async () => {
+            await deleteDepartment(toDelete.id);
+            setToDelete(null);
+            load();
+          }}
+          onOpenChange={() => setToDelete(null)}
+        />
       )}
     </div>
   );

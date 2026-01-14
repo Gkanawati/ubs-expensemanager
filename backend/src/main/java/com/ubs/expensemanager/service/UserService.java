@@ -1,10 +1,18 @@
 package com.ubs.expensemanager.service;
 
+import com.ubs.expensemanager.dto.request.UserCreateRequest;
 import com.ubs.expensemanager.dto.request.UserFilterRequest;
 import com.ubs.expensemanager.dto.request.UserUpdateRequest;
-import com.ubs.expensemanager.dto.request.UserCreateRequest;
 import com.ubs.expensemanager.dto.response.UserResponse;
-import com.ubs.expensemanager.exception.*;
+import com.ubs.expensemanager.exception.InvalidManagerRoleException;
+import com.ubs.expensemanager.exception.ManagerHasSubordinatesException;
+import com.ubs.expensemanager.exception.ManagerRequiredException;
+import com.ubs.expensemanager.exception.ResourceNotFoundException;
+import com.ubs.expensemanager.exception.SelfManagerException;
+import com.ubs.expensemanager.exception.UserAlreadyActiveException;
+import com.ubs.expensemanager.exception.UserExistsException;
+import com.ubs.expensemanager.mapper.UserMapper;
+import com.ubs.expensemanager.messages.Messages;
 import com.ubs.expensemanager.model.Department;
 import com.ubs.expensemanager.model.User;
 import com.ubs.expensemanager.model.UserRole;
@@ -13,16 +21,11 @@ import com.ubs.expensemanager.repository.UserRepository;
 import com.ubs.expensemanager.repository.specification.UserSpecifications;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.stream.Collectors;
-
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +33,101 @@ public class UserService {
     private final UserRepository repository;
     private final DepartmentRepository departmentRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
+
+    /**
+     * Creates a new user (used by AuthService during registration).
+     */
+    public User createUser(UserCreateRequest request) {
+        if (repository.existsByEmail(request.getEmail()))
+            throw new UserExistsException(
+                    Messages.formatMessage(Messages.USER_EMAIL_EXISTS, request.getEmail()));
+
+        User user = User.builder()
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .role(request.getRole())
+                .name(request.getName())
+                .build();
+
+        validateAndSetDepartment(user, request.getDepartmentId());
+        validateAndSetManager(user, request.getManagerEmail(), request.getRole());
+
+        return repository.save(user);
+    }
+
+    /**
+     * Updates an existing user.
+     */
+    public UserResponse update(Long id, UserUpdateRequest request) {
+        User user = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "There is no user with id " + id));
+
+        if (!user.getEmail().equals(request.getEmail())) {
+            throw new IllegalArgumentException(Messages.EMAIL_CANNOT_BE_CHANGED);
+        }
+
+        if (user.getRole() != request.getRole()) {
+            throw new IllegalArgumentException(Messages.ROLE_CANNOT_BE_CHANGED);
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setName(request.getName());
+
+        validateAndSetDepartment(user, request.getDepartmentId());
+        validateAndSetManager(user, request.getManagerEmail(), user.getRole());
+
+        User updatedUser = repository.save(user);
+        return userMapper.toResponse(updatedUser);
+    }
+
+    public Page<UserResponse> findAll(UserFilterRequest filters, Pageable pageable) {
+        Specification<User> spec = Specification.where(null);
+
+        spec = spec.and(UserSpecifications.withRole(filters.getRole()));
+        spec = spec.and(UserSpecifications.isActive(filters.getIncludeInactive()));
+        spec = spec.and(UserSpecifications.nameOrEmailContains(filters.getSearch()));
+        spec = spec.and(UserSpecifications.withDepartmentId(filters.getDepartmentId()));
+
+        return repository.findAll(spec, pageable).map(userMapper::toResponse);
+    }
+
+    public UserResponse findById(Long id) {
+        User user = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Messages.formatMessage(Messages.USER_NOT_FOUND_WITH_ID, id)));
+        return userMapper.toResponse(user);
+    }
+
+    @Transactional
+    public void deactivate(Long id) {
+        User user = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Messages.formatMessage(Messages.USER_NOT_FOUND_WITH_ID, id)));
+
+        // Don't allow deactivation if manager has subordinates
+        if (user.getRole() == UserRole.MANAGER) {
+            boolean hasSubordinates = repository.existsByManagerAndActiveTrue(user);
+            if (hasSubordinates)
+                throw new ManagerHasSubordinatesException();
+        }
+
+        user.setActive(false);
+    }
+
+    @Transactional
+    public UserResponse reactivate(Long id) {
+        User user = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Messages.formatMessage(Messages.USER_NOT_FOUND_WITH_ID, id)));
+
+        if (user.isActive())
+            throw new UserAlreadyActiveException();
+
+        user.setActive(true);
+        return userMapper.toResponse(user);
+    }
 
     /**
      * Validates and assigns a department to the user.
@@ -40,8 +138,8 @@ public class UserService {
      */
     private void validateAndSetDepartment(User user, Long departmentId) {
         Department department = departmentRepository.findById(departmentId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Department not found with id: " + departmentId));
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Department not found with id: " + departmentId));
         user.setDepartment(department);
     }
 
@@ -76,8 +174,8 @@ public class UserService {
                 return;
 
         User manager = repository.findByEmail(managerEmail)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Manager not found with email: " + managerEmail));
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Manager not found with email: " + managerEmail));
 
         if (manager.getRole() != UserRole.MANAGER)
             throw new InvalidManagerRoleException();
@@ -90,93 +188,4 @@ public class UserService {
         user.setManager(manager);
     }
 
-    /**
-     * Creates a new user (used by AuthService during registration).
-     */
-    public User createUser(UserCreateRequest request) {
-        if (repository.existsByEmail(request.getEmail()))
-            throw new UserExistsException("The email '" + request.getEmail() + "' is already registered");
-
-        User user = User.builder()
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .role(request.getRole())
-                .name(request.getName())
-                .build();
-
-        validateAndSetDepartment(user, request.getDepartmentId());
-        validateAndSetManager(user, request.getManagerEmail(), request.getRole());
-
-        return repository.save(user);
-    }
-
-    /**
-     * Updates an existing user.
-     */
-    public UserResponse update(Long id, UserUpdateRequest request) {
-        User user = repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "There is no user with id " + id));
-
-        if (!user.getEmail().equals(request.getEmail())) {
-            throw new IllegalArgumentException("Email cannot be changed");
-        }
-
-        if (user.getRole() != request.getRole()) {
-            throw new IllegalArgumentException("Role cannot be changed");
-        }
-
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setName(request.getName());
-
-        validateAndSetDepartment(user, request.getDepartmentId());
-        validateAndSetManager(user, request.getManagerEmail(), user.getRole());
-
-        User updatedUser = repository.save(user);
-        return UserResponse.fromEntity(updatedUser);
-    }
-
-    public Page<UserResponse> findAll(UserFilterRequest filters, Pageable pageable) {
-        Specification<User> spec = Specification.where(null);
-
-        spec = spec.and(UserSpecifications.withRole(filters.getRole()));
-        spec = spec.and(UserSpecifications.isActive(filters.getIncludeInactive()));
-        spec = spec.and(UserSpecifications.nameOrEmailContains(filters.getSearch()));
-        spec = spec.and(UserSpecifications.withDepartmentId(filters.getDepartmentId()));
-
-        return repository.findAll(spec, pageable).map(UserResponse::fromEntity);
-    }
-
-    public UserResponse findById(Long id) {
-        User user = repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("There is no user with id " + id));
-        return UserResponse.fromEntity(user);
-    }
-
-    @Transactional
-    public void deactivate(Long id) {
-        User user = repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("There is no user with id " + id));
-
-        // Don't allow deactivation if manager has subordinates
-        if (user.getRole() == UserRole.MANAGER) {
-            boolean hasSubordinates = repository.existsByManagerAndActiveTrue(user);
-            if (hasSubordinates)
-                throw new ManagerHasSubordinatesException();
-        }
-
-        user.setActive(false);
-    }
-
-    @Transactional
-    public UserResponse reactivate(Long id) {
-        User user = repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("There is no user with id " + id));
-
-        if (user.isActive())
-            throw new UserAlreadyActiveException();
-
-        user.setActive(true);
-        return UserResponse.fromEntity(user);
-    }
 }

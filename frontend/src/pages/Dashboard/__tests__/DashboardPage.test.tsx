@@ -39,7 +39,7 @@ describe('DashboardPage', () => {
 
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(
-      screen.getByText(/Welcome back, john\.doe@ubs\.com!/i)
+      screen.getByText(/Welcome back, John Doe!/i)
     ).toBeInTheDocument();
   });
 });

@@ -31,7 +31,7 @@ export const MobileNav = () => {
 
   return (
     <>
-      <header className='fixed left-0 right-0 top-0 z-50 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 dark:border-gray-800 dark:bg-gray-900 md:hidden'>
+      <header className='fixed left-0 right-0 top-0 z-50 flex h-16 items-center justify-between border-b border-border bg-card px-4 md:hidden'>
         <div className='flex-1 flex justify-center'>
           <button
             onClick={handleLogoClick}
@@ -60,11 +60,11 @@ export const MobileNav = () => {
 
       <aside
         className={cn(
-          'fixed right-0 top-0 z-50 h-screen w-72 transform border-l border-gray-200 bg-white transition-transform duration-300 ease-in-out dark:border-gray-800 dark:bg-gray-900 md:hidden',
+          'fixed right-0 top-0 z-50 h-screen w-72 transform border-l border-border bg-card transition-transform duration-300 ease-in-out md:hidden',
           isOpen ? 'translate-x-0' : 'translate-x-full'
         )}
       >
-        <div className='flex h-16 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-800'>
+        <div className='flex h-16 items-center justify-between border-b border-border px-4'>
           <div className='flex items-center gap-2'>
             <button
               onClick={toggleDarkMode}

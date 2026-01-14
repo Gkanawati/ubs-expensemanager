@@ -1,0 +1,22 @@
+PUBLIC.CURRENCIES:
+  - id: 1
+    NAME: "USD"
+    EXCHANGE_RATE: 1.000000
+
+PUBLIC.DEPARTMENTS:
+  - id: 1
+    name: "TI"
+    daily_budget: 10.0
+    monthly_budget: 10.0
+    CURRENCY_ID: 1
+
+PUBLIC.USERS:
+  - id: 1
+    name: "Finance User"
+    email: "finance@ubs.com"
+    password: "fakehashedpassword"
+    role: "FINANCE"
+    manager_id: null
+    department_id: 1
+    active: true
+

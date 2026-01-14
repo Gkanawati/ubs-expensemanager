@@ -1,0 +1,22 @@
+PUBLIC.CURRENCIES:
+  - ID: 1
+    NAME: "USD"
+    EXCHANGE_RATE: 1.000000
+
+PUBLIC.DEPARTMENTS:
+  - ID: 1
+    NAME: "IT"
+    DAILY_BUDGET: 400.0
+    MONTHLY_BUDGET: 12000.0
+    CURRENCY_ID: 1
+
+PUBLIC.USERS:
+  - ID: 4
+    NAME: "Alice Finance"
+    EMAIL: "finance@ubs.com"
+    PASSWORD: "$2a$10$fakehashedpassword"
+    ROLE: "FINANCE"
+    MANAGER_ID: null
+    DEPARTMENT_ID: 1
+    ACTIVE: true
+

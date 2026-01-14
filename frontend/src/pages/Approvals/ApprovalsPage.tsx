@@ -10,7 +10,7 @@ export const ApprovalsPage = () => {
         </p>
       </div>
 
-      <div className='rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900'>
+      <div className='rounded-lg border border-border bg-card p-6'>
         <p className='text-gray-600 dark:text-gray-400'>Lorem ipsum</p>
       </div>
     </div>

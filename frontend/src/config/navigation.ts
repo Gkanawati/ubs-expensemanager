@@ -19,30 +19,23 @@ export const navigationConfig: MenuItem[] = [
   },
   {
     id: 'expenses',
-    label: 'My Expenses',
+    label: 'Expenses',
     path: '/expenses',
     icon: 'Receipt',
-    allowedRoles: ['ROLE_MANAGER', 'ROLE_EMPLOYEE', 'ROLE_FINANCE'],
+    allowedRoles: ['ROLE_EMPLOYEE'],
   },
   {
+    id: 'manage-expenses',
+    label: 'Manage Expenses',
+    path: '/manage-expenses',
+    icon: 'FileCheck',
+    allowedRoles: ['ROLE_MANAGER', 'ROLE_FINANCE'],
+  },
+    {
     id: 'expenses-report',
     label: 'Expenses Report',
     path: '/expenses-report',
-    icon: 'ChartBar',
-    allowedRoles: ['ROLE_MANAGER', 'ROLE_EMPLOYEE', 'ROLE_FINANCE'],
-  },
-  {
-    id: 'approvals',
-    label: 'Approvals',
-    path: '/approvals',
-    icon: 'CheckSquare',
-    allowedRoles: ['ROLE_MANAGER', 'ROLE_FINANCE'],
-  },
-  {
-    id: 'analytics',
-    label: 'Analytics',
-    path: '/analytics',
-    icon: 'TrendingUp',
+    icon: 'ChartLine',
     allowedRoles: ['ROLE_FINANCE'],
   },
   {
@@ -58,7 +51,21 @@ export const navigationConfig: MenuItem[] = [
     path: '/users',
     icon: 'Users',
    allowedRoles: ['ROLE_FINANCE'],
-  }
+  },
+   {
+    id: 'category',
+    label: 'Category Management',
+    path: '/category',
+    icon: 'ClipboardPenLine',
+   allowedRoles: ['ROLE_FINANCE'],
+  },
+  {
+    id: 'alert',
+    label: 'Alert Management',
+    path: '/alert',
+    icon: 'TriangleAlert',
+   allowedRoles: ['ROLE_FINANCE'],
+  },
 ];
 
 export const getMenuItemsForRole = (userRole: UserRole): MenuItem[] => {

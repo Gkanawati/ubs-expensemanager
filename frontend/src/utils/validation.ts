@@ -103,16 +103,101 @@ export const hasValidationErrors = (
 };
 
 import { z } from "zod";
+
 /* =======================
    DEPARTMENT
 ======================= */
 
-export const departmentSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  monthlyBudget: z
-    .number()
-    .min(0, "Monthly budget must be positive"),
-  currency: z.string().min(1, "Currency is required"),
-});
+export const departmentSchema = z
+  .object({
+    name: z.string().min(1, "Name is required"),
+
+    monthlyBudget: z
+      .number({ invalid_type_error: "Monthly budget is required" })
+      .min(0, "Monthly budget must be >= 0"),
+
+    dailyBudget: z
+      .number()
+      .min(0, "Daily budget must be >= 0")
+      .nullable()
+      .optional(),
+
+    currencyId: z.number().min(1, "Currency is required"),
+  })
+  .refine(
+    (data) =>
+      data.dailyBudget === null ||
+      data.dailyBudget === undefined ||
+      data.dailyBudget <= data.monthlyBudget,
+    {
+      path: ["dailyBudget"],
+      message: "Daily budget cannot be greater than monthly budget",
+    }
+  );
+
 
 export type DepartmentFormData = z.infer<typeof departmentSchema>;
+
+/* =======================
+   CATEGORY
+======================= */
+
+export const categorySchema = z
+  .object({
+    name: z.string().min(1, "Name is required"),
+
+    dailyBudget: z
+      .number({ invalid_type_error: "Daily budget is required" })
+      .min(0, "Daily budget must be >= 0"),
+
+    monthlyBudget: z
+      .number({ invalid_type_error: "Monthly budget is required" })
+      .min(0, "Monthly budget must be >= 0"),
+
+    currencyName: z.enum(["USD", "BRL"]),
+  })
+  .refine(
+    (data) => data.dailyBudget <= data.monthlyBudget,
+    {
+      path: ["dailyBudget"],
+      message: "Daily budget cannot be greater than monthly budget",
+    }
+  );
+
+export type CreateCategoryFormData = z.infer<typeof categorySchema>;
+
+/* =======================
+   FORMATTING
+======================= */
+
+/**
+ * Formats a number as currency with the specified currency code
+ */
+export const formatCurrency = (value: number, currency?: string) => {
+  const currencyCode = currency || 'USD';
+
+  const formatted = new Intl.NumberFormat(currencyCode === 'BRL' ? 'pt-BR' : 'en-US', {
+    style: 'currency',
+    currency: currencyCode,
+    minimumFractionDigits: 2,
+  }).format(value);
+
+  // Ensure consistent spacing for USD (add space after $ if not present)
+  if (currencyCode === 'USD' && formatted.startsWith('$')) {
+    return formatted.replace('$', '$ ');
+  }
+  return formatted;
+};
+
+/**
+ * Formats a date string (YYYY-MM-DD) to a localized date format
+ */
+export const formatDate = (dateString: string): string => {
+  const date = new Date(dateString + "T00:00:00");
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+

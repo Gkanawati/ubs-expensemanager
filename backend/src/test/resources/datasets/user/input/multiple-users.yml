@@ -1,0 +1,43 @@
+PUBLIC.CURRENCIES:
+  - ID: 1
+    NAME: "USD"
+    EXCHANGE_RATE: 1.000000
+
+PUBLIC.DEPARTMENTS:
+  - ID: 1
+    NAME: "Finance"
+    DAILY_BUDGET: 500.0
+    MONTHLY_BUDGET: 15000.0
+    CURRENCY_ID: 1
+  - ID: 2
+    NAME: "IT"
+    DAILY_BUDGET: 400.0
+    MONTHLY_BUDGET: 12000.0
+    CURRENCY_ID: 1
+
+PUBLIC.USERS:
+  - ID: 1
+    NAME: "Finance Admin"
+    EMAIL: "finance@ubs.com"
+    PASSWORD: "$2a$10$fakehashedpassword"
+    ROLE: "FINANCE"
+    MANAGER_ID: null
+    DEPARTMENT_ID: 1
+    ACTIVE: true
+  - ID: 2
+    NAME: "IT Manager"
+    EMAIL: "manager@ubs.com"
+    PASSWORD: "$2a$10$fakehashedpassword"
+    ROLE: "MANAGER"
+    MANAGER_ID: null
+    DEPARTMENT_ID: 2
+    ACTIVE: true
+  - ID: 3
+    NAME: "IT Employee"
+    EMAIL: "employee@ubs.com"
+    PASSWORD: "$2a$10$fakehashedpassword"
+    ROLE: "EMPLOYEE"
+    MANAGER_ID: 2
+    DEPARTMENT_ID: 2
+    ACTIVE: true
+

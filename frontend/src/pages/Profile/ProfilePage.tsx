@@ -14,7 +14,7 @@ export const ProfilePage = () => {
         </p>
       </div>
 
-      <div className='rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900'>
+      <div className='rounded-lg border border-border bg-card p-6'>
         <div className='space-y-4'>
           <div>
             <label className='text-sm font-medium text-gray-900 dark:text-white'>

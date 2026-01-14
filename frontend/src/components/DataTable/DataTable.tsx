@@ -11,8 +11,9 @@ import {
 export interface ColumnDef<TData> {
   key: keyof TData;
   label: string;
-  render?: (value: TData[keyof TData], row: TData) => ReactNode;
+  render?: (row: TData) => ReactNode;
   width?: string;
+  headerAlign?: "left" | "center" | "right";
 }
 
 export interface RowAction<TData> {
@@ -39,60 +40,80 @@ const colorClasses = {
   yellow: "text-yellow-600",
 };
 
-export const DataTable = <TData,>(
-  {
-    columns,
-    data,
-    actions,
-    emptyMessage = "Nenhum dado disponível",
-    className = "",
-    rowClassName = "",
-  }: DataTableProps<TData>
-) => {
-    return (
-      <div className={`rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 ${className}`}>
-        <Table>
-          <TableHeader>
+function renderCellValue(value: unknown): ReactNode {
+  if (value === null || value === undefined) return "-";
+  if (typeof value === "string" || typeof value === "number") return value;
+  return JSON.stringify(value);
+}
+
+export const DataTable = <TData,>({
+  columns,
+  data,
+  actions,
+  emptyMessage = "Nenhum dado disponível",
+  className = "",
+  rowClassName = "",
+}: DataTableProps<TData>) => {
+  // Check if there are any visible actions for any row
+  const hasAnyVisibleActions = actions && actions.length > 0 && data.some((row) =>
+    actions.some((action) => !action.shouldShow || action.shouldShow(row))
+  );
+
+  return (
+    <div
+      className={`rounded-lg border border-border bg-card ${className}`}
+    >
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {columns.map((column) => (
+              <TableHead
+                key={String(column.key)}
+                style={column.width ? { width: column.width } : {}}
+                className={column.headerAlign === "right" ? "text-right" : column.headerAlign === "center" ? "text-center" : ""}
+              >
+                {column.label}
+              </TableHead>
+            ))}
+            {hasAnyVisibleActions && (
+              <TableHead className="w-20">Actions</TableHead>
+            )}
+          </TableRow>
+        </TableHeader>
+
+        <TableBody>
+          {data.length === 0 ? (
             <TableRow>
-              {columns.map((column) => (
-                <TableHead key={String(column.key)} style={column.width ? { width: column.width } : {}}>
-                  {column.label}
-                </TableHead>
-              ))}
-              {actions && actions.length > 0 && (
-                <TableHead className="w-20">Ações</TableHead>
-              )}
+              <TableCell
+                colSpan={columns.length + (hasAnyVisibleActions ? 1 : 0)}
+                className="text-center py-8 text-gray-500"
+              >
+                {emptyMessage}
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length + (actions?.length ? 1 : 0)}
-                  className="text-center py-8 text-gray-500"
-                >
-                  {emptyMessage}
-                </TableCell>
-              </TableRow>
-            ) : (
-              data.map((row, rowIndex) => (
-                <TableRow 
-                  key={rowIndex} 
+          ) : (
+            data.map((row, rowIndex) => {
+              const visibleActions = actions?.filter(
+                (action) => !action.shouldShow || action.shouldShow(row)
+              ) || [];
+
+              return (
+                <TableRow
+                  key={rowIndex}
                   className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${rowClassName}`}
                 >
                   {columns.map((column) => (
                     <TableCell key={String(column.key)}>
                       {column.render
-                        ? column.render(row[column.key], row)
-                        : String(row[column.key])}
+                        ? column.render(row)
+                        : renderCellValue(row[column.key])}
                     </TableCell>
                   ))}
-                  {actions && actions.length > 0 && (
+
+                  {hasAnyVisibleActions && (
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {actions
-                          .filter((action) => !action.shouldShow || action.shouldShow(row))
-                          .map((action, actionIndex) => (
+                        {visibleActions.map((action, actionIndex) => (
                           <button
                             key={actionIndex}
                             onClick={() => action.onClick(row)}
@@ -100,7 +121,9 @@ export const DataTable = <TData,>(
                             title={action.label}
                           >
                             <div
-                              className={`${colorClasses[action.color || "blue"]}`}
+                              className={
+                                colorClasses[action.color || "blue"]
+                              }
                             >
                               {action.icon}
                             </div>
@@ -110,12 +133,13 @@ export const DataTable = <TData,>(
                     </TableCell>
                   )}
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    );
-  };
+              );
+            })
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+};
 
 DataTable.displayName = "DataTable";

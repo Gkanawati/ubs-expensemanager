@@ -6,7 +6,8 @@ import com.ubs.expensemanager.dto.request.UserUpdateRequest;
 import com.ubs.expensemanager.dto.response.UserResponse;
 import com.ubs.expensemanager.exception.ManagerRequiredException;
 import com.ubs.expensemanager.exception.ResourceNotFoundException;
-import com.ubs.expensemanager.exception.UserExistsException;
+import com.ubs.expensemanager.mapper.UserMapper;
+import com.ubs.expensemanager.model.Currency;
 import com.ubs.expensemanager.model.Department;
 import com.ubs.expensemanager.model.User;
 import com.ubs.expensemanager.model.UserRole;
@@ -31,6 +32,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -44,6 +46,9 @@ class UserServiceTest {
     @Mock
     PasswordEncoder passwordEncoder;
 
+    @Mock
+    UserMapper userMapper;
+
     @InjectMocks
     UserService userService;
 
@@ -53,12 +58,18 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
+        Currency currency = Currency.builder()
+                .id(1L)
+                .name("USD")
+                .exchangeRate(new BigDecimal("1.0"))
+                .build();
+
         itDepartment = Department.builder()
                 .id(1L)
                 .name("IT")
                 .monthlyBudget(new BigDecimal("50000.00"))
                 .dailyBudget(new BigDecimal("2000.00"))
-                .currency("USD")
+                .currency(currency)
                 .build();
 
         manager = User.builder()
@@ -77,6 +88,23 @@ class UserServiceTest {
                 .manager(manager)
                 .department(itDepartment)
                 .build();
+
+        // Setup default mapper behavior (lenient because not all tests use it)
+        lenient().when(userMapper.toResponse(any(User.class))).thenAnswer(inv -> {
+            User user = inv.getArgument(0);
+            return UserResponse.builder()
+                    .id(user.getId())
+                    .name(user.getName())
+                    .email(user.getEmail())
+                    .role("ROLE_" + user.getRole().name())
+                    .active(user.isActive())
+                    .manager(user.getManager() != null ? UserResponse.ManagerInfo.builder()
+                            .id(user.getManager().getId())
+                            .email(user.getManager().getEmail())
+                            .name(user.getManager().getName())
+                            .build() : null)
+                    .build();
+        });
     }
 
     @Test

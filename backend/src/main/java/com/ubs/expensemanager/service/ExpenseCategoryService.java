@@ -1,0 +1,214 @@
+package com.ubs.expensemanager.service;
+
+import com.ubs.expensemanager.dto.request.ExpenseCategoryCreateRequest;
+import com.ubs.expensemanager.dto.request.ExpenseCategoryFilterRequest;
+import com.ubs.expensemanager.dto.request.ExpenseCategoryUpdateRequest;
+import com.ubs.expensemanager.dto.response.ExpenseCategoryAuditResponse;
+import com.ubs.expensemanager.dto.response.ExpenseCategoryResponse;
+import com.ubs.expensemanager.exception.ConflictException;
+import com.ubs.expensemanager.exception.ResourceNotFoundException;
+import com.ubs.expensemanager.mapper.ExpenseCategoryMapper;
+import com.ubs.expensemanager.messages.Messages;
+import com.ubs.expensemanager.model.Currency;
+import com.ubs.expensemanager.model.ExpenseCategory;
+import com.ubs.expensemanager.model.audit.CustomRevisionEntity;
+import com.ubs.expensemanager.repository.CurrencyRepository;
+import com.ubs.expensemanager.repository.ExpenseCategoryRepository;
+import com.ubs.expensemanager.repository.specification.ExpenseCategorySpecifications;
+import jakarta.persistence.EntityManager;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.hibernate.envers.AuditReaderFactory;
+import org.hibernate.envers.RevisionType;
+import org.hibernate.envers.query.AuditEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+
+/**
+ * Service responsible for handling business logic related to Expense Categories.
+ *
+ * <p>This class orchestrates validation, persistence and transformation
+ * between entities and DTOs.</p>
+ */
+@Service
+@RequiredArgsConstructor
+public class ExpenseCategoryService {
+
+    private final ExpenseCategoryRepository expenseCategoryRepository;
+    private final CurrencyRepository currencyRepository;
+    private final EntityManager entityManager;
+    private final ExpenseCategoryMapper expenseCategoryMapper;
+
+    /**
+     * Creates a new expense category.
+     *
+     * @param request data required to create a category
+     * @return created category as response DTO
+     */
+    public ExpenseCategoryResponse create(ExpenseCategoryCreateRequest request) {
+
+        if (expenseCategoryRepository.existsByNameIgnoreCase(request.getName())) {
+            throw new ConflictException(Messages.EXPENSE_CATEGORY_NAME_CONFLICT);
+        }
+
+        Currency currency = currencyRepository.findByName(request.getCurrencyName())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Messages.formatMessage(Messages.CURRENCY_NOT_FOUND, request.getCurrencyName())));
+
+        ExpenseCategory category = ExpenseCategory.builder()
+            .name(request.getName())
+            .dailyBudget(request.getDailyBudget())
+            .monthlyBudget(request.getMonthlyBudget())
+            .currency(currency)
+            .build();
+
+        ExpenseCategory savedCategory = expenseCategoryRepository.save(category);
+
+        return expenseCategoryMapper.toResponse(savedCategory);
+    }
+
+    /**
+     * Retrieves all expense categories with optional filters.
+     *
+     * @param filters filtering criteria (e.g., search by name)
+     * @param pageable pagination and sorting information
+     * @return paginated list of categories
+     */
+    public Page<ExpenseCategoryResponse> listAll(ExpenseCategoryFilterRequest filters, Pageable pageable) {
+        Specification<ExpenseCategory> spec = Specification.where(null);
+
+        spec = spec.and(ExpenseCategorySpecifications.nameContains(filters.getSearch()));
+
+        return expenseCategoryRepository.findAll(spec, pageable).map(expenseCategoryMapper::toResponse);
+    }
+
+    /**
+     * Retrieves a single expense category by its identifier.
+     * 
+     * <p> If dateTime is provided, queries the audit history to retrieve the version
+     * that was active at the specified moment. Otherwise, retrieves the current version. </p>
+     *
+     * @param id       category identifier
+     * @param dateTime optional date-time to query historical data (null for current version)
+     * @return category as response DTO
+     * @throws ResourceNotFoundException if category not found or no audit record exists for the date
+     */
+    public ExpenseCategoryResponse findById(Long id, OffsetDateTime dateTime) {
+
+        // If no dateTime is provided, return the ExpenseCategory itself
+        if (dateTime == null) {
+            ExpenseCategory category = expenseCategoryRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException(Messages.EXPENSE_CATEGORY_NOT_FOUND));
+            return expenseCategoryMapper.toResponse(category);
+        }
+        // Else, find the audit relative to that provided date
+        
+        var auditReader = AuditReaderFactory.get(entityManager);
+        
+        Date queryDate = Date.from(dateTime.toInstant());
+        
+        List results = auditReader.createQuery()
+                .forEntitiesAtRevision(ExpenseCategory.class, auditReader.getRevisions(ExpenseCategory.class, id)
+                    .stream()
+                    .filter(rev -> {
+                        Date revDate = auditReader.getRevisionDate(rev);
+                        return !revDate.after(queryDate);
+                    })
+                    .max(Comparator.comparingInt(Number::intValue))
+                    .orElseThrow(() -> new ResourceNotFoundException(Messages.NO_AUDIT_RECORD_FOUND)))
+                .add(AuditEntity.id().eq(id))
+                .getResultList();
+        
+        if (results.isEmpty()) {
+            throw new ResourceNotFoundException(Messages.EXPENSE_CATEGORY_NOT_FOUND_IN_AUDIT);
+        }
+        
+        return expenseCategoryMapper.toResponse((ExpenseCategory) results.getFirst());
+    }
+
+    /**
+     * Retrieves the complete audit history for an expense category (asc order).
+     *
+     * @param id category identifier
+     * @return list of all audited versions of the category
+     */
+    @SuppressWarnings("unchecked")
+    public List<ExpenseCategoryAuditResponse> getAuditHistory(Long id) {
+        if (!expenseCategoryRepository.existsById(id)) {
+            throw new ResourceNotFoundException(Messages.EXPENSE_CATEGORY_NOT_FOUND);
+        }
+
+        var auditReader = AuditReaderFactory.get(entityManager);
+        
+        List<Object[]> results = auditReader.createQuery()
+                .forRevisionsOfEntity(ExpenseCategory.class, false, true)
+                .add(AuditEntity.id().eq(id))
+                .getResultList();
+        
+        return results.stream()
+                .map(result -> {
+                    ExpenseCategory entity = (ExpenseCategory) result[0];
+                    CustomRevisionEntity revEntity = (CustomRevisionEntity) result[1];
+                    Number revNumber = revEntity.getId();
+                    long revTimestamp = revEntity.getTimestamp();
+                    String revUserEmail = revEntity.getModifiedBy();
+                    RevisionType revType = (RevisionType) result[2];
+
+                    return ExpenseCategoryAuditResponse.builder()
+                            .id(entity.getId())
+                            .name(entity.getName())
+                            .dailyBudget(entity.getDailyBudget())
+                            .monthlyBudget(entity.getMonthlyBudget())
+                            .currencyName(entity.getCurrency() != null ? entity.getCurrency().getName() : null)
+                            .exchangeRate(entity.getCurrency() != null ? entity.getCurrency().getExchangeRate() : null)
+                            .revisionNumber(revNumber)
+                            .revisionType((short) revType.ordinal())
+                            .revisionDate(LocalDateTime.ofInstant(
+                                    Instant.ofEpochMilli(revTimestamp), ZoneId.systemDefault()))
+                            .revisionUserEmail(revUserEmail)
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Updates an existing expense category.
+     *
+     * @param id      category identifier
+     * @param request updated data
+     * @return updated category
+     */
+    public ExpenseCategoryResponse update(Long id, ExpenseCategoryUpdateRequest request) {
+
+        ExpenseCategory category = expenseCategoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Expense category not found"));
+
+        if (!category.getName().equalsIgnoreCase(request.getName())
+                && expenseCategoryRepository.existsByNameIgnoreCase(request.getName())) {
+            throw new ConflictException(Messages.EXPENSE_CATEGORY_NAME_CONFLICT);
+        }
+
+        Currency currency = currencyRepository.findByName(request.getCurrencyName())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Messages.formatMessage(Messages.CURRENCY_NOT_FOUND, request.getCurrencyName())));
+
+        category.setName(request.getName());
+        category.setDailyBudget(request.getDailyBudget());
+        category.setMonthlyBudget(request.getMonthlyBudget());
+        category.setCurrency(currency);
+
+        ExpenseCategory updatedCategory = expenseCategoryRepository.save(category);
+
+        return expenseCategoryMapper.toResponse(updatedCategory);
+    }
+
+}

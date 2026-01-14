@@ -16,6 +16,9 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        jpa:
+          static_metamodel:
+            skip: true
     show-sql: ${SHOW_SQL:false}
   flyway:
     enabled: ${FLYWAY_ENABLED:true}
@@ -33,7 +36,7 @@ app:
 
 jwt:
   secret: ${JWT_SECRET}
-  expiration-ms: ${JWT_EXPIRATION:3600000}
+  expiration-ms: ${JWT_EXPIRATION:86400000}
 
 springdoc:
   swagger-ui:

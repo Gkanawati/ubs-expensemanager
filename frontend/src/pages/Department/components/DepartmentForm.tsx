@@ -1,111 +1,154 @@
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { departmentSchema, DepartmentFormData } from "@/utils/validation";
-import { Department } from "@/types/department";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { MoneyInput } from "@/components/ui/money-input";
+import {
+  departmentSchema,
+  DepartmentFormData,
+} from "@/utils/validation";
+import type { Department, Currency } from "@/types/department";
+import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import { getCurrencies } from "@/api/currency.api";
 
-/**
- * DepartmentForm
- *
- * Reusable form for creating and editing departments.
- *
- * Improvements:
- * - Clear context (Create vs Edit)
- * - Strong visual feedback for buttons (enabled/disabled)
- * - Better spacing and readability
- */
-
-type Props = {
+interface Props {
   initialData?: Department | null;
-  onSubmit: (data: DepartmentFormData) => void;
-  onCancel: () => void;
-};
+  onSubmit: (data: DepartmentFormData) => Promise<void>;
+}
 
-export const DepartmentForm = ({ initialData, onSubmit, onCancel }: Props) => {
+export const DepartmentForm = ({ initialData, onSubmit }: Props) => {
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const [loadingCurrencies, setLoadingCurrencies] = useState(true);
+
   const {
     register,
     handleSubmit,
-    formState: { errors, isValid, isSubmitting },
+    control,
+    watch,
+    formState: { errors, isSubmitting, isValid },
   } = useForm<DepartmentFormData>({
     resolver: zodResolver(departmentSchema),
     mode: "onTouched",
     defaultValues: {
       name: initialData?.name ?? "",
       monthlyBudget: initialData?.monthlyBudget ?? 0,
-      currency: initialData?.currency ?? "USD",
+      dailyBudget: initialData?.dailyBudget ?? null,
+      currencyId: initialData?.currencyId ?? 0,
     },
   });
 
-  const formTitle = initialData ? "Edit Department" : "Create Department";
-  const submitLabel = initialData ? "Update" : "Save";
+  useEffect(() => {
+    const fetchCurrencies = async () => {
+      try {
+        setLoadingCurrencies(true);
+        const currenciesList = await getCurrencies();
+        setCurrencies(currenciesList);
+      } catch (error) {
+        console.error("Failed to load currencies:", error);
+      } finally {
+        setLoadingCurrencies(false);
+      }
+    };
+
+    fetchCurrencies();
+  }, []);
+
+  const selectedCurrencyId = watch("currencyId");
+  const selectedCurrency = currencies.find(c => c.id === selectedCurrencyId);
 
   return (
-    <div className="border rounded p-4 bg-muted/30">
-      <h2 className="text-xl font-semibold mb-4">{formTitle}</h2>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {/* Name */}
+      <div className="space-y-2">
+        <Label htmlFor="name">
+          Name <span className="text-red-600">*</span>
+        </Label>
+        <Input id="name" placeholder="Engineering" {...register("name")} />
+        {errors.name && (
+          <p className="text-sm text-red-600">{errors.name.message}</p>
+        )}
+      </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Name</label>
-          <input
-            {...register("name")}
-            className="w-full border rounded px-3 py-2"
-            placeholder="e.g. HR"
-          />
-          {errors.name && (
-            <p className="text-sm text-destructive">{errors.name.message}</p>
+      {/* Currency */}
+      <div className="space-y-2">
+        <Label htmlFor="currencyId">
+          Currency <span className="text-red-600">*</span>
+        </Label>
+        <select
+          id="currencyId"
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+          {...register("currencyId", { valueAsNumber: true })}
+          disabled={loadingCurrencies}
+        >
+          <option value={0}>
+            {loadingCurrencies ? "Loading currencies..." : "Select currency"}
+          </option>
+          {currencies.map((currency) => (
+            <option key={currency.id} value={currency.id}>
+              {currency.name}
+            </option>
+          ))}
+        </select>
+        {errors.currencyId && (
+          <p className="text-sm text-red-600">{errors.currencyId.message}</p>
+        )}
+      </div>
+
+      {/* Monthly Budget */}
+      <div className="space-y-2">
+        <Label htmlFor="monthlyBudget">
+          Monthly Budget <span className="text-red-600">*</span>
+        </Label>
+        <Controller
+          name="monthlyBudget"
+          control={control}
+          render={({ field }) => (
+            <MoneyInput
+              id="monthlyBudget"
+              placeholder="0.00"
+              value={field.value}
+              currency={selectedCurrency?.name || "USD"}
+              onChange={field.onChange}
+              disabled={!selectedCurrencyId}
+            />
           )}
-        </div>
+        />
+        {errors.monthlyBudget && (
+          <p className="text-sm text-red-600">{errors.monthlyBudget.message}</p>
+        )}
+      </div>
 
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Monthly Budget</label>
-          <input
-            type="number"
-            {...register("monthlyBudget", { valueAsNumber: true })}
-            className="w-full border rounded px-3 py-2"
-            placeholder="e.g. 1000"
-          />
-          {errors.monthlyBudget && (
-            <p className="text-sm text-destructive">
-              {errors.monthlyBudget.message}
-            </p>
+      {/* Daily Budget (Optional) */}
+      <div className="space-y-2">
+        <Label htmlFor="dailyBudget">Daily Budget (Optional)</Label>
+        <Controller
+          name="dailyBudget"
+          control={control}
+          render={({ field }) => (
+            <MoneyInput
+              id="dailyBudget"
+              placeholder="0.00"
+              value={field.value}
+              currency={selectedCurrency?.name || "USD"}
+              onChange={field.onChange}
+              disabled={!selectedCurrencyId}
+            />
           )}
-        </div>
+        />
+        {errors.dailyBudget && (
+          <p className="text-sm text-red-600">{errors.dailyBudget.message}</p>
+        )}
+      </div>
 
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Currency</label>
-          <input
-            {...register("currency")}
-            className="w-full border rounded px-3 py-2"
-            placeholder="e.g. USD"
-          />
-          {errors.currency && (
-            <p className="text-sm text-destructive">
-              {errors.currency.message}
-            </p>
-          )}
-        </div>
-
-        <div className="flex gap-2 pt-2">
-          <button
-            type="submit"
-            disabled={!isValid || isSubmitting}
-            className={`px-4 py-2 rounded text-white ${
-              !isValid || isSubmitting
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-green-600 hover:bg-green-700"
-            }`}
-          >
-            {isSubmitting ? "Saving..." : submitLabel}
-          </button>
-
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <Button
+          type="submit"
+          disabled={!isValid || isSubmitting || loadingCurrencies}
+        >
+          {isSubmitting ? "Saving..." : initialData ? "Update" : "Create"}
+        </Button>
+      </div>
+    </form>
   );
 };
