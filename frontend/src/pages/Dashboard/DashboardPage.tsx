@@ -73,7 +73,7 @@ export const DashboardPage = () => {
           Dashboard
         </h1>
         <p className='mt-2 text-sm text-gray-600 dark:text-gray-400'>
-          Welcome back, {user?.email}!
+          Welcome back, {user?.name || user?.email}!
         </p>
       </div>
 
