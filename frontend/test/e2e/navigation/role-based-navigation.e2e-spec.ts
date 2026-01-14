@@ -36,10 +36,8 @@ test.describe('Role-Based Navigation', () => {
     await expect(page.getByRole('link', { name: /dashboard/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /manage expenses/i })).toBeVisible();
 
-    // Check that employee-only items are NOT visible
+    // Manager should NOT see "Expenses" (employee-only) or finance-only items
     await expect(page.getByRole('link', { name: /^expenses$/i })).toBeHidden();
-
-    // Check that finance-only items are NOT visible
     await expect(page.getByRole('link', { name: /user management/i })).toBeHidden();
   });
 
@@ -54,17 +52,17 @@ test.describe('Role-Based Navigation', () => {
     await expect(page.getByRole('link', { name: /expenses report/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /user management/i })).toBeVisible();
 
-    // Check that employee-only items are NOT visible
+    // Finance should NOT see "Expenses" (employee-only)
     await expect(page.getByRole('link', { name: /^expenses$/i })).toBeHidden();
   });
 
   test('should navigate between menu items correctly', async ({ page }) => {
-    await loginPage.login('finance@example.com', 'password123');
+    await loginPage.login('employee@example.com', 'password123');
     await page.waitForURL('**/dashboard');
 
-    // Click on different menu items and verify navigation
-    await page.getByRole('link', { name: /manage expenses/i }).click();
-    await expect(page).toHaveURL(/.*\/manage-expenses/);
+    // Click on different menu items and verify navigation (as employee)
+    await page.getByRole('link', { name: /^expenses$/i }).click();
+    await expect(page).toHaveURL(/.*\/expenses/);
 
     await page.getByRole('link', { name: /dashboard/i }).click();
     await expect(page).toHaveURL(/.*\/dashboard/);

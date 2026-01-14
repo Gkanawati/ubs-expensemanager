@@ -37,7 +37,7 @@ describe('Navigation Config', () => {
         ])
       );
 
-      // Should NOT include employee-only or finance-only items
+      // Manager should NOT have access to 'expenses' (employee-only) or finance-only items
       expect(items.find(item => item.id === 'expenses')).toBeUndefined();
       expect(items.find(item => item.id === 'users')).toBeUndefined();
     });
@@ -57,7 +57,7 @@ describe('Navigation Config', () => {
         ])
       );
 
-      // Should NOT include employee-only items
+      // Finance should NOT have access to 'expenses' (employee-only)
       expect(items.find(item => item.id === 'expenses')).toBeUndefined();
     });
   });

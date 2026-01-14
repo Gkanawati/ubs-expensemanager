@@ -52,12 +52,20 @@ class DepartmentBudgetValidationStrategyTest {
 
     @BeforeEach
     void setUp() {
+        // Setup Currency
+        usdCurrency = Currency.builder()
+                .id(1L)
+                .name("USD")
+                .exchangeRate(BigDecimal.ONE)
+                .build();
+
         // Setup Department
         itDepartment = Department.builder()
                 .id(1L)
                 .name("IT")
                 .dailyBudget(BigDecimal.valueOf(400))
                 .monthlyBudget(BigDecimal.valueOf(12000))
+                .currency(usdCurrency)
                 .build();
 
         // Setup User
@@ -68,13 +76,6 @@ class DepartmentBudgetValidationStrategyTest {
                 .role(UserRole.EMPLOYEE)
                 .department(itDepartment)
                 .active(true)
-                .build();
-
-        // Setup Currency
-        usdCurrency = Currency.builder()
-                .id(1L)
-                .name("USD")
-                .exchangeRate(BigDecimal.ONE)
                 .build();
 
         // Setup ExpenseCategory
@@ -177,8 +178,8 @@ class DepartmentBudgetValidationStrategyTest {
         assertEquals(foodCategory, capturedEvent.getCategory());
         assertEquals(employee.getId(), capturedEvent.getUserId());
         assertEquals(currentDailyTotal, capturedEvent.getCurrentTotal());
-        assertEquals(currentDailyTotal.add(newAmount), capturedEvent.getNewTotal());
-        assertEquals(itDepartment.getDailyBudget(), capturedEvent.getBudgetLimit());
+        assertEquals(0, new BigDecimal("410.00").compareTo(capturedEvent.getNewTotal()));
+        assertEquals(0, new BigDecimal("400.00").compareTo(capturedEvent.getBudgetLimit()));
         assertEquals(expense.getExpenseDate(), capturedEvent.getDate());
     }
 
@@ -213,8 +214,8 @@ class DepartmentBudgetValidationStrategyTest {
         assertEquals(foodCategory, capturedEvent.getCategory());
         assertEquals(employee.getId(), capturedEvent.getUserId());
         assertEquals(currentMonthlyTotal, capturedEvent.getCurrentTotal());
-        assertEquals(currentMonthlyTotal.add(newAmount), capturedEvent.getNewTotal());
-        assertEquals(itDepartment.getMonthlyBudget(), capturedEvent.getBudgetLimit());
+        assertEquals(0, new BigDecimal("12030.00").compareTo(capturedEvent.getNewTotal()));
+        assertEquals(0, new BigDecimal("12000.00").compareTo(capturedEvent.getBudgetLimit()));
         assertNotNull(capturedEvent.getYearMonth());
         assertEquals(YearMonth.from(expense.getExpenseDate()), capturedEvent.getYearMonth());
     }
@@ -254,6 +255,7 @@ class DepartmentBudgetValidationStrategyTest {
                 .name("HR")
                 .dailyBudget(null)
                 .monthlyBudget(BigDecimal.valueOf(12000))
+                .currency(usdCurrency)
                 .build();
 
         User hrEmployee = User.builder()

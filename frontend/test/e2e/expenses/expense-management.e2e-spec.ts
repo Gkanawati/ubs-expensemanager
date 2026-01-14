@@ -184,7 +184,7 @@ test.describe('Expense Management', () => {
     // Navigate to Expenses page
     await page.waitForURL(/\/dashboard/);
     await page.goto('/expenses');
-    await expect(page.getByRole('heading', { name: 'My Expenses' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Expenses' })).toBeVisible();
   });
 
   test('should display empty expenses table initially', async ({ page }) => {
@@ -261,7 +261,7 @@ test.describe('Expense Filters', () => {
 
     await page.waitForURL(/\/dashboard/);
     await page.goto('/expenses');
-    await expect(page.getByRole('heading', { name: 'My Expenses' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Expenses' })).toBeVisible();
   });
 
   test('should filter expenses by status', async ({ page }) => {

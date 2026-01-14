@@ -22,7 +22,7 @@ export const navigationConfig: MenuItem[] = [
     label: 'Expenses',
     path: '/expenses',
     icon: 'Receipt',
-    allowedRoles: ['ROLE_EMPLOYEE',],
+    allowedRoles: ['ROLE_EMPLOYEE'],
   },
   {
     id: 'manage-expenses',

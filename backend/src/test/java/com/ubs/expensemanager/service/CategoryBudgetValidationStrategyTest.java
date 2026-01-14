@@ -146,8 +146,8 @@ class CategoryBudgetValidationStrategyTest {
         assertEquals(foodCategory, capturedEvent.getCategory());
         assertEquals(employee.getId(), capturedEvent.getUserId());
         assertEquals(currentDailyTotal, capturedEvent.getCurrentTotal());
-        assertEquals(currentDailyTotal.add(newAmount), capturedEvent.getNewTotal());
-        assertEquals(foodCategory.getDailyBudget(), capturedEvent.getBudgetLimit());
+        assertEquals(0, new BigDecimal("110.00").compareTo(capturedEvent.getNewTotal()));
+        assertEquals(0, new BigDecimal("100.00").compareTo(capturedEvent.getBudgetLimit()));
         assertEquals(expense.getExpenseDate(), capturedEvent.getDate());
     }
 
@@ -182,8 +182,8 @@ class CategoryBudgetValidationStrategyTest {
         assertEquals(foodCategory, capturedEvent.getCategory());
         assertEquals(employee.getId(), capturedEvent.getUserId());
         assertEquals(currentMonthlyTotal, capturedEvent.getCurrentTotal());
-        assertEquals(currentMonthlyTotal.add(newAmount), capturedEvent.getNewTotal());
-        assertEquals(foodCategory.getMonthlyBudget(), capturedEvent.getBudgetLimit());
+        assertEquals(0, new BigDecimal("3030.00").compareTo(capturedEvent.getNewTotal()));
+        assertEquals(0, new BigDecimal("3000.00").compareTo(capturedEvent.getBudgetLimit()));
         assertNotNull(capturedEvent.getYearMonth());
         assertEquals(YearMonth.from(expense.getExpenseDate()), capturedEvent.getYearMonth());
     }
