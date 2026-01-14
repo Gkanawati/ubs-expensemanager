@@ -19,29 +19,24 @@ import {
 } from "@/api/expensesreport.api";
 import { DownloadButtons } from "@/components/ExpensesReport.tsx/DownloadButtons";
 import { DatePicker } from "@/components/ui/date-picker";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
-
-type ReportView = "MONTHLY" | "DAILY";
 
 export const ExpensesReport = () => {
   /* ------------------------------------------------------------------ */
   /* View / Filters */
   /* ------------------------------------------------------------------ */
 
-  const [view, setView] = useState<ReportView>("MONTHLY");
+  const getDefaultDates = () => {
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    return { start: firstDayOfMonth, end: today };
+  };
+
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
-
-  const [startDate, setStartDate] = useState<Date | undefined>();
-  const [endDate, setEndDate] = useState<Date | undefined>();
-
-  const isDailyWithoutDates =
-    view === "DAILY" && (!startDate || !endDate);
+  const defaultDates = getDefaultDates();
+  const [startDate, setStartDate] = useState<Date | undefined>(defaultDates.start);
+  const [endDate, setEndDate] = useState<Date | undefined>(defaultDates.end);
 
   const getActiveFilterCount = () => {
     let count = 0;
@@ -74,14 +69,22 @@ export const ExpensesReport = () => {
     fetchEmployeeTotals();
     fetchCategoryTotals();
     fetchDepartmentBudget();
-  }, [view, startDate, endDate]);
+  }, [startDate, endDate]);
 
   /* ------------------------------------------------------------------ */
   /* Helpers */
   /* ------------------------------------------------------------------ */
 
+  const areDatesInSameMonth = () => {
+    if (!startDate || !endDate) return true;
+    return (
+      startDate.getFullYear() === endDate.getFullYear() &&
+      startDate.getMonth() === endDate.getMonth()
+    );
+  };
+
   const buildDateParams = () => {
-    if (view === "DAILY" && startDate && endDate) {
+    if (startDate && endDate) {
       return { startDate, endDate };
     }
     return undefined;
@@ -92,11 +95,6 @@ export const ExpensesReport = () => {
   /* ------------------------------------------------------------------ */
 
   const fetchEmployeeTotals = async () => {
-    if (isDailyWithoutDates) {
-      setEmployeeData([]);
-      return;
-    }
-
     try {
       setEmployeeLoading(true);
       setEmployeeError(null);
@@ -105,23 +103,19 @@ export const ExpensesReport = () => {
 
       setEmployeeData(
         response.map(item => ({
-          label: item.employeeName,
-          value: item.totalAmount,
+          label: item.employee,
+          value: item.total,
         }))
       );
     } catch {
       setEmployeeError("Failed to load employee data");
+      setEmployeeData([]);
     } finally {
       setEmployeeLoading(false);
     }
   };
 
   const fetchCategoryTotals = async () => {
-    if (isDailyWithoutDates) {
-      setCategoryData([]);
-      return;
-    }
-
     try {
       setCategoryLoading(true);
       setCategoryError(null);
@@ -130,19 +124,22 @@ export const ExpensesReport = () => {
 
       setCategoryData(
         response.map(item => ({
-          label: item.categoryName,
-          value: item.totalAmount,
+          label: item.category,
+          value: item.total,
         }))
       );
     } catch {
       setCategoryError("Failed to load category data");
+      setCategoryData([]);
     } finally {
       setCategoryLoading(false);
     }
   };
 
   const fetchDepartmentBudget = async () => {
-    if (isDailyWithoutDates) {
+    if (!areDatesInSameMonth()) {
+      setDepartmentLoading(false);
+      setDepartmentError(null);
       setDepartmentData([]);
       return;
     }
@@ -164,6 +161,7 @@ export const ExpensesReport = () => {
       );
     } catch {
       setDepartmentError("Failed to load department budget");
+      setDepartmentData([]);
     } finally {
       setDepartmentLoading(false);
     }
@@ -185,97 +183,77 @@ export const ExpensesReport = () => {
         </p>
       </header>
 
-      {/* Tabs + Filters (same line) */}
-      <div className="flex items-center justify-between">
-        <Tabs
-          value={view}
-          onValueChange={(value: string) => {
-            const nextView = value as ReportView;
-            setView(nextView);
+      {/* Filters */}
+      <div className="flex items-center justify-end">
+        <div className="relative">
+          <Button
+            variant="outline"
+            onClick={() => setFilterDropdownOpen(prev => !prev)}
+          >
+            <Filter className="h-4 w-4" />
+            <span>
+              Filters
+              {getActiveFilterCount() > 0 &&
+                ` (${getActiveFilterCount()})`}
+            </span>
+          </Button>
 
-            if (nextView === "MONTHLY") {
-              setStartDate(undefined);
-              setEndDate(undefined);
-              setFilterDropdownOpen(false);
-            }
-          }}
-        >
-          <TabsList>
-            <TabsTrigger value="MONTHLY">Monthly</TabsTrigger>
-            <TabsTrigger value="DAILY">Daily</TabsTrigger>
-          </TabsList>
-        </Tabs>
+          {filterDropdownOpen && (
+            <div className="absolute right-0 top-full mt-1 z-50 min-w-[280px] rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
+              <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                  Filter by Date
+                </span>
 
-        {view === "DAILY" && (
-          <div className="relative">
-            <Button
-              variant="outline"
-              onClick={() => setFilterDropdownOpen(prev => !prev)}
-            >
-              <Filter className="h-4 w-4" />
-              <span>
-                Filters
-                {getActiveFilterCount() > 0 &&
-                  ` (${getActiveFilterCount()})`}
-              </span>
-            </Button>
+                {(startDate || endDate) && (
+                  <button
+                    onClick={() => {
+                      const defaults = getDefaultDates();
+                      setStartDate(defaults.start);
+                      setEndDate(defaults.end);
+                    }}
+                    className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
 
-            {filterDropdownOpen && (
-              <div className="absolute right-0 top-full mt-1 z-50 min-w-[280px] rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
-                <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                    Filter by Date
-                  </span>
-
-                  {(startDate || endDate) && (
-                    <button
-                      onClick={() => {
-                        setStartDate(undefined);
-                        setEndDate(undefined);
-                      }}
-                      className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
-                    >
-                      Clear
-                    </button>
-                  )}
+              <div className="px-3 py-3 space-y-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-gray-500 dark:text-gray-400">
+                    Start date
+                  </label>
+                  <DatePicker
+                    value={startDate}
+                    onChange={setStartDate}
+                    maxDate={endDate || new Date()}
+                    placeholder="Select start date"
+                  />
                 </div>
 
-                <div className="px-3 py-3 space-y-3">
-                  <div className="space-y-1">
-                    <label className="text-xs text-gray-500 dark:text-gray-400">
-                      Start date
-                    </label>
-                    <DatePicker
-                      value={startDate}
-                      onChange={setStartDate}
-                      maxDate={endDate || new Date()}
-                      placeholder="Select start date"
-                    />
-                  </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-gray-500 dark:text-gray-400">
+                    End date
+                  </label>
+                  <DatePicker
+                    value={endDate}
+                    onChange={(date) => {
+                      setEndDate(date);
 
-                  <div className="space-y-1">
-                    <label className="text-xs text-gray-500 dark:text-gray-400">
-                      End date
-                    </label>
-                    <DatePicker
-                      value={endDate}
-                      onChange={(date) => {
-                        setEndDate(date);
-
-                        if (startDate && date) {
-                          setFilterDropdownOpen(false);
-                        }
-                      }}
-                      minDate={startDate}
-                      maxDate={new Date()}
-                      placeholder="Select end date"
-                    />
-                  </div>
+                      if (startDate && date) {
+                        setFilterDropdownOpen(false);
+                      }
+                    }}
+                    minDate={startDate}
+                    maxDate={new Date()}
+                    placeholder="Select end date"
+                  />
                 </div>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Employee */}
@@ -285,7 +263,7 @@ export const ExpensesReport = () => {
 
           <DownloadButtons
             data={employeeData}
-            loading={employeeLoading || isDailyWithoutDates}
+            loading={employeeLoading}
             csvFilename="expenses-by-employee.csv"
             jsonFilename="expenses-by-employee.json"
             onDownloadCsv={downloadExpensesByEmployeeCsv}
@@ -299,7 +277,11 @@ export const ExpensesReport = () => {
             <span className="text-sm text-red-500">{employeeError}</span>
           )}
 
-          {!employeeLoading && !employeeError && (
+          {!employeeLoading && !employeeError && employeeData.length === 0 && (
+            <span className="text-sm text-gray-500">No data available</span>
+          )}
+
+          {!employeeLoading && !employeeError && employeeData.length > 0 && (
             <div className="w-full h-full">
               <HorizontalBarChart data={employeeData} />
             </div>
@@ -309,13 +291,13 @@ export const ExpensesReport = () => {
       </section>
 
       {/* Category */}
-      <section className="rounded-lg border p-4 h-">
+      <section className="rounded-lg border p-4">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-semibold">Totals by Category</h2>
 
           <DownloadButtons
             data={categoryData}
-            loading={categoryLoading || isDailyWithoutDates}
+            loading={categoryLoading}
             csvFilename="expenses-by-category.csv"
             jsonFilename="expenses-by-category.json"
             onDownloadCsv={downloadExpensesByCategoryCsv}
@@ -324,9 +306,16 @@ export const ExpensesReport = () => {
 
         <div className="min-h-[380px] flex items-center justify-center">
           {categoryLoading && <Spinner />}
-          {categoryError && <span>{categoryError}</span>}
 
-          {!categoryLoading && !categoryError && (
+          {categoryError && (
+            <span className="text-sm text-red-500">{categoryError}</span>
+          )}
+
+          {!categoryLoading && !categoryError && categoryData.length === 0 && (
+            <span className="text-sm text-gray-500">No data available</span>
+          )}
+
+          {!categoryLoading && !categoryError && categoryData.length > 0 && (
             <div className="w-full h-full">
               <HorizontalBarChart data={categoryData} />
             </div>
@@ -342,7 +331,7 @@ export const ExpensesReport = () => {
 
           <DownloadButtons
             data={departmentData}
-            loading={departmentLoading || isDailyWithoutDates}
+            loading={departmentLoading}
             csvFilename="department-budget.csv"
             jsonFilename="department-budget.json"
             onDownloadCsv={downloadDepartmentBudgetsVsExpensesCsv}
@@ -351,14 +340,33 @@ export const ExpensesReport = () => {
 
         <div className="min-h-[380px] flex items-center justify-center">
           {departmentLoading && <Spinner />}
-          {departmentError && <div>{departmentError}</div>}
-          {!departmentLoading && !departmentError && (
+
+          {departmentError && (
+            <span className="text-sm text-red-500">{departmentError}</span>
+          )}
+
+          {!departmentLoading && !departmentError && !areDatesInSameMonth() && (
+            <div className="flex flex-col items-center justify-center gap-2 text-center px-4">
+              <span className="text-sm font-medium text-amber-600 dark:text-amber-500">
+                ⚠️ This chart is only available for dates within the same month
+              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Please select dates from the same month to view the department budget
+              </span>
+            </div>
+          )}
+
+          {!departmentLoading && !departmentError && areDatesInSameMonth() && departmentData.length === 0 && (
+            <span className="text-sm text-gray-500">No data available</span>
+          )}
+
+          {!departmentLoading && !departmentError && areDatesInSameMonth() && departmentData.length > 0 && (
             <StackedBarChart
               data={departmentData}
               series={[
-                { key: "used", label: "Used", color: "#93c5fd" },
-                { key: "remaining", label: "Remaining", color: "#1e40af" },
-                { key: "overBudget", label: "Over Budget", color: "#dc2626" },
+                { key: "used", label: "Used", color: "#3b82f6" },
+                { key: "remaining", label: "Remaining", color: "#10b981" },
+                { key: "overBudget", label: "Over Budget", color: "#ef4444" },
               ]}
             />
           )}

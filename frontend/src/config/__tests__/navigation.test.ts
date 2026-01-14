@@ -33,12 +33,12 @@ describe('Navigation Config', () => {
       expect(items).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ id: 'dashboard' }),
-          expect.objectContaining({ id: 'expenses' }),
           expect.objectContaining({ id: 'manage-expenses' }),
         ])
       );
 
-      // Should NOT include finance-only items
+      // Should NOT include employee-only or finance-only items
+      expect(items.find(item => item.id === 'expenses')).toBeUndefined();
       expect(items.find(item => item.id === 'users')).toBeUndefined();
     });
 
@@ -48,14 +48,17 @@ describe('Navigation Config', () => {
       expect(items).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ id: 'dashboard' }),
-          expect.objectContaining({ id: 'expenses' }),
           expect.objectContaining({ id: 'manage-expenses' }),
+          expect.objectContaining({ id: 'expenses-report' }),
           expect.objectContaining({ id: 'department' }),
           expect.objectContaining({ id: 'users' }),
           expect.objectContaining({ id: 'category' }),
           expect.objectContaining({ id: 'alert' }),
         ])
       );
+
+      // Should NOT include employee-only items
+      expect(items.find(item => item.id === 'expenses')).toBeUndefined();
     });
   });
 

@@ -70,7 +70,7 @@ export function DownloadButtons<T>({
         size="sm"
         disabled={disabled}
         onClick={() => downloadJSON(data, jsonFilename)}
-        className="flex items-center gap-2 text-gray-600"
+        className="flex items-center gap-2 text-blue-600"
       >
         <Download className="h-4 w-4" />
         JSON

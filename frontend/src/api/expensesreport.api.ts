@@ -23,8 +23,8 @@ const buildParams = (params?: DateFilterParams) => {
 };
 
 export interface ExpensesByEmployeeReport {
-  employeeName: string;
-  totalAmount: number;
+  employee: string;
+  total: number;
 }
 
 export async function getExpensesByEmployee(
@@ -55,8 +55,8 @@ export async function downloadExpensesByEmployeeCsv(
 }
 
 export interface ExpensesByCategoryReport {
-  categoryName: string;
-  totalAmount: number;
+  category: string;
+  total: number;
 }
 
 export async function getExpensesByCategory(
