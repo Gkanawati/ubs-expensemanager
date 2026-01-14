@@ -44,7 +44,8 @@ export function DownloadButtons<T>({
       <Button
         variant="outline"
         size="sm"
-        disabled={disabled}
+        disabled={loading || !data || data.length === 0}
+        loading={downloadingCsv}
         onClick={async () => {
           try {
             setDownloadingCsv(true);
@@ -56,11 +57,7 @@ export function DownloadButtons<T>({
         }}
         className="flex items-center gap-2"
       >
-        {downloadingCsv ? (
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-        ) : (
-          <Download className="h-4 w-4" />
-        )}
+        {!downloadingCsv && <Download className="h-4 w-4" />}
         CSV
       </Button>
 

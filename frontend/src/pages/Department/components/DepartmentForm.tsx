@@ -144,7 +144,8 @@ export const DepartmentForm = ({ initialData, onSubmit }: Props) => {
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
         <Button
           type="submit"
-          disabled={!isValid || isSubmitting || loadingCurrencies}
+          disabled={!isValid || loadingCurrencies}
+          loading={isSubmitting}
         >
           {isSubmitting ? "Saving..." : initialData ? "Update" : "Create"}
         </Button>

@@ -41,6 +41,7 @@ interface LoginResponse {
 export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
   const {
@@ -58,6 +59,7 @@ export const LoginForm = () => {
 
   const onSubmit = async (data: LoginFormData) => {
     setLoginError(null);
+    setIsLoading(true);
     try {
       const { data: result } = await api.post<LoginResponse>(
         '/api/auth/login',
@@ -80,6 +82,8 @@ export const LoginForm = () => {
       }
 
       setLoginError(message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -154,8 +158,9 @@ export const LoginForm = () => {
             type='submit'
             className='w-full'
             disabled={!isValid}
+            loading={isLoading}
           >
-            Login
+            {isLoading ? 'Logging in...' : 'Login'}
           </Button>
         </form>
       </CardContent>

@@ -8,6 +8,7 @@ interface ActionButtonProps {
   variant?: "default" | "secondary" | "destructive" | "outline" | "ghost";
   className?: string;
   disabled?: boolean;
+  loading?: boolean;
   type?: "button" | "submit" | "reset";
 }
 
@@ -18,6 +19,7 @@ export const ActionButton = ({
   variant = "default",
   className = "",
   disabled = false,
+  loading = false,
   type = "button",
 }: ActionButtonProps) => {
   return (
@@ -26,6 +28,7 @@ export const ActionButton = ({
       variant={variant}
       onClick={onClick}
       disabled={disabled}
+      loading={loading}
       className={`h-9 flex items-center gap-2 ${className}`}
     >
       {icon}

@@ -65,6 +65,8 @@ export const UsersPage = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [userToReactivate, setUserToReactivate] = useState<User | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     fetchUsers(currentPage, 10, searchQuery);
@@ -115,6 +117,7 @@ export const UsersPage = () => {
   };
 
   const handleCreateUser = async (data: CreateUserFormData): Promise<void> => {
+    setIsCreating(true);
     try {
       await createUser({
         email: data.email,
@@ -133,6 +136,8 @@ export const UsersPage = () => {
       const errorMsg = getErrorMessage(err);
       setCreateErrorMessage(errorMsg);
       console.error("Error creating user:", err);
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -145,6 +150,7 @@ export const UsersPage = () => {
   const handleEditUser = async (data: EditUserFormData): Promise<void> => {
     if (!selectedUser) return;
 
+    setIsEditing(true);
     try {
       // Remove ROLE_ prefix if present
       const roleValue = selectedUser.role.replace(/^ROLE_/, "");
@@ -157,7 +163,7 @@ export const UsersPage = () => {
         managerEmail: data.managerEmail || undefined,
         departmentId: data.departmentId ? parseInt(data.departmentId) : undefined,
       });
-      
+
       setOpenEditDialog(false);
       setEditErrorMessage("");
       // Refresh users list after update
@@ -167,6 +173,8 @@ export const UsersPage = () => {
       const errorMsg = getErrorMessage(err);
       setEditErrorMessage(errorMsg);
       console.error("Error updating user:", err);
+    } finally {
+      setIsEditing(false);
     }
   };
 
@@ -358,6 +366,7 @@ export const UsersPage = () => {
         onOpenChange={setOpenCreateDialog}
         onSubmit={handleCreateUser}
         error={createErrorMessage}
+        isLoading={isCreating}
       />
 
       <ConfirmationDialog
@@ -377,6 +386,7 @@ export const UsersPage = () => {
         user={selectedUser}
         onSubmit={handleEditUser}
         error={editErrorMessage}
+        isLoading={isEditing}
       />
 
       <ConfirmationDialog
