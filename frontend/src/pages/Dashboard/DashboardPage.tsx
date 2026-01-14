@@ -6,15 +6,16 @@ import { ExpenseStatus } from '@/api/expense.api';
 
 const getStatusBadgeClasses = (status: ExpenseStatus) => {
   switch (status) {
-    case 'APPROVED_BY_MANAGER':
-    case 'APPROVED_BY_FINANCE':
-      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
     case 'PENDING':
-      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+    case 'APPROVED_BY_MANAGER':
+      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+    case 'APPROVED_BY_FINANCE':
+      return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
     case 'REJECTED':
-      return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
     case 'REQUIRES_REVISION':
-      return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+      return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
     default:
       return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
   }
@@ -22,14 +23,16 @@ const getStatusBadgeClasses = (status: ExpenseStatus) => {
 
 const getStatusLabel = (status: ExpenseStatus) => {
   switch (status) {
-    case 'APPROVED_BY_MANAGER':
-      return 'Approved by Manager';
-    case 'APPROVED_BY_FINANCE':
-      return 'Approved';
     case 'PENDING':
       return 'Pending';
+    case 'APPROVED_BY_MANAGER':
+      return 'Approved (Manager)';
+    case 'APPROVED_BY_FINANCE':
+      return 'Approved (Finance)';
     case 'REJECTED':
       return 'Rejected';
+    case 'REQUIRES_REVISION':
+      return 'Needs Revision';
     default:
       return status;
   }
