@@ -1,13 +1,13 @@
 name: CI - Expense Manager
 
-# on:
-#   pull_request:
-#     branches:
-#       - dev
-#       - main
-#   push:
-#     branches:
-#       - dev
+on:
+  pull_request:
+    branches:
+      - dev
+      - main
+  push:
+    branches:
+      - dev
 
 jobs:
   # ------------------------
