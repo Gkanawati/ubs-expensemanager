@@ -8,24 +8,22 @@ import com.ubs.expensemanager.dto.response.UserResponse;
 import com.ubs.expensemanager.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import lombok.AllArgsConstructor;
+import java.net.URI;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.net.URI;
 
 /**
  * REST controller responsible for authentication endpoints.
@@ -41,7 +39,7 @@ import java.net.URI;
 public class AuthController {
     private final AuthService authService;
 
-    @Value("${app.cookie.secure:true}")
+    @Value("${app.cookie.secure}")
     private boolean secureCookie;
 
     private static final String JWT_COOKIE_NAME = "jwt_token";
@@ -51,13 +49,18 @@ public class AuthController {
         this.authService = authService;
     }
 
-    private Cookie createJwtCookie(String token, int maxAge) {
-        Cookie cookie = new Cookie(JWT_COOKIE_NAME, token);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(secureCookie);
-        cookie.setPath("/");
-        cookie.setMaxAge(maxAge);
-        return cookie;
+    private ResponseCookie createJwtCookie(String token, int maxAge) {
+        return ResponseCookie.from(JWT_COOKIE_NAME, token != null ? token : "")
+                .httpOnly(true)
+                .secure(secureCookie)
+                .path("/")
+                .maxAge(maxAge)
+                .sameSite("None")
+                .build();
+    }
+
+    private void addCookie(HttpServletResponse response, ResponseCookie cookie) {
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
     /**
@@ -109,7 +112,7 @@ public class AuthController {
         log.info("Login attempt for email={}", request.getEmail());
         LoginResponse response = authService.login(request);
 
-        httpResponse.addCookie(createJwtCookie(response.getToken(), COOKIE_MAX_AGE));
+        addCookie(httpResponse, createJwtCookie(response.getToken(), COOKIE_MAX_AGE));
 
         log.info("Login success for email={}", request.getEmail());
         return ResponseEntity.ok(response);
@@ -163,7 +166,7 @@ public class AuthController {
         log.info("Registration attempt for email={}", request.getEmail());
         LoginResponse response = authService.register(request);
 
-        httpResponse.addCookie(createJwtCookie(response.getToken(), COOKIE_MAX_AGE));
+        addCookie(httpResponse, createJwtCookie(response.getToken(), COOKIE_MAX_AGE));
 
         log.info("Registration success for email={}", request.getEmail());
 
@@ -180,7 +183,7 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletResponse httpResponse) {
         log.info("Logout request received");
-        httpResponse.addCookie(createJwtCookie(null, 0));
+        addCookie(httpResponse, createJwtCookie(null, 0));
         return ResponseEntity.ok().build();
     }
 }
