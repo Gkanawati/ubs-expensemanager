@@ -106,18 +106,16 @@ class CategoryBudgetValidationStrategyTest {
         BigDecimal newAmount = BigDecimal.valueOf(50);
         // 40 + 50 = 90, which is less than the daily budget of 100
 
-        when(expenseRepository.sumAmountByUserAndCategoryAndDateExcludingExpense(
-                eq(employee.getId()), eq(foodCategory.getId()), any(LocalDate.class), eq(expense.getId())))
+        when(expenseRepository.sumAmountByCategoryAndDateExcludingExpense(
+                eq(foodCategory.getId()), any(LocalDate.class), eq(expense.getId())))
                 .thenReturn(currentDailyTotal);
 
         // When
         strategy.validate(employee.getId(), foodCategory, expense, newAmount);
 
         // Then
-        verify(expenseRepository).sumAmountByUserAndCategoryAndDateExcludingExpense(
-                eq(employee.getId()), eq(foodCategory.getId()), any(LocalDate.class), eq(expense.getId()));
-        verify(expenseRepository).sumAmountByUserAndCategoryAndDateRangeExcludingExpense(
-                eq(employee.getId()), eq(foodCategory.getId()), any(LocalDate.class), any(LocalDate.class), eq(expense.getId()));
+        verify(expenseRepository).sumAmountByCategoryAndDateExcludingExpense(eq(foodCategory.getId()), any(LocalDate.class), eq(expense.getId()));
+        verify(expenseRepository).sumAmountByCategoryAndDateRangeExcludingExpense(eq(foodCategory.getId()), any(LocalDate.class), any(LocalDate.class), eq(expense.getId()));
         verify(eventPublisher, never()).publishBudgetExceededEvent(any());
     }
 
@@ -128,17 +126,17 @@ class CategoryBudgetValidationStrategyTest {
         BigDecimal newAmount = BigDecimal.valueOf(50);
         // 60 + 50 = 110, which exceeds the daily budget of 100
 
-        when(expenseRepository.sumAmountByUserAndCategoryAndDateExcludingExpense(
-                eq(employee.getId()), eq(foodCategory.getId()), any(LocalDate.class), eq(expense.getId())))
-                .thenReturn(currentDailyTotal);
+      when(expenseRepository.sumAmountByCategoryAndDateExcludingExpense(eq(foodCategory.getId()),
+          any(LocalDate.class), eq(expense.getId())))
+          .thenReturn(currentDailyTotal);
 
         // When
         strategy.validate(employee.getId(), foodCategory, expense, newAmount);
 
-        // Then
-        verify(expenseRepository).sumAmountByUserAndCategoryAndDateExcludingExpense(
-                eq(employee.getId()), eq(foodCategory.getId()), any(LocalDate.class), eq(expense.getId()));
-        verify(eventPublisher).publishBudgetExceededEvent(eventCaptor.capture());
+      // Then
+      verify(expenseRepository).sumAmountByCategoryAndDateExcludingExpense(eq(foodCategory.getId()),
+          any(LocalDate.class), eq(expense.getId()));
+      verify(eventPublisher).publishBudgetExceededEvent(eventCaptor.capture());
 
         BudgetExceededEvent capturedEvent = eventCaptor.getValue();
         assertEquals(BudgetExceededEvent.BudgetType.CATEGORY, capturedEvent.getBudgetType());
@@ -159,22 +157,21 @@ class CategoryBudgetValidationStrategyTest {
         BigDecimal newAmount = BigDecimal.valueOf(50);
         // 2980 + 50 = 3030, which exceeds the monthly budget of 3000
 
-        when(expenseRepository.sumAmountByUserAndCategoryAndDateExcludingExpense(
-                eq(employee.getId()), eq(foodCategory.getId()), any(LocalDate.class), eq(expense.getId())))
+        when(expenseRepository.sumAmountByCategoryAndDateExcludingExpense(eq(foodCategory.getId()), any(LocalDate.class), eq(expense.getId())))
                 .thenReturn(currentDailyTotal);
-        when(expenseRepository.sumAmountByUserAndCategoryAndDateRangeExcludingExpense(
-                eq(employee.getId()), eq(foodCategory.getId()), any(LocalDate.class), any(LocalDate.class), eq(expense.getId())))
+        when(expenseRepository.sumAmountByCategoryAndDateRangeExcludingExpense(eq(foodCategory.getId()), any(LocalDate.class), any(LocalDate.class), eq(expense.getId())))
                 .thenReturn(currentMonthlyTotal);
 
         // When
         strategy.validate(employee.getId(), foodCategory, expense, newAmount);
 
-        // Then
-        verify(expenseRepository).sumAmountByUserAndCategoryAndDateExcludingExpense(
-                eq(employee.getId()), eq(foodCategory.getId()), any(LocalDate.class), eq(expense.getId()));
-        verify(expenseRepository).sumAmountByUserAndCategoryAndDateRangeExcludingExpense(
-                eq(employee.getId()), eq(foodCategory.getId()), any(LocalDate.class), any(LocalDate.class), eq(expense.getId()));
-        verify(eventPublisher).publishBudgetExceededEvent(eventCaptor.capture());
+      // Then
+      verify(expenseRepository).sumAmountByCategoryAndDateExcludingExpense(
+          eq(foodCategory.getId()), any(LocalDate.class), eq(expense.getId()));
+      verify(expenseRepository).sumAmountByCategoryAndDateRangeExcludingExpense(
+          eq(foodCategory.getId()), any(LocalDate.class), any(LocalDate.class),
+          eq(expense.getId()));
+      verify(eventPublisher).publishBudgetExceededEvent(eventCaptor.capture());
 
         BudgetExceededEvent capturedEvent = eventCaptor.getValue();
         assertEquals(BudgetExceededEvent.BudgetType.CATEGORY, capturedEvent.getBudgetType());
@@ -197,21 +194,21 @@ class CategoryBudgetValidationStrategyTest {
         // Daily: 60 + 50 = 110, which exceeds the daily budget of 100
         // Monthly: 2980 + 50 = 3030, which exceeds the monthly budget of 3000
 
-        when(expenseRepository.sumAmountByUserAndCategoryAndDateExcludingExpense(
-                eq(employee.getId()), eq(foodCategory.getId()), any(LocalDate.class), eq(expense.getId())))
+        when(expenseRepository.sumAmountByCategoryAndDateExcludingExpense(
+                eq(foodCategory.getId()), any(LocalDate.class), eq(expense.getId())))
                 .thenReturn(currentDailyTotal);
-        when(expenseRepository.sumAmountByUserAndCategoryAndDateRangeExcludingExpense(
-                eq(employee.getId()), eq(foodCategory.getId()), any(LocalDate.class), any(LocalDate.class), eq(expense.getId())))
+        when(expenseRepository.sumAmountByCategoryAndDateRangeExcludingExpense(
+                eq(foodCategory.getId()), any(LocalDate.class), any(LocalDate.class), eq(expense.getId())))
                 .thenReturn(currentMonthlyTotal);
 
         // When
         strategy.validate(employee.getId(), foodCategory, expense, newAmount);
 
         // Then
-        verify(expenseRepository).sumAmountByUserAndCategoryAndDateExcludingExpense(
-                eq(employee.getId()), eq(foodCategory.getId()), any(LocalDate.class), eq(expense.getId()));
-        verify(expenseRepository).sumAmountByUserAndCategoryAndDateRangeExcludingExpense(
-                eq(employee.getId()), eq(foodCategory.getId()), any(LocalDate.class), any(LocalDate.class), eq(expense.getId()));
+        verify(expenseRepository).sumAmountByCategoryAndDateExcludingExpense(
+                eq(foodCategory.getId()), any(LocalDate.class), eq(expense.getId()));
+        verify(expenseRepository).sumAmountByCategoryAndDateRangeExcludingExpense(
+                eq(foodCategory.getId()), any(LocalDate.class), any(LocalDate.class), eq(expense.getId()));
         verify(eventPublisher, times(2)).publishBudgetExceededEvent(any());
     }
 }

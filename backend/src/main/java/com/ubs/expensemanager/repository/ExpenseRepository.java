@@ -51,20 +51,17 @@ public interface ExpenseRepository extends
      * Excludes REJECTED expenses and the specified expense from the calculation.
      * All amounts are converted to USD before summing.
      *
-     * @param userId the user ID
      * @param categoryId the expense category ID
      * @param date the expense date
      * @param expenseId the expense ID to exclude from calculation
      * @return the sum of all expense amounts in USD, or 0 if no expenses found
      */
     @Query("SELECT COALESCE(ROUND(SUM(e.amount / e.currency.exchangeRate), 2), 0) FROM Expense e " +
-           "WHERE e.user.id = :userId " +
-           "AND e.expenseCategory.id = :categoryId " +
+           "WHERE e.expenseCategory.id = :categoryId " +
            "AND e.expenseDate = :date " +
            "AND e.id != :expenseId " +
            "AND e.status != 'REJECTED'")
-    BigDecimal sumAmountByUserAndCategoryAndDateExcludingExpense(
-            @Param("userId") Long userId,
+    BigDecimal sumAmountByCategoryAndDateExcludingExpense(
             @Param("categoryId") Long categoryId,
             @Param("date") LocalDate date,
             @Param("expenseId") Long expenseId
@@ -99,7 +96,6 @@ public interface ExpenseRepository extends
      * Excludes REJECTED expenses and the specified expense from the calculation.
      * All amounts are converted to USD before summing.
      *
-     * @param userId the user ID
      * @param categoryId the expense category ID
      * @param startDate the start date of the range (inclusive)
      * @param endDate the end date of the range (inclusive)
@@ -107,28 +103,16 @@ public interface ExpenseRepository extends
      * @return the sum of all expense amounts in USD, or 0 if no expenses found
      */
     @Query("SELECT COALESCE(ROUND(SUM(e.amount / e.currency.exchangeRate), 2), 0) FROM Expense e " +
-           "WHERE e.user.id = :userId " +
-           "AND e.expenseCategory.id = :categoryId " +
+           "WHERE e.expenseCategory.id = :categoryId " +
            "AND e.expenseDate BETWEEN :startDate AND :endDate " +
            "AND e.id != :expenseId " +
            "AND e.status != 'REJECTED'")
-    BigDecimal sumAmountByUserAndCategoryAndDateRangeExcludingExpense(
-            @Param("userId") Long userId,
+    BigDecimal sumAmountByCategoryAndDateRangeExcludingExpense(
             @Param("categoryId") Long categoryId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate,
             @Param("expenseId") Long expenseId
     );
-
-    /**
-     * Checks if an expense exists with the given ID and belongs to the specified user.
-     * Used for ownership validation before updates or deletes.
-     *
-     * @param id the expense ID
-     * @param userId the user ID
-     * @return true if the expense exists and belongs to the user, false otherwise
-     */
-    boolean existsByIdAndUserId(Long id, Long userId);
 
     /**
      * Calculates the total expense amount for a department on a specific date.

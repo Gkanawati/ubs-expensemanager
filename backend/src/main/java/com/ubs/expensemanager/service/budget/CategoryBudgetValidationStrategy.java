@@ -45,7 +45,7 @@ public class CategoryBudgetValidationStrategy implements BudgetValidationStrateg
         
         // The repository already returns amounts in USD
         BigDecimal dailyTotal = Optional.ofNullable(
-                expenseRepository.sumAmountByUserAndCategoryAndDateExcludingExpense(userId, category.getId(), expense.getExpenseDate(), expense.getId())
+                expenseRepository.sumAmountByCategoryAndDateExcludingExpense(category.getId(), expense.getExpenseDate(), expense.getId())
         ).orElse(BigDecimal.ZERO);
         BigDecimal newDailyTotal = dailyTotal.add(newAmountUsd);
 
@@ -86,7 +86,7 @@ public class CategoryBudgetValidationStrategy implements BudgetValidationStrateg
 
         // The repository already returns amounts in USD
         BigDecimal monthlyTotal = Optional.ofNullable(
-                expenseRepository.sumAmountByUserAndCategoryAndDateRangeExcludingExpense(userId, category.getId(), monthStart, monthEnd, expense.getId())
+                expenseRepository.sumAmountByCategoryAndDateRangeExcludingExpense(category.getId(), monthStart, monthEnd, expense.getId())
         ).orElse(BigDecimal.ZERO);
 
         BigDecimal newMonthlyTotal = monthlyTotal.add(newAmountUsd);
