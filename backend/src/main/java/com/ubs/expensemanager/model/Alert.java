@@ -43,7 +43,7 @@ public class Alert extends Auditable {
     /**
      * Message content of the alert.
      */
-    @Column(nullable = false, length = 500)
+    @Column(nullable = false, length = 2000)
     private String message;
 
     /**

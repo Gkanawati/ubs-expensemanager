@@ -121,6 +121,8 @@ export const AlertsPage = () => {
           {
             style: "currency",
             currency: row.currencyName,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
           }
         ).format(row.expenseValue),
     },

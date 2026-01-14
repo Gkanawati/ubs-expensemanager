@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { MoneyInput } from "@/components/ui/money-input";
+import { MoneyInput, MAX_AMOUNT } from "@/components/ui/money-input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -91,6 +91,8 @@ export const CreateExpenseDialog = ({
       const numValue = typeof value === "string" ? parseFloat(value) : value;
       if (!numValue || numValue <= 0) {
         newErrors.amount = "Amount must be greater than 0";
+      } else if (numValue > MAX_AMOUNT) {
+        newErrors.amount = "Amount exceeds maximum allowed value";
       } else {
         delete newErrors.amount;
       }
@@ -154,6 +156,8 @@ export const CreateExpenseDialog = ({
 
     if (!formData.amount || formData.amount <= 0) {
       newErrors.amount = "Amount must be greater than 0";
+    } else if (formData.amount > MAX_AMOUNT) {
+      newErrors.amount = "Amount exceeds maximum allowed value";
     }
 
     if (!formData.expenseDate) {
@@ -190,6 +194,7 @@ export const CreateExpenseDialog = ({
   const isFormValid = (): boolean => {
     return (
       formData.amount > 0 &&
+      formData.amount <= MAX_AMOUNT &&
       !!formData.expenseDate &&
       !!formData.expenseCategoryId &&
       !!formData.currencyName &&

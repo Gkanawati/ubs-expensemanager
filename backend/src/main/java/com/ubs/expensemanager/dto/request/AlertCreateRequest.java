@@ -18,7 +18,7 @@ public class AlertCreateRequest {
 
     @Schema(description = "Alert message content", example = "Budget exceeded for Food category")
     @NotBlank(message = "message is required")
-    @Size(max = 500, message = "message must not exceed 500 characters")
+    @Size(max = 2000, message = "message must not exceed 2000 characters")
     private String message;
 
     @Schema(description = "ID of the associated expense", example = "1")
