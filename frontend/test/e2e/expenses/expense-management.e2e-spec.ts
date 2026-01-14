@@ -274,8 +274,8 @@ test.describe('Expense Filters', () => {
     await expect(page.getByText('Expense Created')).toBeVisible();
     await page.getByRole('button', { name: /done/i }).click();
 
-    // Verify expense exists
-    await expect(page.getByText('Travel')).toBeVisible();
+    // Verify expense exists in table
+    await expect(page.getByRole('cell', { name: 'Travel' })).toBeVisible();
 
     // Open filters dropdown
     await page.getByRole('button', { name: /filters/i }).click();
@@ -287,7 +287,7 @@ test.describe('Expense Filters', () => {
     await expect(page.getByRole('button', { name: /filters \(1\)/i })).toBeVisible();
 
     // Expense should still be visible since it's PENDING
-    await expect(page.getByText('Travel')).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Travel' })).toBeVisible();
   });
 
   test('should show filter counter when filters are active', async ({ page }) => {
