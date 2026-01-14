@@ -11,7 +11,7 @@ export const AnalyticsPage = () => {
       </div>
 
       <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
-        <div className='rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900'>
+        <div className='rounded-lg border border-border bg-card p-6'>
           <h3 className='font-semibold text-gray-900 dark:text-white'>
             Total Expenses
           </h3>
@@ -19,7 +19,7 @@ export const AnalyticsPage = () => {
             $125,430
           </p>
         </div>
-        <div className='rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900'>
+        <div className='rounded-lg border border-border bg-card p-6'>
           <h3 className='font-semibold text-gray-900 dark:text-white'>
             Pending Approvals
           </h3>
@@ -27,7 +27,7 @@ export const AnalyticsPage = () => {
             24
           </p>
         </div>
-        <div className='rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900'>
+        <div className='rounded-lg border border-border bg-card p-6'>
           <h3 className='font-semibold text-gray-900 dark:text-white'>
             This Month
           </h3>

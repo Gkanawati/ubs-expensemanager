@@ -187,7 +187,7 @@ export const CategoriesPage = () => {
         </div>
       </header>
 
-      <div className='rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900'>
+      <div className='rounded-lg border border-border bg-card p-6'>
         <div className='flex justify-between gap-4'>
           <SearchInput
             placeholder='Search category'
@@ -214,7 +214,7 @@ export const CategoriesPage = () => {
       />
 
       {!loading && !error && totalElements > 0 && (
-        <div className='rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900'>
+        <div className='rounded-lg border border-border bg-card'>
           <TablePagination
             currentPage={currentPage}
             totalPages={totalPages}

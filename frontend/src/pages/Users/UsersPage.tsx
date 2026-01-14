@@ -318,7 +318,7 @@ export const UsersPage = () => {
         </p>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+      <div className="rounded-lg border border-border bg-card p-6">
         <div className="flex items-center justify-between gap-4">
           <SearchInput
             placeholder="Search employee"
@@ -342,7 +342,7 @@ export const UsersPage = () => {
       />
 
       {!loading && !error && totalElements > 0 && (
-        <div className="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <div className="rounded-lg border border-border bg-card">
           <TablePagination
             currentPage={currentPage}
             totalPages={totalPages}

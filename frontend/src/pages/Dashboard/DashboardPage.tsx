@@ -82,7 +82,7 @@ export const DashboardPage = () => {
       </div>
 
       <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4'>
-        <div className='rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900'>
+        <div className='rounded-lg border border-border bg-card p-6'>
           <div className='flex items-center justify-between'>
             <div>
               <p className='text-sm font-medium text-gray-600 dark:text-gray-400'>
@@ -98,7 +98,7 @@ export const DashboardPage = () => {
           </div>
         </div>
 
-        <div className='rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900'>
+        <div className='rounded-lg border border-border bg-card p-6'>
           <div className='flex items-center justify-between'>
             <div>
               <p className='text-sm font-medium text-gray-600 dark:text-gray-400'>
@@ -114,7 +114,7 @@ export const DashboardPage = () => {
           </div>
         </div>
 
-        <div className='rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900'>
+        <div className='rounded-lg border border-border bg-card p-6'>
           <div className='flex items-center justify-between'>
             <div>
               <p className='text-sm font-medium text-gray-600 dark:text-gray-400'>
@@ -130,7 +130,7 @@ export const DashboardPage = () => {
           </div>
         </div>
 
-        <div className='rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900'>
+        <div className='rounded-lg border border-border bg-card p-6'>
           <div className='flex items-center justify-between'>
             <div>
               <p className='text-sm font-medium text-gray-600 dark:text-gray-400'>
@@ -147,7 +147,7 @@ export const DashboardPage = () => {
         </div>
       </div>
 
-      <div className='rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900'>
+      <div className='rounded-lg border border-border bg-card p-6'>
         <h2 className='text-lg font-semibold text-gray-900 dark:text-white'>
           Last Expenses
         </h2>

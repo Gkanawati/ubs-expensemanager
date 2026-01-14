@@ -246,7 +246,7 @@ export const EditUserDialog = ({
               type="email"
               value={user?.email || ""}
               disabled
-              className="bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
+              className="bg-muted cursor-not-allowed"
             />
             <p className="text-xs text-gray-500">This field cannot be edited</p>
           </div>
@@ -260,7 +260,7 @@ export const EditUserDialog = ({
               id="role"
               value={user?.role || ""}
               disabled
-              className="bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
+              className="bg-muted cursor-not-allowed"
             />
             <p className="text-xs text-gray-500">This field cannot be edited</p>
           </div>
