@@ -1,6 +1,7 @@
 package com.ubs.expensemanager.service.expense.state;
 
 import com.ubs.expensemanager.exception.UnauthorizedExpenseAccessException;
+import com.ubs.expensemanager.messages.Messages;
 import com.ubs.expensemanager.model.Expense;
 import com.ubs.expensemanager.model.ExpenseStatus;
 import com.ubs.expensemanager.model.User;
@@ -36,8 +37,8 @@ public class StateContext {
    * @param newStatus the new status to set
    */
   public void setExpenseStatus(ExpenseStatus newStatus) {
-    log.info("Transitioning expense {} from {} to {}",
-        expense.getId(), expense.getStatus(), newStatus);
+    log.info(Messages.formatMessage(Messages.TRANSITIONING_EXPENSE,
+        expense.getId(), expense.getStatus(), newStatus));
     expense.setStatus(newStatus);
   }
 

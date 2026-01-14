@@ -229,9 +229,9 @@ public class ExpenseService {
             .expenseRepository(expenseRepository)
             .build();
 
-        currentState.approve(context);
+        Expense updatedExpense = currentState.approve(context);
 
-        return expenseMapper.toResponse(expense);
+        return expenseMapper.toResponse(updatedExpense);
     }
 
     /**
@@ -258,9 +258,9 @@ public class ExpenseService {
             .expenseRepository(expenseRepository)
             .build();
 
-        currentState.reject(context);
+        Expense updatedExpense = currentState.reject(context);
 
-        return expenseMapper.toResponse(expense);
+        return expenseMapper.toResponse(updatedExpense);
     }
 
     /**

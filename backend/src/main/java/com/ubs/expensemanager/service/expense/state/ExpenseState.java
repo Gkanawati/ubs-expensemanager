@@ -2,6 +2,7 @@ package com.ubs.expensemanager.service.expense.state;
 
 import com.ubs.expensemanager.exception.InvalidStatusTransitionException;
 import com.ubs.expensemanager.exception.UnauthorizedExpenseAccessException;
+import com.ubs.expensemanager.model.Expense;
 import com.ubs.expensemanager.model.ExpenseStatus;
 import java.util.Set;
 
@@ -24,19 +25,21 @@ public interface ExpenseState {
    * Approves the expense, transitioning it to the next state in the approval workflow.
    *
    * @param context contains expense, user, and repository access
+   * @return the updated expense entity
    * @throws InvalidStatusTransitionException   if transition is not allowed
    * @throws UnauthorizedExpenseAccessException if user lacks permission
    */
-  void approve(StateContext context);
+  Expense approve(StateContext context);
 
   /**
    * Rejects the expense, transitioning it to the REJECTED state.
    *
    * @param context contains expense, user, and repository access
+   * @return the updated expense entity
    * @throws InvalidStatusTransitionException   if transition is not allowed
    * @throws UnauthorizedExpenseAccessException if user lacks permission
    */
-  void reject(StateContext context);
+  Expense reject(StateContext context);
 
   /**
    * Checks if transition to the new status is valid from the current state.

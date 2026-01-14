@@ -1,6 +1,8 @@
 package com.ubs.expensemanager.service.expense.state;
 
 import com.ubs.expensemanager.exception.UnauthorizedExpenseAccessException;
+import com.ubs.expensemanager.messages.Messages;
+import com.ubs.expensemanager.model.Expense;
 import com.ubs.expensemanager.model.ExpenseStatus;
 import com.ubs.expensemanager.model.UserRole;
 import java.util.Set;
@@ -40,8 +42,9 @@ public class ApprovedByManagerState extends AbstractExpenseState {
    * {@inheritDoc}
    */
   @Override
-  public void approve(StateContext context) {
-    log.debug("Processing finance approval for expense {}", context.getExpense().getId());
+  public Expense approve(StateContext context) {
+    log.debug(Messages.formatMessage(Messages.PROCESSING_FINANCE_APPROVAL,
+        context.getExpense().getId()));
 
     if (context.doesNotHaveRole(UserRole.FINANCE)) {
       throw new UnauthorizedExpenseAccessException(
@@ -53,16 +56,19 @@ public class ApprovedByManagerState extends AbstractExpenseState {
     context.setExpenseStatus(ExpenseStatus.APPROVED_BY_FINANCE);
     context.saveExpense();
 
-    log.info("Expense {} approved by finance user {}",
-        context.getExpense().getId(), context.getCurrentUser().getUsername());
+    log.info(Messages.formatMessage(Messages.EXPENSE_APPROVED_BY_FINANCE,
+        context.getExpense().getId(), context.getCurrentUser().getUsername()));
+
+    return context.getExpense();
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public void reject(StateContext context) {
-    log.debug("Processing finance rejection for expense {}", context.getExpense().getId());
+  public Expense reject(StateContext context) {
+    log.debug(Messages.formatMessage(Messages.PROCESSING_FINANCE_REJECTION,
+        context.getExpense().getId()));
 
     if (context.doesNotHaveRole(UserRole.FINANCE)) {
       throw new UnauthorizedExpenseAccessException(
@@ -74,7 +80,9 @@ public class ApprovedByManagerState extends AbstractExpenseState {
     context.setExpenseStatus(ExpenseStatus.REJECTED);
     context.saveExpense();
 
-    log.info("Expense {} rejected by finance user {}",
-        context.getExpense().getId(), context.getCurrentUser().getUsername());
+    log.info(Messages.formatMessage(Messages.EXPENSE_REJECTED_BY_FINANCE,
+        context.getExpense().getId(), context.getCurrentUser().getUsername()));
+
+    return context.getExpense();
   }
 }
