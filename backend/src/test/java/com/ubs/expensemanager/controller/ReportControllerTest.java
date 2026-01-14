@@ -44,6 +44,12 @@ class ReportControllerTest {
     @MockBean
     private ReportService reportService;
 
+    @MockBean
+    private JwtUtil jwtUtil;
+
+    @MockBean
+    private UserDetailsServiceImpl userDetailsService;
+
     private EmployeeExpenseReportResponse employeeReport;
     private CategoryExpenseReportResponse categoryReport;
     private DepartmentExpenseReportResponse departmentReport;
