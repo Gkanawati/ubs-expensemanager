@@ -2,6 +2,7 @@ package com.ubs.expensemanager.service.budget;
 
 import com.ubs.expensemanager.event.BudgetExceededEvent;
 import com.ubs.expensemanager.event.EventPublisher;
+import com.ubs.expensemanager.exception.BudgetExceededException;
 import com.ubs.expensemanager.model.Department;
 import com.ubs.expensemanager.model.Expense;
 import com.ubs.expensemanager.model.ExpenseCategory;
@@ -27,15 +28,29 @@ public class DepartmentBudgetValidationStrategy implements BudgetValidationStrat
     private final ExpenseRepository expenseRepository;
     private final EventPublisher eventPublisher;
 
+    /**
+     * Validates only the monthly department budget limit.
+     * This method should be called BEFORE saving the expense.
+     * Throws BudgetExceededException if monthly limit is exceeded (blocking behavior).
+     */
     @Override
     public void validate(Long userId, ExpenseCategory category, Expense expense, BigDecimal newAmount) {
         Department department = expense.getUser().getDepartment();
         if (department != null) {
-            // Only validate daily budget if the department has a daily budget limit
-            if (department.getDailyBudget() != null) {
-                validateDailyBudget(userId, category, expense, newAmount, department);
-            }
-            validateMonthlyBudget(userId, category, expense, newAmount, department);
+            // Only validate monthly budget here (blocking) - called BEFORE save
+            validateMonthlyBudget(expense, newAmount, department);
+        }
+    }
+
+    /**
+     * Validates only the daily department budget limit.
+     * This method should be called AFTER saving the expense.
+     * Publishes BudgetExceededEvent if daily limit is exceeded (warning-only behavior).
+     */
+    public void validateDailyBudgetOnly(Long userId, ExpenseCategory category, Expense expense, BigDecimal newAmount) {
+        Department department = expense.getUser().getDepartment();
+        if (department != null && department.getDailyBudget() != null) {
+            validateDailyBudget(userId, category, expense, newAmount, department);
         }
     }
 
@@ -50,11 +65,17 @@ public class DepartmentBudgetValidationStrategy implements BudgetValidationStrat
         
         // Convert the department budget limit to USD
         BigDecimal dailyBudgetUsd = department.getDailyBudget().divide(department.getCurrency().getExchangeRate(), 2, RoundingMode.HALF_UP);
-        
-        // The repository already returns amounts in USD
-        BigDecimal deptDailyTotal = Optional.ofNullable(
-                expenseRepository.sumAmountByDepartmentAndDateExcludingExpense(department.getId(), expense.getExpenseDate(), expense.getId())
-        ).orElse(BigDecimal.ZERO);
+
+        BigDecimal deptDailyTotal;
+        if (expense.getId() == null) {
+            deptDailyTotal = Optional.ofNullable(
+                    expenseRepository.sumAmountByDepartmentAndDate(department.getId(), expense.getExpenseDate())
+            ).orElse(BigDecimal.ZERO);
+        } else {
+            deptDailyTotal = Optional.ofNullable(
+                    expenseRepository.sumAmountByDepartmentAndDateExcludingExpense(department.getId(), expense.getExpenseDate(), expense.getId())
+            ).orElse(BigDecimal.ZERO);
+        }
 
         BigDecimal newDeptDailyTotal = deptDailyTotal.add(newAmountUsd);
 
@@ -82,8 +103,7 @@ public class DepartmentBudgetValidationStrategy implements BudgetValidationStrat
      * Validates monthly budget limits for the department.
      * All amounts are converted to USD before comparison.
      */
-    private void validateMonthlyBudget(Long userId, ExpenseCategory category, Expense expense, 
-                                      BigDecimal newAmount, Department department) {
+    private void validateMonthlyBudget(Expense expense, BigDecimal newAmount, Department department) {
         // Convert the new expense amount to USD
         BigDecimal newAmountUsd = newAmount.divide(expense.getCurrency().getExchangeRate(), 2, RoundingMode.HALF_UP);
         
@@ -94,10 +114,16 @@ public class DepartmentBudgetValidationStrategy implements BudgetValidationStrat
         LocalDate monthStart = yearMonth.atDay(1);
         LocalDate monthEnd = yearMonth.atEndOfMonth();
 
-        // The repository already returns amounts in USD
-        BigDecimal deptMonthlyTotal = Optional.ofNullable(
-                expenseRepository.sumAmountByDepartmentAndDateRangeExcludingExpense(department.getId(), monthStart, monthEnd, expense.getId())
-        ).orElse(BigDecimal.ZERO);
+        BigDecimal deptMonthlyTotal;
+        if (expense.getId() == null) {
+            deptMonthlyTotal = Optional.ofNullable(
+                    expenseRepository.sumAmountByDepartmentAndDateRange(department.getId(), monthStart, monthEnd)
+            ).orElse(BigDecimal.ZERO);
+        } else {
+            deptMonthlyTotal = Optional.ofNullable(
+                    expenseRepository.sumAmountByDepartmentAndDateRangeExcludingExpense(department.getId(), monthStart, monthEnd, expense.getId())
+            ).orElse(BigDecimal.ZERO);
+        }
 
         BigDecimal newDeptMonthlyTotal = deptMonthlyTotal.add(newAmountUsd);
 
@@ -105,19 +131,8 @@ public class DepartmentBudgetValidationStrategy implements BudgetValidationStrat
             log.warn("Monthly department budget exceeded for department {} in {}: current={}, new={}, limit={} (all in USD)",
                     department.getName(), yearMonth, deptMonthlyTotal, newDeptMonthlyTotal, monthlyBudgetUsd);
 
-            // Publish domain event for monthly department budget exceeded
-            BudgetExceededEvent event = BudgetExceededEvent.builder()
-                    .budgetType(BudgetExceededEvent.BudgetType.DEPARTAMENT)
-                    .expense(expense)
-                    .category(category)
-                    .userId(userId)
-                    .currentTotal(deptMonthlyTotal)
-                    .newTotal(newDeptMonthlyTotal)
-                    .budgetLimit(monthlyBudgetUsd)
-                    .yearMonth(yearMonth)
-                    .build();
-
-            eventPublisher.publishBudgetExceededEvent(event);
+            throw new BudgetExceededException(department.getName(), yearMonth, deptMonthlyTotal,
+                newDeptMonthlyTotal, monthlyBudgetUsd);
         }
     }
 }

@@ -1,0 +1,19 @@
+PUBLIC.EXPENSES:
+  - ID: 101
+    AMOUNT: 45.00
+    DESCRIPTION: "Team lunch"
+    EXPENSE_DATE: "2026-01-08"
+    USER_ID: 104
+    EXPENSE_CATEGORY_ID: 101
+    CURRENCY_ID: 1
+    RECEIPT_URL: "https://example.com/receipts/1.pdf"
+    STATUS: "PENDING"
+  - ID: 102
+    AMOUNT: 45.00
+    DESCRIPTION: "Client dinner"
+    EXPENSE_DATE: "2026-01-07"
+    USER_ID: 104
+    EXPENSE_CATEGORY_ID: 101
+    CURRENCY_ID: 1
+    RECEIPT_URL: "https://example.com/receipts/2.pdf"
+    STATUS: "APPROVED_BY_MANAGER"

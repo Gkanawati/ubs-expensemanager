@@ -2,6 +2,7 @@ package com.ubs.expensemanager.service;
 
 import com.ubs.expensemanager.event.BudgetExceededEvent;
 import com.ubs.expensemanager.event.EventPublisher;
+import com.ubs.expensemanager.exception.BudgetExceededException;
 import com.ubs.expensemanager.model.Currency;
 import com.ubs.expensemanager.model.Department;
 import com.ubs.expensemanager.model.Expense;
@@ -12,6 +13,8 @@ import com.ubs.expensemanager.model.UserRole;
 import com.ubs.expensemanager.repository.ExpenseRepository;
 import com.ubs.expensemanager.service.budget.DepartmentBudgetValidationStrategy;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -100,200 +103,280 @@ class DepartmentBudgetValidationStrategyTest {
                 .build();
     }
 
-    @Test
-    void validate_departmentIsNull_noValidationPerformed() {
-        // Given
-        User userWithNoDepartment = User.builder()
-                .id(2L)
-                .name("No Department User")
-                .email("nodept@ubs.com")
-                .role(UserRole.EMPLOYEE)
-                .department(null)
-                .active(true)
-                .build();
+    @Nested
+    @DisplayName("validate() - Monthly Budget Validation (Blocking)")
+    class MonthlyBudgetValidationTests {
 
-        Expense expenseWithNoDepartment = Expense.builder()
-                .id(2L)
-                .amount(BigDecimal.valueOf(50))
-                .description("Team lunch")
-                .expenseDate(LocalDate.now())
-                .user(userWithNoDepartment)
-                .expenseCategory(foodCategory)
-                .currency(usdCurrency)
-                .status(ExpenseStatus.PENDING)
-                .build();
+        @Test
+        void validate_departmentIsNull_noValidationPerformed() {
+            // Given
+            User userWithNoDepartment = User.builder()
+                    .id(2L)
+                    .name("No Department User")
+                    .email("nodept@ubs.com")
+                    .role(UserRole.EMPLOYEE)
+                    .department(null)
+                    .active(true)
+                    .build();
 
-        // When
-        strategy.validate(userWithNoDepartment.getId(), foodCategory, expenseWithNoDepartment, BigDecimal.valueOf(50));
+            Expense expenseWithNoDepartment = Expense.builder()
+                    .id(2L)
+                    .amount(BigDecimal.valueOf(50))
+                    .description("Team lunch")
+                    .expenseDate(LocalDate.now())
+                    .user(userWithNoDepartment)
+                    .expenseCategory(foodCategory)
+                    .currency(usdCurrency)
+                    .status(ExpenseStatus.PENDING)
+                    .build();
 
-        // Then
-        verifyNoInteractions(expenseRepository);
-        verifyNoInteractions(eventPublisher);
+            // When
+            strategy.validate(userWithNoDepartment.getId(), foodCategory, expenseWithNoDepartment, BigDecimal.valueOf(50));
+
+            // Then
+            verifyNoInteractions(expenseRepository);
+            verifyNoInteractions(eventPublisher);
+        }
+
+        @Test
+        void validate_monthlyBudgetNotExceeded_noExceptionThrown() {
+            // Given
+            BigDecimal currentMonthlyTotal = BigDecimal.valueOf(11000);
+            BigDecimal newAmount = BigDecimal.valueOf(50);
+            // 11000 + 50 = 11050, which is less than the monthly budget of 12000
+
+            when(expenseRepository.sumAmountByDepartmentAndDateRangeExcludingExpense(
+                    eq(itDepartment.getId()), any(LocalDate.class), any(LocalDate.class), eq(expense.getId())))
+                    .thenReturn(currentMonthlyTotal);
+
+            // When & Then - no exception thrown
+            assertDoesNotThrow(() ->
+                strategy.validate(employee.getId(), foodCategory, expense, newAmount)
+            );
+
+            // Verify monthly budget was checked
+            verify(expenseRepository).sumAmountByDepartmentAndDateRangeExcludingExpense(
+                    eq(itDepartment.getId()), any(LocalDate.class), any(LocalDate.class), eq(expense.getId()));
+
+            // Verify no event was published (validate() only does monthly which throws, not publishes)
+            verify(eventPublisher, never()).publishBudgetExceededEvent(any());
+        }
+
+        @Test
+        void validate_monthlyBudgetExceeded_throwsException() {
+            // Given
+            BigDecimal currentMonthlyTotal = BigDecimal.valueOf(11980);
+            BigDecimal newAmount = BigDecimal.valueOf(50);
+            // 11980 + 50 = 12030, which exceeds the monthly budget of 12000
+
+            when(expenseRepository.sumAmountByDepartmentAndDateRangeExcludingExpense(
+                    eq(itDepartment.getId()), any(LocalDate.class), any(LocalDate.class), eq(expense.getId())))
+                    .thenReturn(currentMonthlyTotal);
+
+            // When & Then
+            BudgetExceededException exception = assertThrows(BudgetExceededException.class, () ->
+                strategy.validate(employee.getId(), foodCategory, expense, newAmount)
+            );
+
+            // Verify exception details
+            assertEquals("IT", exception.getDepartmentName());
+            assertEquals(YearMonth.from(expense.getExpenseDate()), exception.getYearMonth());
+            assertEquals(currentMonthlyTotal, exception.getCurrentTotal());
+            assertEquals(0, new BigDecimal("12030.00").compareTo(exception.getNewTotal()));
+            assertEquals(0, new BigDecimal("12000.00").compareTo(exception.getBudgetLimit()));
+
+            // Verify no event was published (exception thrown instead)
+            verify(eventPublisher, never()).publishBudgetExceededEvent(any());
+        }
+
+        @Test
+        void validate_newExpenseWithNullId_usesNonExcludingQuery() {
+            // Given - expense with null ID (new expense)
+            Expense newExpense = Expense.builder()
+                    .id(null)  // New expense has no ID yet
+                    .amount(BigDecimal.valueOf(50))
+                    .description("New expense")
+                    .expenseDate(LocalDate.now())
+                    .user(employee)
+                    .expenseCategory(foodCategory)
+                    .currency(usdCurrency)
+                    .status(ExpenseStatus.PENDING)
+                    .build();
+
+            BigDecimal currentMonthlyTotal = BigDecimal.valueOf(11000);
+            BigDecimal newAmount = BigDecimal.valueOf(50);
+
+            when(expenseRepository.sumAmountByDepartmentAndDateRange(
+                    eq(itDepartment.getId()), any(LocalDate.class), any(LocalDate.class)))
+                    .thenReturn(currentMonthlyTotal);
+
+            // When & Then - no exception thrown
+            assertDoesNotThrow(() ->
+                strategy.validate(employee.getId(), foodCategory, newExpense, newAmount)
+            );
+
+            // Verify non-excluding query was used (no expenseId parameter)
+            verify(expenseRepository).sumAmountByDepartmentAndDateRange(
+                    eq(itDepartment.getId()), any(LocalDate.class), any(LocalDate.class));
+            verify(expenseRepository, never()).sumAmountByDepartmentAndDateRangeExcludingExpense(
+                    any(), any(), any(), any());
+        }
     }
 
-    @Test
-    void validate_dailyBudgetNotExceeded_noEventPublished() {
-        // Given
-        BigDecimal currentDailyTotal = BigDecimal.valueOf(300);
-        BigDecimal newAmount = BigDecimal.valueOf(50);
-        // 300 + 50 = 350, which is less than the daily budget of 400
+    @Nested
+    @DisplayName("validateDailyBudgetOnly() - Daily Budget Validation (Warning-Only)")
+    class DailyBudgetValidationTests {
 
-        when(expenseRepository.sumAmountByDepartmentAndDateExcludingExpense(
-                eq(itDepartment.getId()), any(LocalDate.class), eq(expense.getId())))
-                .thenReturn(currentDailyTotal);
+        @Test
+        void validateDailyBudgetOnly_dailyBudgetNotExceeded_noEventPublished() {
+            // Given
+            BigDecimal currentDailyTotal = BigDecimal.valueOf(300);
+            BigDecimal newAmount = BigDecimal.valueOf(50);
+            // 300 + 50 = 350, which is less than the daily budget of 400
 
-        // When
-        strategy.validate(employee.getId(), foodCategory, expense, newAmount);
+            when(expenseRepository.sumAmountByDepartmentAndDateExcludingExpense(
+                    eq(itDepartment.getId()), any(LocalDate.class), eq(expense.getId())))
+                    .thenReturn(currentDailyTotal);
 
-        // Then
-        verify(expenseRepository).sumAmountByDepartmentAndDateExcludingExpense(
-                eq(itDepartment.getId()), any(LocalDate.class), eq(expense.getId()));
-        verify(expenseRepository).sumAmountByDepartmentAndDateRangeExcludingExpense(
-                eq(itDepartment.getId()), any(LocalDate.class), any(LocalDate.class), eq(expense.getId()));
-        verify(eventPublisher, never()).publishBudgetExceededEvent(any());
-    }
+            // When
+            strategy.validateDailyBudgetOnly(employee.getId(), foodCategory, expense, newAmount);
 
-    @Test
-    void validate_dailyBudgetExceeded_eventPublished() {
-        // Given
-        BigDecimal currentDailyTotal = BigDecimal.valueOf(360);
-        BigDecimal newAmount = BigDecimal.valueOf(50);
-        // 360 + 50 = 410, which exceeds the daily budget of 400
+            // Then
+            verify(expenseRepository).sumAmountByDepartmentAndDateExcludingExpense(
+                    eq(itDepartment.getId()), any(LocalDate.class), eq(expense.getId()));
+            verify(eventPublisher, never()).publishBudgetExceededEvent(any());
+        }
 
-        when(expenseRepository.sumAmountByDepartmentAndDateExcludingExpense(
-                eq(itDepartment.getId()), any(LocalDate.class), eq(expense.getId())))
-                .thenReturn(currentDailyTotal);
+        @Test
+        void validateDailyBudgetOnly_dailyBudgetExceeded_eventPublished() {
+            // Given
+            BigDecimal currentDailyTotal = BigDecimal.valueOf(360);
+            BigDecimal newAmount = BigDecimal.valueOf(50);
+            // 360 + 50 = 410, which exceeds the daily budget of 400
 
-        // When
-        strategy.validate(employee.getId(), foodCategory, expense, newAmount);
+            when(expenseRepository.sumAmountByDepartmentAndDateExcludingExpense(
+                    eq(itDepartment.getId()), any(LocalDate.class), eq(expense.getId())))
+                    .thenReturn(currentDailyTotal);
 
-        // Then
-        verify(expenseRepository).sumAmountByDepartmentAndDateExcludingExpense(
-                eq(itDepartment.getId()), any(LocalDate.class), eq(expense.getId()));
-        verify(eventPublisher).publishBudgetExceededEvent(eventCaptor.capture());
+            // When
+            strategy.validateDailyBudgetOnly(employee.getId(), foodCategory, expense, newAmount);
 
-        BudgetExceededEvent capturedEvent = eventCaptor.getValue();
-        assertEquals(BudgetExceededEvent.BudgetType.DEPARTAMENT, capturedEvent.getBudgetType());
-        assertEquals(expense, capturedEvent.getExpense());
-        assertEquals(foodCategory, capturedEvent.getCategory());
-        assertEquals(employee.getId(), capturedEvent.getUserId());
-        assertEquals(currentDailyTotal, capturedEvent.getCurrentTotal());
-        assertEquals(0, new BigDecimal("410.00").compareTo(capturedEvent.getNewTotal()));
-        assertEquals(0, new BigDecimal("400.00").compareTo(capturedEvent.getBudgetLimit()));
-        assertEquals(expense.getExpenseDate(), capturedEvent.getDate());
-    }
+            // Then
+            verify(expenseRepository).sumAmountByDepartmentAndDateExcludingExpense(
+                    eq(itDepartment.getId()), any(LocalDate.class), eq(expense.getId()));
+            verify(eventPublisher).publishBudgetExceededEvent(eventCaptor.capture());
 
-    @Test
-    void validate_monthlyBudgetExceeded_eventPublished() {
-        // Given
-        BigDecimal currentDailyTotal = BigDecimal.valueOf(300);
-        BigDecimal currentMonthlyTotal = BigDecimal.valueOf(11980);
-        BigDecimal newAmount = BigDecimal.valueOf(50);
-        // 11980 + 50 = 12030, which exceeds the monthly budget of 12000
+            BudgetExceededEvent capturedEvent = eventCaptor.getValue();
+            assertEquals(BudgetExceededEvent.BudgetType.DEPARTAMENT, capturedEvent.getBudgetType());
+            assertEquals(expense, capturedEvent.getExpense());
+            assertEquals(foodCategory, capturedEvent.getCategory());
+            assertEquals(employee.getId(), capturedEvent.getUserId());
+            assertEquals(currentDailyTotal, capturedEvent.getCurrentTotal());
+            assertEquals(0, new BigDecimal("410.00").compareTo(capturedEvent.getNewTotal()));
+            assertEquals(0, new BigDecimal("400.00").compareTo(capturedEvent.getBudgetLimit()));
+            assertEquals(expense.getExpenseDate(), capturedEvent.getDate());
+        }
 
-        when(expenseRepository.sumAmountByDepartmentAndDateExcludingExpense(
-                eq(itDepartment.getId()), any(LocalDate.class), eq(expense.getId())))
-                .thenReturn(currentDailyTotal);
-        when(expenseRepository.sumAmountByDepartmentAndDateRangeExcludingExpense(
-                eq(itDepartment.getId()), any(LocalDate.class), any(LocalDate.class), eq(expense.getId())))
-                .thenReturn(currentMonthlyTotal);
+        @Test
+        void validateDailyBudgetOnly_departmentIsNull_noValidationPerformed() {
+            // Given
+            User userWithNoDepartment = User.builder()
+                    .id(2L)
+                    .name("No Department User")
+                    .email("nodept@ubs.com")
+                    .role(UserRole.EMPLOYEE)
+                    .department(null)
+                    .active(true)
+                    .build();
 
-        // When
-        strategy.validate(employee.getId(), foodCategory, expense, newAmount);
+            Expense expenseWithNoDepartment = Expense.builder()
+                    .id(2L)
+                    .amount(BigDecimal.valueOf(50))
+                    .description("Team lunch")
+                    .expenseDate(LocalDate.now())
+                    .user(userWithNoDepartment)
+                    .expenseCategory(foodCategory)
+                    .currency(usdCurrency)
+                    .status(ExpenseStatus.PENDING)
+                    .build();
 
-        // Then
-        verify(expenseRepository).sumAmountByDepartmentAndDateExcludingExpense(
-                eq(itDepartment.getId()), any(LocalDate.class), eq(expense.getId()));
-        verify(expenseRepository).sumAmountByDepartmentAndDateRangeExcludingExpense(
-                eq(itDepartment.getId()), any(LocalDate.class), any(LocalDate.class), eq(expense.getId()));
-        verify(eventPublisher).publishBudgetExceededEvent(eventCaptor.capture());
+            // When
+            strategy.validateDailyBudgetOnly(userWithNoDepartment.getId(), foodCategory, expenseWithNoDepartment, BigDecimal.valueOf(50));
 
-        BudgetExceededEvent capturedEvent = eventCaptor.getValue();
-        assertEquals(BudgetExceededEvent.BudgetType.DEPARTAMENT, capturedEvent.getBudgetType());
-        assertEquals(expense, capturedEvent.getExpense());
-        assertEquals(foodCategory, capturedEvent.getCategory());
-        assertEquals(employee.getId(), capturedEvent.getUserId());
-        assertEquals(currentMonthlyTotal, capturedEvent.getCurrentTotal());
-        assertEquals(0, new BigDecimal("12030.00").compareTo(capturedEvent.getNewTotal()));
-        assertEquals(0, new BigDecimal("12000.00").compareTo(capturedEvent.getBudgetLimit()));
-        assertNotNull(capturedEvent.getYearMonth());
-        assertEquals(YearMonth.from(expense.getExpenseDate()), capturedEvent.getYearMonth());
-    }
+            // Then
+            verifyNoInteractions(expenseRepository);
+            verifyNoInteractions(eventPublisher);
+        }
 
-    @Test
-    void validate_bothBudgetsExceeded_twoEventsPublished() {
-        // Given
-        BigDecimal currentDailyTotal = BigDecimal.valueOf(360);
-        BigDecimal currentMonthlyTotal = BigDecimal.valueOf(11980);
-        BigDecimal newAmount = BigDecimal.valueOf(50);
-        // Daily: 360 + 50 = 410, which exceeds the daily budget of 400
-        // Monthly: 11980 + 50 = 12030, which exceeds the monthly budget of 12000
+        @Test
+        void validateDailyBudgetOnly_nullDailyBudget_noValidationPerformed() {
+            // Given
+            Department departmentWithNullDailyBudget = Department.builder()
+                    .id(2L)
+                    .name("HR")
+                    .dailyBudget(null)  // No daily budget set
+                    .monthlyBudget(BigDecimal.valueOf(12000))
+                    .currency(usdCurrency)
+                    .build();
 
-        when(expenseRepository.sumAmountByDepartmentAndDateExcludingExpense(
-                eq(itDepartment.getId()), any(LocalDate.class), eq(expense.getId())))
-                .thenReturn(currentDailyTotal);
-        when(expenseRepository.sumAmountByDepartmentAndDateRangeExcludingExpense(
-                eq(itDepartment.getId()), any(LocalDate.class), any(LocalDate.class), eq(expense.getId())))
-                .thenReturn(currentMonthlyTotal);
+            User hrEmployee = User.builder()
+                    .id(2L)
+                    .name("HR Employee")
+                    .email("hr@ubs.com")
+                    .role(UserRole.EMPLOYEE)
+                    .department(departmentWithNullDailyBudget)
+                    .active(true)
+                    .build();
 
-        // When
-        strategy.validate(employee.getId(), foodCategory, expense, newAmount);
+            Expense hrExpense = Expense.builder()
+                    .id(2L)
+                    .amount(BigDecimal.valueOf(50))
+                    .description("HR lunch")
+                    .expenseDate(LocalDate.now())
+                    .user(hrEmployee)
+                    .expenseCategory(foodCategory)
+                    .currency(usdCurrency)
+                    .status(ExpenseStatus.PENDING)
+                    .build();
 
-        // Then
-        verify(expenseRepository).sumAmountByDepartmentAndDateExcludingExpense(
-                eq(itDepartment.getId()), any(LocalDate.class), eq(expense.getId()));
-        verify(expenseRepository).sumAmountByDepartmentAndDateRangeExcludingExpense(
-                eq(itDepartment.getId()), any(LocalDate.class), any(LocalDate.class), eq(expense.getId()));
-        verify(eventPublisher, times(2)).publishBudgetExceededEvent(any());
-    }
+            // When
+            strategy.validateDailyBudgetOnly(hrEmployee.getId(), foodCategory, hrExpense, BigDecimal.valueOf(50));
 
-    @Test
-    void validate_departmentWithNullDailyBudget_onlyChecksMonthlyBudget() {
-        // Given
-        Department departmentWithNullDailyBudget = Department.builder()
-                .id(2L)
-                .name("HR")
-                .dailyBudget(null)
-                .monthlyBudget(BigDecimal.valueOf(12000))
-                .currency(usdCurrency)
-                .build();
+            // Then - no daily budget validation performed
+            verify(expenseRepository, never()).sumAmountByDepartmentAndDateExcludingExpense(any(), any(), any());
+            verify(eventPublisher, never()).publishBudgetExceededEvent(any());
+        }
 
-        User hrEmployee = User.builder()
-                .id(2L)
-                .name("HR Employee")
-                .email("hr@ubs.com")
-                .role(UserRole.EMPLOYEE)
-                .department(departmentWithNullDailyBudget)
-                .active(true)
-                .build();
+        @Test
+        void validateDailyBudgetOnly_newExpenseWithNullId_usesNonExcludingQuery() {
+            // Given - expense with null ID (new expense)
+            Expense newExpense = Expense.builder()
+                    .id(null)  // New expense has no ID yet
+                    .amount(BigDecimal.valueOf(50))
+                    .description("New expense")
+                    .expenseDate(LocalDate.now())
+                    .user(employee)
+                    .expenseCategory(foodCategory)
+                    .currency(usdCurrency)
+                    .status(ExpenseStatus.PENDING)
+                    .build();
 
-        Expense hrExpense = Expense.builder()
-                .id(2L)
-                .amount(BigDecimal.valueOf(50))
-                .description("HR lunch")
-                .expenseDate(LocalDate.now())
-                .user(hrEmployee)
-                .expenseCategory(foodCategory)
-                .currency(usdCurrency)
-                .status(ExpenseStatus.PENDING)
-                .build();
+            BigDecimal currentDailyTotal = BigDecimal.valueOf(300);
+            BigDecimal newAmount = BigDecimal.valueOf(50);
 
-        BigDecimal currentMonthlyTotal = BigDecimal.valueOf(11980);
-        BigDecimal newAmount = BigDecimal.valueOf(50);
-        // Monthly: 11980 + 50 = 12030, which exceeds the monthly budget of 12000
+            when(expenseRepository.sumAmountByDepartmentAndDate(
+                    eq(itDepartment.getId()), any(LocalDate.class)))
+                    .thenReturn(currentDailyTotal);
 
-        when(expenseRepository.sumAmountByDepartmentAndDateRangeExcludingExpense(
-                eq(departmentWithNullDailyBudget.getId()), any(LocalDate.class), any(LocalDate.class), eq(hrExpense.getId())))
-                .thenReturn(currentMonthlyTotal);
+            // When
+            strategy.validateDailyBudgetOnly(employee.getId(), foodCategory, newExpense, newAmount);
 
-        // When
-        strategy.validate(hrEmployee.getId(), foodCategory, hrExpense, newAmount);
-
-        // Then
-        verify(expenseRepository, never()).sumAmountByDepartmentAndDateExcludingExpense(
-                eq(departmentWithNullDailyBudget.getId()), any(LocalDate.class), any());
-        verify(expenseRepository).sumAmountByDepartmentAndDateRangeExcludingExpense(
-                eq(departmentWithNullDailyBudget.getId()), any(LocalDate.class), any(LocalDate.class), eq(hrExpense.getId()));
-        verify(eventPublisher).publishBudgetExceededEvent(any());
+            // Then - non-excluding query was used (no expenseId parameter)
+            verify(expenseRepository).sumAmountByDepartmentAndDate(
+                    eq(itDepartment.getId()), any(LocalDate.class));
+            verify(expenseRepository, never()).sumAmountByDepartmentAndDateExcludingExpense(
+                    any(), any(), any());
+            verify(eventPublisher, never()).publishBudgetExceededEvent(any());
+        }
     }
 }
