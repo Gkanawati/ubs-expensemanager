@@ -1,6 +1,7 @@
 package com.ubs.expensemanager.service.expense.state;
 
 import com.ubs.expensemanager.exception.InvalidStatusTransitionException;
+import com.ubs.expensemanager.messages.Messages;
 import com.ubs.expensemanager.model.Expense;
 import com.ubs.expensemanager.model.ExpenseStatus;
 import java.util.Collections;
@@ -33,7 +34,7 @@ public abstract class TerminalState extends AbstractExpenseState {
   @Override
   public Expense approve(StateContext context) {
     throw new InvalidStatusTransitionException(
-        String.format("Cannot approve expense with terminal status %s", getStatus())
+        Messages.formatMessage(Messages.CANNOT_APPROVE_TERMINAL_STATUS, getStatus())
     );
   }
 
@@ -43,7 +44,7 @@ public abstract class TerminalState extends AbstractExpenseState {
   @Override
   public Expense reject(StateContext context) {
     throw new InvalidStatusTransitionException(
-        String.format("Cannot reject expense with terminal status %s", getStatus())
+        Messages.formatMessage(Messages.CANNOT_REJECT_TERMINAL_STATUS, getStatus())
     );
   }
 }

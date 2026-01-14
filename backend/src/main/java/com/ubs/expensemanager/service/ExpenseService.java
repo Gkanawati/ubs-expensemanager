@@ -9,6 +9,7 @@ import com.ubs.expensemanager.exception.InvalidStatusTransitionException;
 import com.ubs.expensemanager.exception.ResourceNotFoundException;
 import com.ubs.expensemanager.exception.UnauthorizedExpenseAccessException;
 import com.ubs.expensemanager.mapper.ExpenseMapper;
+import com.ubs.expensemanager.messages.Messages;
 import com.ubs.expensemanager.model.Currency;
 import com.ubs.expensemanager.model.Expense;
 import com.ubs.expensemanager.model.ExpenseCategory;
@@ -75,10 +76,11 @@ public class ExpenseService {
         log.info("Creating expense for user {} in category {}", currentUser.getId(), request.getExpenseCategoryId());
 
         ExpenseCategory category = expenseCategoryRepository.findById(request.getExpenseCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Expense category not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(Messages.EXPENSE_CATEGORY_NOT_FOUND));
 
         Currency currency = currencyRepository.findByName(request.getCurrencyName())
-                .orElseThrow(() -> new ResourceNotFoundException("Currency not found: " + request.getCurrencyName()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Messages.formatMessage(Messages.CURRENCY_NOT_FOUND, request.getCurrencyName())));
 
         Expense expense = expenseMapper.toEntity(request, currency, category, currentUser, ExpenseStatus.PENDING);
 
@@ -135,7 +137,7 @@ public class ExpenseService {
     @Transactional(readOnly = true)
     public ExpenseResponse findById(Long id) {
         Expense expense = expenseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(Messages.EXPENSE_NOT_FOUND));
 
         validateAccess(expense);
         return expenseMapper.toResponse(expense);
@@ -154,7 +156,7 @@ public class ExpenseService {
     public ExpenseResponse update(Long id, ExpenseUpdateRequest request) {
         User currentUser = getCurrentUser();
         Expense expense = expenseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(Messages.EXPENSE_NOT_FOUND));
 
         // Validate ownership
         validateOwnership(expense);
@@ -162,17 +164,18 @@ public class ExpenseService {
         // Validate status - only PENDING can be updated
         if (expense.getStatus() != ExpenseStatus.PENDING) {
             throw new InvalidStatusTransitionException(
-                    "Cannot update expense with status " + expense.getStatus() + ". Only PENDING expenses can be updated."
+                    Messages.formatMessage(Messages.CANNOT_UPDATE_EXPENSE_STATUS, expense.getStatus())
             );
         }
 
         log.info("Updating expense {} by user {}", id, currentUser.getId());
 
         ExpenseCategory category = expenseCategoryRepository.findById(request.getExpenseCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Expense category not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(Messages.EXPENSE_CATEGORY_NOT_FOUND));
 
         Currency currency = currencyRepository.findByName(request.getCurrencyName())
-                .orElseThrow(() -> new ResourceNotFoundException("Currency not found: " + request.getCurrencyName()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Messages.formatMessage(Messages.CURRENCY_NOT_FOUND, request.getCurrencyName())));
 
         expense = expenseMapper.updateEntity(expense, request, currency, category, ExpenseStatus.PENDING);
 
@@ -191,13 +194,13 @@ public class ExpenseService {
     public void delete(Long id) {
         User currentUser = getCurrentUser();
         Expense expense = expenseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(Messages.EXPENSE_NOT_FOUND));
 
         validateOwnership(expense);
 
         if (expense.getStatus() != ExpenseStatus.PENDING) {
             throw new InvalidStatusTransitionException(
-                    "Cannot delete expense with status " + expense.getStatus() + ". Only PENDING expenses can be deleted."
+                    Messages.formatMessage(Messages.CANNOT_DELETE_EXPENSE_STATUS, expense.getStatus())
             );
         }
 
@@ -218,8 +221,8 @@ public class ExpenseService {
         Expense expense = expenseRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
 
-        log.info("User {} (role: {}) attempting to approve expense {} with status {}",
-            currentUser.getId(), currentUser.getRole(), id, expense.getStatus());
+        log.debug(Messages.formatMessage(Messages.USER_ATTEMPTING_ACTION,
+            currentUser.getId(), currentUser.getRole(), "approve", id, expense.getStatus()));
 
         ExpenseState currentState = stateFactory.getState(expense.getStatus());
 
@@ -247,8 +250,8 @@ public class ExpenseService {
         Expense expense = expenseRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
 
-        log.info("User {} (role: {}) attempting to reject expense {} with status {}",
-            currentUser.getId(), currentUser.getRole(), id, expense.getStatus());
+        log.debug(Messages.formatMessage(Messages.USER_ATTEMPTING_ACTION,
+            currentUser.getId(), currentUser.getRole(), "reject", id, expense.getStatus()));
 
         ExpenseState currentState = stateFactory.getState(expense.getStatus());
 
@@ -305,7 +308,7 @@ public class ExpenseService {
                 !expense.getUser().getId().equals(currentUser.getId())) {
             log.warn("User {} attempted to access expense {} owned by user {}",
                     currentUser.getId(), expense.getId(), expense.getUser().getId());
-            throw new UnauthorizedExpenseAccessException("You do not have permission to access this expense");
+            throw new UnauthorizedExpenseAccessException(Messages.formatMessage(Messages.UNAUTHORIZED_ACCESS_EXPENSE));
         }
     }
 
@@ -322,7 +325,7 @@ public class ExpenseService {
         if (!expense.getUser().getId().equals(currentUser.getId())) {
             log.warn("User {} attempted to modify expense {} owned by user {}",
                     currentUser.getId(), expense.getId(), expense.getUser().getId());
-            throw new UnauthorizedExpenseAccessException("You do not have permission to modify this expense");
+            throw new UnauthorizedExpenseAccessException(Messages.formatMessage(Messages.UNAUTHORIZED_ACCESS_EXPENSE));
         }
     }
 
@@ -335,7 +338,7 @@ public class ExpenseService {
     @SuppressWarnings("unchecked")
     public List<ExpenseAuditResponse> getAuditHistory(Long id) {
         if (!expenseRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Expense not found");
+            throw new ResourceNotFoundException(Messages.EXPENSE_NOT_FOUND);
         }
 
         var auditReader = AuditReaderFactory.get(entityManager);

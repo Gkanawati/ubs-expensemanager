@@ -58,9 +58,7 @@ public class StateContext {
   public void validateSameDepartment() {
     if (!expense.getUser().getDepartment().getId()
         .equals(currentUser.getDepartment().getId())) {
-      throw new UnauthorizedExpenseAccessException(
-          "You can only process expenses for employees in your department"
-      );
+      throw new UnauthorizedExpenseAccessException("You can only process expenses for employees in your department");
     }
   }
 

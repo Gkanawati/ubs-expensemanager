@@ -1,5 +1,6 @@
 package com.ubs.expensemanager.service.expense.state;
 
+import com.ubs.expensemanager.messages.Messages;
 import com.ubs.expensemanager.model.ExpenseStatus;
 import jakarta.annotation.PostConstruct;
 import java.util.EnumMap;
@@ -58,6 +59,7 @@ public class ExpenseStateFactory {
   public ExpenseState getState(ExpenseStatus status) {
     ExpenseState state = stateMap.get(status);
     return Optional.ofNullable(state)
-        .orElseThrow(() -> new IllegalArgumentException("No state found for status: " + status));
+        .orElseThrow(() -> new IllegalArgumentException(
+            Messages.formatMessage(Messages.NO_STATE_FOUND_FOR_STATUS, status)));
   }
 }

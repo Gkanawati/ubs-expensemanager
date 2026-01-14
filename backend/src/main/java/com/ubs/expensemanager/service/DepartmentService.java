@@ -6,6 +6,7 @@ import com.ubs.expensemanager.dto.response.DepartmentResponse;
 import com.ubs.expensemanager.exception.ConflictException;
 import com.ubs.expensemanager.exception.ResourceNotFoundException;
 import com.ubs.expensemanager.mapper.DepartmentMapper;
+import com.ubs.expensemanager.messages.Messages;
 import com.ubs.expensemanager.model.Currency;
 import com.ubs.expensemanager.model.Department;
 import com.ubs.expensemanager.repository.CurrencyRepository;
@@ -43,12 +44,13 @@ public class DepartmentService {
 
         // Prevent duplicated department names
         if (departmentRepository.existsByNameIgnoreCase(request.getName())) {
-            throw new ConflictException("Department with this name already exists");
+            throw new ConflictException(Messages.DEPARTMENT_NAME_CONFLICT);
         }
 
         // Validate that the currency exists
         Currency currency = currencyRepository.findById(request.getCurrencyId())
-                .orElseThrow(() -> new ResourceNotFoundException("Currency not found with ID: " + request.getCurrencyId()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Messages.formatMessage(Messages.CURRENCY_NOT_FOUND_WITH_ID, request.getCurrencyId())));
 
         if (request.getDailyBudget() != null &&
             request.getDailyBudget().compareTo(request.getMonthlyBudget()) > 0) {
@@ -94,17 +96,18 @@ public class DepartmentService {
     public DepartmentResponse update(Long id, DepartmentUpdateRequest request) {
 
         Department department = departmentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(Messages.DEPARTMENT_NOT_FOUND));
 
         // If the name is being changed, ensure it does not conflict with another department
         if (!department.getName().equalsIgnoreCase(request.getName())
                 && departmentRepository.existsByNameIgnoreCase(request.getName())) {
-            throw new ConflictException("Department with this name already exists");
+            throw new ConflictException(Messages.DEPARTMENT_NAME_CONFLICT);
         }
 
         // Validate that the currency exists
         Currency currency = currencyRepository.findById(request.getCurrencyId())
-                .orElseThrow(() -> new ResourceNotFoundException("Currency not found with ID: " + request.getCurrencyId()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        Messages.formatMessage(Messages.CURRENCY_NOT_FOUND_WITH_ID, request.getCurrencyId())));
 
         if (request.getDailyBudget() != null &&
             request.getDailyBudget().compareTo(request.getMonthlyBudget()) > 0) {
@@ -131,7 +134,7 @@ public class DepartmentService {
      */
     public void delete(Long id) {
         if (!departmentRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Department not found");
+            throw new ResourceNotFoundException(Messages.DEPARTMENT_NOT_FOUND);
         }
 
         departmentRepository.deleteById(id);

@@ -1,6 +1,7 @@
 package com.ubs.expensemanager.service.expense.state;
 
 import com.ubs.expensemanager.exception.InvalidStatusTransitionException;
+import com.ubs.expensemanager.messages.Messages;
 import com.ubs.expensemanager.model.ExpenseStatus;
 import java.util.Collections;
 import java.util.Set;
@@ -56,7 +57,7 @@ public abstract class AbstractExpenseState implements ExpenseState {
   protected void validateTransition(ExpenseStatus targetStatus) {
     if (!canTransitionTo(targetStatus)) {
       throw new InvalidStatusTransitionException(
-          String.format("Cannot transition from %s to %s", status, targetStatus)
+          Messages.formatMessage(Messages.CANNOT_TRANSITION_FROM_TO, status, targetStatus)
       );
     }
   }

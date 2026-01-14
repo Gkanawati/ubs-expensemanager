@@ -48,9 +48,7 @@ public class PendingState extends AbstractExpenseState {
 
     // Validate authorization
     if (context.doesNotHaveRole(UserRole.MANAGER)) {
-      throw new UnauthorizedExpenseAccessException(
-          "Only managers can approve pending expenses"
-      );
+      throw new UnauthorizedExpenseAccessException("Only managers can approve pending expenses");
     }
 
     context.validateSameDepartment();
@@ -76,9 +74,7 @@ public class PendingState extends AbstractExpenseState {
 
     // Validate authorization
     if (context.doesNotHaveRole(UserRole.MANAGER)) {
-      throw new UnauthorizedExpenseAccessException(
-          "Only managers can reject pending expenses"
-      );
+      throw new UnauthorizedExpenseAccessException("Only managers can reject pending expenses");
     }
 
     context.validateSameDepartment();
@@ -89,7 +85,7 @@ public class PendingState extends AbstractExpenseState {
     context.saveExpense();
 
     log.info(Messages.formatMessage(Messages.EXPENSE_REJECTED_BY_MANAGER,
-        context.getCurrentUser().getUsername()));
+        context.getExpense().getId(), context.getCurrentUser().getUsername()));
 
     return context.getExpense();
   }
