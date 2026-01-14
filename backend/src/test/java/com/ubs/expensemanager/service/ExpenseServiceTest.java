@@ -20,6 +20,8 @@ import com.ubs.expensemanager.exception.InvalidStatusTransitionException;
 import com.ubs.expensemanager.exception.ResourceNotFoundException;
 import com.ubs.expensemanager.exception.UnauthorizedExpenseAccessException;
 import com.ubs.expensemanager.mapper.ExpenseMapper;
+import com.ubs.expensemanager.model.Alert;
+import com.ubs.expensemanager.model.AlertStatus;
 import com.ubs.expensemanager.model.Currency;
 import com.ubs.expensemanager.model.Department;
 import com.ubs.expensemanager.model.Expense;
@@ -27,13 +29,13 @@ import com.ubs.expensemanager.model.ExpenseCategory;
 import com.ubs.expensemanager.model.ExpenseStatus;
 import com.ubs.expensemanager.model.User;
 import com.ubs.expensemanager.model.UserRole;
+import com.ubs.expensemanager.repository.AlertRepository;
 import com.ubs.expensemanager.repository.CurrencyRepository;
 import com.ubs.expensemanager.repository.ExpenseCategoryRepository;
 import com.ubs.expensemanager.repository.ExpenseRepository;
 import com.ubs.expensemanager.service.budget.CategoryBudgetValidationStrategy;
 import com.ubs.expensemanager.service.budget.DepartmentBudgetValidationStrategy;
 import com.ubs.expensemanager.service.expense.state.ExpenseStateFactory;
-import com.ubs.expensemanager.service.expense.state.ExpenseState;
 import com.ubs.expensemanager.service.expense.state.PendingState;
 import com.ubs.expensemanager.service.expense.state.ApprovedByManagerState;
 import com.ubs.expensemanager.service.expense.state.ApprovedByFinanceState;
@@ -86,6 +88,9 @@ class ExpenseServiceTest {
 
   @Mock
   ExpenseStateFactory stateFactory;
+
+  @Mock
+  AlertRepository alertRepository;
 
   @InjectMocks
   ExpenseService expenseService;
@@ -759,6 +764,49 @@ class ExpenseServiceTest {
         () -> assertNotNull(result),
         () -> assertEquals(ExpenseStatus.REJECTED, approvedByManagerExpense.getStatus()),
         () -> verify(expenseRepository).save(approvedByManagerExpense)
+    );
+  }
+
+  // ==================== APPROVE WITH ALERT TESTS ====================
+
+  @Test
+  void approve_WithNewAlert_ThrowsException() {
+    Alert newAlert = Alert.builder()
+        .id(1L)
+        .expense(pendingExpense)
+        .status(AlertStatus.NEW)
+        .message("Budget exceeded")
+        .build();
+
+    when(securityContext.getAuthentication()).thenReturn(authentication);
+    when(authentication.getPrincipal()).thenReturn(manager);
+    when(expenseRepository.findById(1L)).thenReturn(Optional.of(pendingExpense));
+    when(alertRepository.findByExpenseAndStatus(pendingExpense, AlertStatus.NEW))
+        .thenReturn(List.of(newAlert));
+
+    assertAll(
+        () -> assertThrows(InvalidStatusTransitionException.class,
+            () -> expenseService.approve(1L)),
+        () -> verify(expenseRepository, never()).save(any())
+    );
+  }
+
+  @Test
+  void approve_WithResolvedAlert_Success() {
+    when(securityContext.getAuthentication()).thenReturn(authentication);
+    when(authentication.getPrincipal()).thenReturn(manager);
+    when(expenseRepository.findById(1L)).thenReturn(Optional.of(pendingExpense));
+    when(alertRepository.findByExpenseAndStatus(pendingExpense, AlertStatus.NEW))
+        .thenReturn(List.of());
+    when(expenseRepository.save(any(Expense.class))).thenReturn(pendingExpense);
+    when(expenseMapper.toResponse(pendingExpense)).thenReturn(expenseResponse);
+
+    ExpenseResponse result = expenseService.approve(1L);
+
+    assertAll(
+        () -> assertNotNull(result),
+        () -> assertEquals(ExpenseStatus.APPROVED_BY_MANAGER, pendingExpense.getStatus()),
+        () -> verify(expenseRepository).save(pendingExpense)
     );
   }
 }
