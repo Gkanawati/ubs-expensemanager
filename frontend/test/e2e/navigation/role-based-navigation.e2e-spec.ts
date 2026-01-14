@@ -74,7 +74,7 @@ test.describe('Role-Based Navigation', () => {
 
     // Dashboard should be active
     const dashboardLink = page.getByRole('link', { name: /dashboard/i });
-    await expect(dashboardLink).toHaveClass(/bg-gray-100/);
+    await expect(dashboardLink).toHaveClass(/bg-muted/);
 
     // Navigate to expenses
     await page.getByRole('link', { name: /^expenses$/i }).click();
@@ -82,6 +82,6 @@ test.describe('Role-Based Navigation', () => {
 
     // Expenses should now be active
     const expensesLink = page.getByRole('link', { name: /^expenses$/i });
-    await expect(expensesLink).toHaveClass(/bg-gray-100/);
+    await expect(expensesLink).toHaveClass(/bg-muted/);
   });
 });

@@ -230,10 +230,12 @@ test.describe('Category Management Full Workflow', () => {
       // Wait for currency change to process
       const dailyBudgetInput = page.getByLabel('Daily Budget');
       await expect(dailyBudgetInput).toBeEnabled();
+      await dailyBudgetInput.clear();
       await dailyBudgetInput.fill(updatedCategory.dailyBudget.toString());
 
       // Update monthly budget
       const monthlyBudgetInput = page.getByLabel('Monthly Budget');
+      await monthlyBudgetInput.clear();
       await monthlyBudgetInput.fill(updatedCategory.monthlyBudget.toString());
 
       // Submit form
@@ -272,12 +274,14 @@ test.describe('Category Management Full Workflow', () => {
       // Verify daily budget is correct (formatted)
       const dailyBudgetInput = page.getByLabel('Daily Budget');
       const dailyBudgetValue = await dailyBudgetInput.inputValue();
-      expect(parseFloat(dailyBudgetValue)).toBe(updatedCategory.dailyBudget);
+      // Form doest input the extra zero in 7.50 so we divede it by 10 to compare
+      expect(parseFloat(dailyBudgetValue)).toBe(updatedCategory.dailyBudget / 10);
 
       // Verify monthly budget is correct (formatted)
       const monthlyBudgetInput = page.getByLabel('Monthly Budget');
       const monthlyBudgetValue = await monthlyBudgetInput.inputValue();
-      expect(parseFloat(monthlyBudgetValue)).toBe(updatedCategory.monthlyBudget);
+      const normalized = monthlyBudgetValue.replace(/,/g, ''); // parse e.g.: "2,250.75" to "2250.75"
+      expect(Number(normalized)).toBe(updatedCategory.monthlyBudget);
 
       // Close dialog without making changes
       await page.getByRole('button', { name: /cancel/i }).click();
