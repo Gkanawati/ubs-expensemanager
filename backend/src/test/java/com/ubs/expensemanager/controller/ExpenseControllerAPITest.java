@@ -161,7 +161,7 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
    */
   @Test
   @DataSet(BASE_DATASET + "input/expenses.yml")
-  @ExpectedDataSet(BASE_DATASET + "expected/after-create-expense-manager-pending.yml")
+  @ExpectedDataSet(value = BASE_DATASET + "expected/after-create-expense-manager-pending.yml", ignoreCols = "id")
   void shouldCreateExpenseAsPendingWhenManagerHasManager() {
     // given
     final String endpointPath = getPath();
@@ -198,7 +198,7 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
    */
   @Test
   @DataSet(BASE_DATASET + "input/expenses.yml")
-  @ExpectedDataSet(BASE_DATASET + "expected/after-create-expense-top-manager-approved.yml")
+  @ExpectedDataSet(value = BASE_DATASET + "expected/after-create-expense-top-manager-approved.yml", ignoreCols = "id")
   void shouldCreateExpenseAsApprovedByManagerWhenUserHasNoManager() {
     // given
     final String endpointPath = getPath();
@@ -223,6 +223,43 @@ public class ExpenseControllerAPITest extends ControllerAPITest {
           assertNotNull(response.getBody());
           assertEquals("APPROVED_BY_MANAGER", response.getBody().getStatus().toString());
           assertEquals(102L, response.getBody().getUserId());
+        },
+        () -> assertNotNull(response.getHeaders().getLocation())
+    );
+  }
+
+  /**
+   * Verifies if {@link ExpenseController#create} will successfully create expense as PENDING
+   * when finance user has a manager above them (finance@ubs.com reports to manager2@ubs.com).
+   */
+  @Test
+  @DataSet(BASE_DATASET + "input/expenses-finance-with-manager.yml")
+  @ExpectedDataSet(value = BASE_DATASET + "expected/after-create-expense-finance-pending.yml", ignoreCols = "id")
+  void shouldCreateExpenseAsPendingWhenFinanceHasManager() {
+    // given
+    final String endpointPath = getPath();
+    final String data = readFixtureFile("__files/expense/request/create-expense.json");
+    authenticateAsFinance();
+
+    // when
+    ResponseEntity<ExpenseResponse> response = restTemplate.exchange(
+        endpointPath,
+        HttpMethod.POST,
+        new HttpEntity<>(data, headers),
+        ExpenseResponse.class
+    );
+
+    // then
+    assertAll(
+        () -> assertNotNull(response),
+        () -> assertEquals(HttpStatus.CREATED, response.getStatusCode()),
+        () -> assertNotNull(response.getBody()),
+        () -> assertEquals(new BigDecimal("25.50"), Objects.requireNonNull(response.getBody()).getAmount()),
+        () -> {
+          assertNotNull(response.getBody());
+          assertEquals("PENDING", response.getBody().getStatus().toString(),
+              "Finance user with manager should create expense as PENDING");
+          assertEquals(103L, response.getBody().getUserId());
         },
         () -> assertNotNull(response.getHeaders().getLocation())
     );
