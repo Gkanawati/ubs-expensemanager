@@ -120,4 +120,11 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Native select dropdown styling for dark mode */
+  select {
+    @apply text-foreground;
+  }
+  select option {
+    @apply bg-background text-foreground;
+  }
 }

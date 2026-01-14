@@ -255,7 +255,7 @@ export const ExpensesPage = () => {
                         />
                         {statusFilter === status && (
                           <svg
-                            className="absolute h-3 w-3 text-white pointer-events-none"
+                            className="absolute h-3 w-3 text-primary-foreground pointer-events-none"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -265,7 +265,7 @@ export const ExpensesPage = () => {
                           </svg>
                         )}
                       </div>
-                      <span className="text-sm">{STATUS_LABELS[status]}</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-200">{STATUS_LABELS[status]}</span>
                     </label>
                   ))}
                 </div>

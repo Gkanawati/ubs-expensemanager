@@ -19,10 +19,10 @@ export const navigationConfig: MenuItem[] = [
   },
   {
     id: 'expenses',
-    label: 'My Expenses',
+    label: 'Expenses',
     path: '/expenses',
     icon: 'Receipt',
-    allowedRoles: ['ROLE_MANAGER', 'ROLE_EMPLOYEE', 'ROLE_FINANCE'],
+    allowedRoles: ['ROLE_EMPLOYEE'],
   },
   {
     id: 'manage-expenses',
