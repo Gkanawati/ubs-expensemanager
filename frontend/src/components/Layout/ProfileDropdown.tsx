@@ -80,7 +80,7 @@ export const ProfileDropdown = ({ showTextOnSmallScreens = false }: { showTextOn
       </button>
 
       {isProfileMenuOpen && (
-        <div className='absolute right-0 top-full mt-2 w-56 rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800'>
+        <div className='absolute right-0 top-full mt-2 w-56 rounded-lg border border-border bg-popover shadow-lg'>
           <div className='py-1'>
             <button
               onClick={handleProfilePageClick}

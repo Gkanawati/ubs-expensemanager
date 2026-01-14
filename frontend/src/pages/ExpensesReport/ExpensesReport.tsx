@@ -199,7 +199,7 @@ export const ExpensesReport = () => {
           </Button>
 
           {filterDropdownOpen && (
-            <div className="absolute right-0 top-full mt-1 z-50 min-w-[280px] rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
+            <div className="absolute right-0 top-full mt-1 z-50 min-w-[280px] rounded-md border border-border bg-popover shadow-lg">
               <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
                   Filter by Date

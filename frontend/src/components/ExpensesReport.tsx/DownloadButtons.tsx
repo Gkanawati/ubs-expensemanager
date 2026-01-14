@@ -54,10 +54,10 @@ export function DownloadButtons<T>({
             setDownloadingCsv(false);
           }
         }}
-        className="flex items-center gap-2 text-blue-600"
+        className="flex items-center gap-2"
       >
         {downloadingCsv ? (
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
         ) : (
           <Download className="h-4 w-4" />
         )}
@@ -70,7 +70,7 @@ export function DownloadButtons<T>({
         size="sm"
         disabled={disabled}
         onClick={() => downloadJSON(data, jsonFilename)}
-        className="flex items-center gap-2 text-blue-600"
+        className="flex items-center gap-2"
       >
         <Download className="h-4 w-4" />
         JSON

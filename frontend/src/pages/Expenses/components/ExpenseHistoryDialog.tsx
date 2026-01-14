@@ -88,7 +88,7 @@ export const ExpenseHistoryDialog = ({
         onClick={() => onOpenChange(false)}
       />
 
-      <div className="relative z-50 w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900 m-4">
+      <div className="relative z-50 w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-lg border border-border bg-card shadow-lg m-4">
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
           <div className="flex items-center gap-2">
             <Clock className="h-5 w-5 text-gray-600 dark:text-gray-400" />
@@ -133,7 +133,7 @@ export const ExpenseHistoryDialog = ({
               {history.map((entry, index) => (
                 <div
                   key={`${entry.revisionNumber}-${index}`}
-                  className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50"
+                  className="rounded-lg border border-border bg-muted p-4"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">

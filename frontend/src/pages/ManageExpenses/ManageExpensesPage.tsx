@@ -296,7 +296,7 @@ export const ManageExpensesPage = () => {
         </p>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+      <div className="rounded-lg border border-border bg-card p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="relative" ref={filterDropdownRef}>
             <button
@@ -311,7 +311,7 @@ export const ManageExpensesPage = () => {
             </button>
 
             {filterDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 z-50 min-w-[280px] rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
+              <div className="absolute top-full left-0 mt-1 z-50 min-w-[280px] rounded-md border border-border bg-popover shadow-lg">
                 <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
                   <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Filter by Status</span>
                 </div>
@@ -403,7 +403,7 @@ export const ManageExpensesPage = () => {
       />
 
       {!loading && !error && totalElements > 0 && (
-        <div className="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <div className="rounded-lg border border-border bg-card">
           <TablePagination
             currentPage={currentPage}
             totalPages={totalPages}

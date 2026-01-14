@@ -40,7 +40,7 @@ type TooltipProps = {
 const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg px-3 py-2">
+      <div className="bg-popover border border-border rounded-lg shadow-lg px-3 py-2">
         <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
           {label}
         </p>

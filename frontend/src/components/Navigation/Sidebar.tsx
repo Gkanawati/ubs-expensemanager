@@ -46,11 +46,11 @@ export const Sidebar = ({ className }: SidebarProps) => {
   return (
     <aside
       className={cn(
-        'fixed left-0 top-0 z-40 h-screen w-64 border-r border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900',
+        'fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-card',
         className
       )}
     >
-      <div className='flex h-16 items-center justify-center border-b border-gray-200 px-6 dark:border-gray-800'>
+      <div className='flex h-16 items-center justify-center border-b border-border px-6'>
         <button
           onClick={handleLogoClick}
           className='bg-transparent border-none p-0 cursor-pointer hover:opacity-80 transition-opacity'
