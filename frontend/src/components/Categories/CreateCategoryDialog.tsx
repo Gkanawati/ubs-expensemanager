@@ -19,6 +19,7 @@ interface CreateCategoryDialogProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: CreateCategoryFormData) => void;
   error?: string;
+  isLoading?: boolean;
 }
 
 const currencyOptions = ["USD", "BRL"];
@@ -28,6 +29,7 @@ export const CreateCategoryDialog = ({
   onOpenChange,
   onSubmit,
   error,
+  isLoading = false,
 }: CreateCategoryDialogProps) => {
   const [formData, setFormData] = useState<CreateCategoryFormData>({
     name: "",
@@ -241,11 +243,12 @@ export const CreateCategoryDialog = ({
               type="button"
               variant="outline"
               onClick={() => handleOpenChange(false)}
+              disabled={isLoading}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={!isFormValid()}>
-              Create Category
+            <Button type="submit" disabled={!isFormValid()} loading={isLoading}>
+              {isLoading ? "Creating..." : "Create Category"}
             </Button>
           </DialogFooter>
         </form>

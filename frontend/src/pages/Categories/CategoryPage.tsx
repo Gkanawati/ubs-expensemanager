@@ -50,6 +50,8 @@ export const CategoriesPage = () => {
 
   const [openCreateSuccessDialog, setOpenCreateSuccessDialog] = useState(false);
   const [openSuccessDialog, setOpenSuccessDialog] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     fetchCategories(currentPage, 10, searchQuery);
@@ -86,6 +88,7 @@ export const CategoriesPage = () => {
   };
 
   const handleCreateCategory = async (data: CreateCategoryFormData) => {
+    setIsCreating(true);
     try {
       await createCategory({
         name: data.name,
@@ -100,6 +103,8 @@ export const CategoriesPage = () => {
       setOpenCreateSuccessDialog(true);
     } catch (err) {
       setCreateErrorMessage(getErrorMessage(err));
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -112,6 +117,7 @@ export const CategoriesPage = () => {
   const handleUpdateCategory = async (data: EditCategoryFormData) => {
     if (!selectedCategory) return;
 
+    setIsEditing(true);
     try {
       await updateCategory(selectedCategory.id, {
         ...data,
@@ -123,6 +129,8 @@ export const CategoriesPage = () => {
       setOpenSuccessDialog(true);
     } catch (err) {
       setEditErrorMessage(getErrorMessage(err));
+    } finally {
+      setIsEditing(false);
     }
   };
 
@@ -230,6 +238,7 @@ export const CategoriesPage = () => {
         onOpenChange={setOpenCreateDialog}
         onSubmit={handleCreateCategory}
         error={createErrorMessage}
+        isLoading={isCreating}
       />
 
       <EditCategoryDialog
@@ -238,6 +247,7 @@ export const CategoriesPage = () => {
         category={selectedCategory}
         onSubmit={handleUpdateCategory}
         error={editErrorMessage}
+        isLoading={isEditing}
       />
 
       <ConfirmationDialog

@@ -40,6 +40,7 @@ export const AlertsPage = () => {
   const [resolveError, setResolveError] = useState("");
 
   const [openSuccessDialog, setOpenSuccessDialog] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
 
   useEffect(() => {
     fetchAlerts();
@@ -74,6 +75,7 @@ export const AlertsPage = () => {
   const handleResolveSubmit = async () => {
     if (!selectedAlert) return;
 
+    setIsResolving(true);
     try {
       await resolveAlert(selectedAlert.idAlert);
       setOpenResolveDialog(false);
@@ -81,6 +83,8 @@ export const AlertsPage = () => {
       setOpenSuccessDialog(true);
     } catch (err) {
       setResolveError(getErrorMessage(err));
+    } finally {
+      setIsResolving(false);
     }
   };
 
@@ -190,6 +194,7 @@ export const AlertsPage = () => {
         selectedAlert={selectedAlert ?? undefined}
         onSubmit={handleResolveSubmit}
         error={resolveError}
+        isLoading={isResolving}
       />
 
       <ConfirmationDialog

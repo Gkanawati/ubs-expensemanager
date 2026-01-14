@@ -26,6 +26,7 @@ interface CreateUserDialogProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: CreateUserFormData) => void;
   error?: string;
+  isLoading?: boolean;
 }
 
 export const CreateUserDialog = ({
@@ -33,6 +34,7 @@ export const CreateUserDialog = ({
   onOpenChange,
   onSubmit,
   error,
+  isLoading = false,
 }: CreateUserDialogProps) => {
   const [formData, setFormData] = useState<CreateUserFormData>({
     name: "",
@@ -343,6 +345,7 @@ export const CreateUserDialog = ({
               variant="outline"
               size="lg"
               onClick={() => handleOpenChange(false)}
+              disabled={isLoading}
             >
               Cancel
             </Button>
@@ -352,8 +355,9 @@ export const CreateUserDialog = ({
               size="lg"
               disabled={!isFormValid()}
               onClick={handleSubmit}
+              loading={isLoading}
             >
-              Create User
+              {isLoading ? "Creating..." : "Create User"}
             </Button>
           </DialogFooter>
         </form>

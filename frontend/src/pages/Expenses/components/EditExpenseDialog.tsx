@@ -441,7 +441,8 @@ export const EditExpenseDialog = ({
               type="submit"
               variant="default"
               size="lg"
-              disabled={!isFormValid() || isLoading}
+              disabled={!isFormValid()}
+              loading={isLoading}
             >
               {isLoading ? "Saving..." : "Save Changes"}
             </Button>

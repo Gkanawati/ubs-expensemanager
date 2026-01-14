@@ -2,10 +2,25 @@
 
 A **full-stack expense management system** designed for corporate employee reimbursements, developed as a **technical case study** using **Spring Boot (Java 21)** for the backend and **React + TypeScript** for the frontend, fully containerized with **Docker Compose**.
 
+### Live Demo
+
+- **Application**: https://ubs-expensemanager.vercel.app
+- **API Documentation**: https://ubs-expensemanager.onrender.com/swagger-ui/index.html
 
 ---
 
-##  High-Level Architecture
+## Features
+
+- **Expense Management** - Create, edit, and track expenses with multi-currency support and receipt attachments
+- **Approval Workflow** - Two-level approval process (Manager → Finance) with state-based transitions
+- **Budget Controls** - Category and department-level budgets with automatic validation
+- **Alert System** - Automatic notifications when budgets are exceeded
+- **Reporting & Analytics** - Expenses by employee, category, and department with CSV export
+- **Audit Trail** - Complete change history tracking for all expenses
+
+---
+
+## High-Level Architecture
 
 ```
     ┌──────────────┐     HTTP      ┌──────────────────┐     JDBC      ┌──────────────┐
@@ -15,10 +30,10 @@ A **full-stack expense management system** designed for corporate employee reimb
     └──────────────┘               └──────────────────┘               └──────────────┘
 ```
 
-* **Frontend**: React application running with Vite (development server)
-* **Backend**: Spring Boot REST API with mock authentication
-* **Database**: PostgreSQL with schema versioning via Flyway
-* **Infrastructure**: Docker & Docker Compose
+- **Frontend**: React application running with Vite (development server)
+- **Backend**: Spring Boot REST API with mock authentication
+- **Database**: PostgreSQL with schema versioning via Flyway
+- **Infrastructure**: Docker & Docker Compose
 
 ---
 
@@ -83,7 +98,7 @@ expense-manager/
 
 ---
 
-##  Docker & Containerization
+## Docker & Containerization
 
 The project runs **entirely inside Docker containers**. There is **no need to install Java, Maven, Node.js, or PostgreSQL locally**.
 
@@ -101,8 +116,8 @@ The project runs **entirely inside Docker containers**. There is **no need to in
 
 ### Prerequisites
 
-* Docker
-* Docker Compose
+- Docker
+- Docker Compose
 
 ### Start the full stack
 
@@ -112,9 +127,9 @@ docker compose up --build
 
 Once started:
 
-* Frontend: [http://localhost:3000](http://localhost:3000)
-* Backend API: [http://localhost:8080](http://localhost:8080)
-* Swagger Documentation: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+- Frontend: [http://localhost:3000](http://localhost:3000)
+- Backend API: [http://localhost:8080](http://localhost:8080)
+- Swagger Documentation: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
 
 ---
 
@@ -132,76 +147,159 @@ The JWT token is returned in the response body and also set as an **HttpOnly coo
 
 ### User Roles
 
-| Role       | Description                                    | Permissions                                    |
-|------------|------------------------------------------------|------------------------------------------------|
-| `EMPLOYEE` | Regular employee who submits expense claims    | Create and view own expenses                   |
-| `MANAGER`  | Department manager who approves expenses       | Approve/reject expenses, view team reports     |
-| `FINANCE`  | Finance team member with full system access    | Manage users, categories, view all reports     |
+| Role       | Description                                 | Permissions                                |
+| ---------- | ------------------------------------------- | ------------------------------------------ |
+| `EMPLOYEE` | Regular employee who submits expense claims | Create and view own expenses               |
+| `MANAGER`  | Department manager who approves expenses    | Approve/reject expenses, view team reports |
+| `FINANCE`  | Finance team member with full system access | Manage users, categories, view all reports |
 
 ### Security Features
 
-* **JWT Token**: Stateless authentication with configurable expiration
-* **Password Encryption**: BCrypt hashing for secure password storage
-* **HttpOnly Cookies**: Protection against XSS attacks
-* **CORS Configuration**: Controlled cross-origin access
-* **Role-based Authorization**: Method-level security with `@PreAuthorize`
-* **Public Endpoints**: Swagger, authentication endpoints accessible without token
+- **JWT Token**: Stateless authentication with configurable expiration
+- **Password Encryption**: BCrypt hashing for secure password storage
+- **HttpOnly Cookies**: Protection against XSS attacks
+- **CORS Configuration**: Controlled cross-origin access
+- **Role-based Authorization**: Method-level security with `@PreAuthorize`
+- **Public Endpoints**: Swagger, authentication endpoints accessible without token
 
 ### Default Users
 
 The application creates **4 default users** automatically on startup. All users share the same password: `123456`
 
-| Email               | Password | Role       | Description          |
-|---------------------|----------|------------|----------------------|
-| finance@ubs.com     | 123456   | FINANCE    | Finance team member  |
-| manager@ubs.com     | 123456   | MANAGER    | Department manager   |
-| employee@ubs.com    | 123456   | EMPLOYEE   | Employee One         |
-| employee2@ubs.com   | 123456   | EMPLOYEE   | Employee Two         |
+| Email             | Password | Role     | Description         |
+| ----------------- | -------- | -------- | ------------------- |
+| finance@ubs.com   | 123456   | FINANCE  | Finance team member |
+| manager@ubs.com   | 123456   | MANAGER  | Department manager  |
+| employee@ubs.com  | 123456   | EMPLOYEE | Employee One        |
+| employee2@ubs.com | 123456   | EMPLOYEE | Employee Two        |
 
 **Quick Start:**
+
 1. Access the frontend at [http://localhost:3000](http://localhost:3000)
 2. Login with any of the default users above
 3. Finance users can create additional users via the User Management page
 
 ---
 
-##  API Documentation
+## API Documentation
 
 The project includes **interactive API documentation** powered by Swagger/OpenAPI:
 
-* **Swagger UI**: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
-* **OpenAPI Spec**: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+- **Swagger UI**: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+- **OpenAPI Spec**: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
 
 You can explore and test all available endpoints directly from the Swagger interface.
 
 ---
 
-##  CI/CD Pipeline
+## CI/CD Pipeline
 
 The project implements a **comprehensive CI/CD pipeline** using GitHub Actions that runs automatically on:
-* Push to `dev` branch
-* Pull requests to `dev` or `main` branches
+
+- Push to `dev` branch
+- Pull requests to `dev` or `main` branches
 
 ### Pipeline Stages
 
 **Backend (Spring Boot)**
-* Setup JDK 21 (Temurin distribution)
-* Maven cache optimization
-* Build and run all unit & integration tests (`mvn clean verify`)
+
+- Setup JDK 21 (Temurin distribution)
+- Maven cache optimization
+- Build and run all unit & integration tests (`mvn clean verify`)
 
 **Frontend (React + TypeScript)**
-* Setup Node.js 20
-* Install dependencies with npm cache
-* Run ESLint for code quality
-* Execute unit tests with Vitest
-* Run E2E tests with Playwright (Chromium)
-* Build production bundle
+
+- Setup Node.js 20
+- Install dependencies with npm cache
+- Run ESLint for code quality
+- Execute unit tests with Vitest
+- Run E2E tests with Playwright (Chromium)
+- Build production bundle
 
 **Docker**
-* Validate Docker image builds for both frontend and backend
-* Runs only after successful backend and frontend tests
+
+- Validate Docker image builds for both frontend and backend
+- Runs only after successful backend and frontend tests
 
 All tests must pass before code can be merged, ensuring code quality and preventing regressions.
+
+---
+
+## Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+| Variable                     | Description                  | Example                 |
+| ---------------------------- | ---------------------------- | ----------------------- |
+| `POSTGRES_DB`                | Database name                | `expense_db`            |
+| `POSTGRES_USER`              | Database username            | `postgres`              |
+| `POSTGRES_PASSWORD`          | Database password            | `secret`                |
+| `DB_PORT`                    | Database port                | `5432`                  |
+| `JWT_SECRET`                 | Secret key for JWT tokens    | `your-256-bit-secret`   |
+| `CORS_ALLOWED_ORIGINS`       | Allowed CORS origins         | `http://localhost:3000` |
+| `ACTUATOR_REQUIRED_USER`     | Actuator basic auth user     | `admin`                 |
+| `ACTUATOR_REQUIRED_PASSWORD` | Actuator basic auth password | `admin`                 |
+| `BACKEND_ENDPOINT`           | Backend API URL              | `http://localhost:8080` |
+
+See `.env.example` for a template.
+
+---
+
+## Local Development
+
+### Using Docker (Recommended)
+
+With Docker Compose, all environment variables are pre-configured. Just run:
+
+```bash
+docker compose up --build
+```
+
+### Without Docker
+
+If you prefer to run the services manually:
+
+**Backend**
+
+Prerequisites: Java 21, PostgreSQL running locally
+
+```bash
+cd backend
+./mvnw spring-boot:run
+```
+
+**Frontend**
+
+Prerequisites: Node.js 20+
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## Testing
+
+### Backend
+
+```bash
+cd backend
+./mvnw test                    # Unit tests
+./mvnw verify                  # All tests including integration
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm run test                   # Unit tests (watch mode)
+npm run test:run               # Unit tests (single run)
+npm run test:coverage          # With coverage report
+npm run test:e2e               # Playwright E2E tests
+npm run test:e2e:headed        # E2E with browser visible
+```
 
 ---
 

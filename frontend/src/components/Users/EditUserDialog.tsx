@@ -42,6 +42,7 @@ interface EditUserDialogProps {
   } | null;
   onSubmit: (data: EditUserFormData) => void;
   error?: string;
+  isLoading?: boolean;
 }
 
 export const EditUserDialog = ({
@@ -50,6 +51,7 @@ export const EditUserDialog = ({
   user,
   onSubmit,
   error,
+  isLoading = false,
 }: EditUserDialogProps) => {
   const [formData, setFormData] = useState<EditUserFormData>({
     name: user?.name || "",
@@ -348,6 +350,7 @@ export const EditUserDialog = ({
               variant="outline"
               size="lg"
               onClick={() => handleOpenChange(false)}
+              disabled={isLoading}
             >
               Cancel
             </Button>
@@ -357,8 +360,9 @@ export const EditUserDialog = ({
               size="lg"
               disabled={!isFormValid()}
               onClick={handleSubmit}
+              loading={isLoading}
             >
-              Save Changes
+              {isLoading ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </form>

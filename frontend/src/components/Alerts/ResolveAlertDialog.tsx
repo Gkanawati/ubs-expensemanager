@@ -18,6 +18,7 @@ interface ResolveAlertDialogProps {
 
   onSubmit: () => void;
   error?: string;
+  isLoading?: boolean;
 }
 
 export const ResolveAlertDialog = ({
@@ -26,6 +27,7 @@ export const ResolveAlertDialog = ({
   selectedAlert,
   onSubmit,
   error,
+  isLoading = false,
 }: ResolveAlertDialogProps) => {
   if (!selectedAlert) return null;
 
@@ -79,6 +81,7 @@ export const ResolveAlertDialog = ({
             variant="outline"
             type="button"
             onClick={() => onOpenChange(false)}
+            disabled={isLoading}
           >
             Cancel
           </Button>
@@ -86,8 +89,9 @@ export const ResolveAlertDialog = ({
           <Button
             type="button"
             onClick={onSubmit}
+            loading={isLoading}
           >
-            Resolve
+            {isLoading ? "Resolving..." : "Resolve"}
           </Button>
         </DialogFooter>
       </DialogContent>

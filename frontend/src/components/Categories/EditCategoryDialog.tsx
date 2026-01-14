@@ -26,6 +26,7 @@ interface EditCategoryDialogProps {
   category: EditCategoryFormData | null;
   onSubmit: (data: EditCategoryFormData) => void;
   error?: string;
+  isLoading?: boolean;
 }
 
 const currencyOptions = ["USD", "BRL"];
@@ -36,6 +37,7 @@ export const EditCategoryDialog = ({
   category,
   onSubmit,
   error,
+  isLoading = false,
 }: EditCategoryDialogProps) => {
   const [formData, setFormData] = useState<EditCategoryFormData>({
     name: "",
@@ -231,11 +233,12 @@ export const EditCategoryDialog = ({
               type="button"
               variant="outline"
               onClick={() => handleOpenChange(false)}
+              disabled={isLoading}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={!isFormValid()}>
-              Save Changes
+            <Button type="submit" disabled={!isFormValid()} loading={isLoading}>
+              {isLoading ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </form>

@@ -435,7 +435,8 @@ export const CreateExpenseDialog = ({
               type="submit"
               variant="default"
               size="lg"
-              disabled={!isFormValid() || isLoading}
+              disabled={!isFormValid()}
+              loading={isLoading}
             >
               {isLoading ? "Creating..." : "Submit"}
             </Button>
