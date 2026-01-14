@@ -8,8 +8,7 @@ export type ExpenseStatus =
   | "PENDING"
   | "APPROVED_BY_MANAGER"
   | "APPROVED_BY_FINANCE"
-  | "REJECTED"
-  | "REQUIRES_REVISION";
+  | "REJECTED";
 
 /**
  * Expense entity returned by the API

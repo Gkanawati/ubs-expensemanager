@@ -14,8 +14,6 @@ const getStatusBadgeClasses = (status: ExpenseStatus) => {
       return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
     case 'REJECTED':
       return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-    case 'REQUIRES_REVISION':
-      return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
     default:
       return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
   }
@@ -31,8 +29,6 @@ const getStatusLabel = (status: ExpenseStatus) => {
       return 'Approved (Finance)';
     case 'REJECTED':
       return 'Rejected';
-    case 'REQUIRES_REVISION':
-      return 'Needs Revision';
     default:
       return status;
   }
@@ -77,7 +73,7 @@ export const DashboardPage = () => {
           Dashboard
         </h1>
         <p className='mt-2 text-sm text-gray-600 dark:text-gray-400'>
-          Welcome back, {user?.email}!
+          Welcome back, {user?.name || user?.email}!
         </p>
       </div>
 
