@@ -64,11 +64,7 @@ export const DepartmentForm = ({ initialData, onSubmit }: Props) => {
         <Label htmlFor="name">
           Name <span className="text-red-600">*</span>
         </Label>
-        <Input
-          id="name"
-          placeholder="Engineering"
-          {...register("name")}
-        />
+        <Input id="name" placeholder="Engineering" {...register("name")} />
         {errors.name && (
           <p className="text-sm text-red-600">{errors.name.message}</p>
         )}
@@ -145,9 +141,14 @@ export const DepartmentForm = ({ initialData, onSubmit }: Props) => {
         )}
       </div>
 
-      <Button type="submit" disabled={!isValid || isSubmitting || loadingCurrencies}>
-        {isSubmitting ? "Saving..." : initialData ? "Update" : "Create"}
-      </Button>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <Button
+          type="submit"
+          disabled={!isValid || isSubmitting || loadingCurrencies}
+        >
+          {isSubmitting ? "Saving..." : initialData ? "Update" : "Create"}
+        </Button>
+      </div>
     </form>
   );
 };
