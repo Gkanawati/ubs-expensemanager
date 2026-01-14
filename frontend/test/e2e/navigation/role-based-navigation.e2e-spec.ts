@@ -20,7 +20,7 @@ test.describe('Role-Based Navigation', () => {
 
     // Check that employee menu items are visible
     await expect(page.getByRole('link', { name: /dashboard/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /my expenses/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /^expenses$/i })).toBeVisible();
 
     // Check that finance/manager-only items are NOT visible
     await expect(page.getByRole('link', { name: /manage expenses/i })).toBeHidden();
@@ -32,10 +32,12 @@ test.describe('Role-Based Navigation', () => {
 
     await page.waitForURL('**/dashboard');
 
-    // Check that employee menu items are visible
+    // Check that manager menu items are visible
     await expect(page.getByRole('link', { name: /dashboard/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /my expenses/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /manage expenses/i })).toBeVisible();
+
+    // Check that employee-only items are NOT visible
+    await expect(page.getByRole('link', { name: /^expenses$/i })).toBeHidden();
 
     // Check that finance-only items are NOT visible
     await expect(page.getByRole('link', { name: /user management/i })).toBeHidden();
@@ -46,11 +48,14 @@ test.describe('Role-Based Navigation', () => {
 
     await page.waitForURL('**/dashboard');
 
-    // Check that employee menu items are visible
+    // Check that finance menu items are visible
     await expect(page.getByRole('link', { name: /dashboard/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /my expenses/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /manage expenses/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /expenses report/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /user management/i })).toBeVisible();
+
+    // Check that employee-only items are NOT visible
+    await expect(page.getByRole('link', { name: /^expenses$/i })).toBeHidden();
   });
 
   test('should navigate between menu items correctly', async ({ page }) => {
@@ -58,8 +63,8 @@ test.describe('Role-Based Navigation', () => {
     await page.waitForURL('**/dashboard');
 
     // Click on different menu items and verify navigation
-    await page.getByRole('link', { name: /my expenses/i }).click();
-    await expect(page).toHaveURL(/.*\/expenses/);
+    await page.getByRole('link', { name: /manage expenses/i }).click();
+    await expect(page).toHaveURL(/.*\/manage-expenses/);
 
     await page.getByRole('link', { name: /dashboard/i }).click();
     await expect(page).toHaveURL(/.*\/dashboard/);
@@ -74,11 +79,11 @@ test.describe('Role-Based Navigation', () => {
     await expect(dashboardLink).toHaveClass(/bg-gray-100/);
 
     // Navigate to expenses
-    await page.getByRole('link', { name: /my expenses/i }).click();
+    await page.getByRole('link', { name: /^expenses$/i }).click();
     await page.waitForURL('**/expenses');
 
     // Expenses should now be active
-    const expensesLink = page.getByRole('link', { name: /my expenses/i });
+    const expensesLink = page.getByRole('link', { name: /^expenses$/i });
     await expect(expensesLink).toHaveClass(/bg-gray-100/);
   });
 });
