@@ -1,11 +1,9 @@
 package com.ubs.expensemanager.config;
 
-import com.ubs.expensemanager.model.Currency;
-import com.ubs.expensemanager.model.Department;
-import com.ubs.expensemanager.model.User;
-import com.ubs.expensemanager.model.UserRole;
+import com.ubs.expensemanager.model.*;
 import com.ubs.expensemanager.repository.CurrencyRepository;
 import com.ubs.expensemanager.repository.DepartmentRepository;
+import com.ubs.expensemanager.repository.ExpenseCategoryRepository;
 import com.ubs.expensemanager.repository.UserRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.context.annotation.Profile;
@@ -30,15 +28,18 @@ public class DataInitializer {
     private final DepartmentRepository departmentRepository;
     private final PasswordEncoder passwordEncoder;
     private final CurrencyRepository currencyRepository;
+    private final ExpenseCategoryRepository expenseCategoryRepository;
 
     public DataInitializer(UserRepository userRepository, 
                           DepartmentRepository departmentRepository,
                           PasswordEncoder passwordEncoder,
-                          CurrencyRepository currencyRepository) {
+                          CurrencyRepository currencyRepository,
+                           ExpenseCategoryRepository expenseCategoryRepository) {
         this.userRepository = userRepository;
         this.departmentRepository = departmentRepository;
         this.passwordEncoder = passwordEncoder;
         this.currencyRepository = currencyRepository;
+        this.expenseCategoryRepository = expenseCategoryRepository;
     }
 
     /**
@@ -59,25 +60,25 @@ public class DataInitializer {
                 .orElseGet(() -> departmentRepository.save(
                         Department.builder()
                                 .name("IT")
-                                .monthlyBudget(new BigDecimal("50000.00"))
-                                .dailyBudget(new BigDecimal("2000.00"))
+                                .monthlyBudget(new BigDecimal("15000.00"))
+                                .dailyBudget(new BigDecimal("500.00"))
                                 .currency(usdCurrency)
                                 .build()
                 ));
 
         List<User> usersWithoutManager = List.of(
                 User.builder()
-                        .email("finance@ubs.com")
+                        .email("finance_it@ubs.com")
                         .password(passwordEncoder.encode("123456"))
                         .role(UserRole.FINANCE)
-                        .name("Finance User")
+                        .name("Finance User IT")
                         .department(itDepartment)
                         .build(),
                 User.builder()
-                        .email("manager@ubs.com")
+                        .email("manager_it@ubs.com")
                         .password(passwordEncoder.encode("123456"))
                         .role(UserRole.MANAGER)
-                        .name("Manager User")
+                        .name("Manager User IT")
                         .department(itDepartment)
                         .build()
         );
@@ -88,21 +89,21 @@ public class DataInitializer {
                     .orElseGet(() -> userRepository.save(user));
         }
 
-        User manager = userRepository.findByEmail("manager@ubs.com")
+        User manager = userRepository.findByEmail("manager_it@ubs.com")
                 .orElseThrow(() -> new IllegalStateException("Manager should have been created"));
 
         List<User> employees = List.of(
                 User.builder()
-                        .name("Employee One")
-                        .email("employee@ubs.com")
+                        .name("Employee One IT")
+                        .email("employee_it@ubs.com")
                         .password(passwordEncoder.encode("123456"))
                         .role(UserRole.EMPLOYEE)
                         .manager(manager)
                         .department(itDepartment)
                         .build(),
                 User.builder()
-                        .name("Employee Two")
-                        .email("employee2@ubs.com")
+                        .name("Employee Two IT")
+                        .email("employee2_it@ubs.com")
                         .password(passwordEncoder.encode("123456"))
                         .role(UserRole.EMPLOYEE)
                         .manager(manager)
@@ -114,6 +115,86 @@ public class DataInitializer {
             userRepository.findByEmail(employee.getEmail())
                     .orElseGet(() -> userRepository.save(employee));
         }
+
+        // Create HR department if it doesn't exist
+        Department hrDepartment = departmentRepository.findByNameIgnoreCase("HR")
+            .orElseGet(() -> departmentRepository.save(
+                Department.builder()
+                    .name("HR")
+                    .monthlyBudget(new BigDecimal("10000.00"))
+                    .dailyBudget(new BigDecimal("300.00"))
+                    .currency(usdCurrency)
+                    .build()
+            ));
+
+        List<User> hrUsersWithoutManager = List.of(
+            User.builder()
+                .email("finance_hr@ubs.com")
+                .password(passwordEncoder.encode("123456"))
+                .role(UserRole.FINANCE)
+                .name("Finance User HR")
+                .department(hrDepartment)
+                .build(),
+            User.builder()
+                .email("manager_hr@ubs.com")
+                .password(passwordEncoder.encode("123456"))
+                .role(UserRole.MANAGER)
+                .name("Manager User HR")
+                .department(hrDepartment)
+                .build()
+        );
+
+        for (User user : hrUsersWithoutManager) {
+            userRepository.findByEmail(user.getEmail())
+                .orElseGet(() -> userRepository.save(user));
+        }
+
+        User hrManager = userRepository.findByEmail("manager_hr@ubs.com")
+            .orElseThrow(() -> new IllegalStateException("HR Manager should have been created"));
+
+        List<User> hrEmployees = List.of(
+            User.builder()
+                .name("Employee One HR")
+                .email("employee_hr@ubs.com")
+                .password(passwordEncoder.encode("123456"))
+                .role(UserRole.EMPLOYEE)
+                .manager(hrManager)
+                .department(hrDepartment)
+                .build(),
+            User.builder()
+                .name("Employee Two HR")
+                .email("employee2_hr@ubs.com")
+                .password(passwordEncoder.encode("123456"))
+                .role(UserRole.EMPLOYEE)
+                .manager(hrManager)
+                .department(hrDepartment)
+                .build()
+        );
+
+        for (User employee : hrEmployees) {
+            userRepository.findByEmail(employee.getEmail())
+                .orElseGet(() -> userRepository.save(employee));
+        }
+
+        expenseCategoryRepository.findByNameIgnoreCase("Travelling")
+            .orElseGet(() -> expenseCategoryRepository.save(
+                ExpenseCategory.builder()
+                    .name("Travelling")
+                    .monthlyBudget(new BigDecimal("1500.00"))
+                    .dailyBudget(new BigDecimal("50.00"))
+                    .currency(usdCurrency)
+                    .build()
+            ));
+
+        expenseCategoryRepository.findByNameIgnoreCase("Utilities")
+            .orElseGet(() -> expenseCategoryRepository.save(
+                ExpenseCategory.builder()
+                    .name("Utilities")
+                    .monthlyBudget(new BigDecimal("3500.00"))
+                    .dailyBudget(new BigDecimal("70.00"))
+                    .currency(usdCurrency)
+                    .build()
+            ));
     }
 
     /**

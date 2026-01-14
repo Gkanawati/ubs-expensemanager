@@ -166,12 +166,13 @@ The JWT token is returned in the response body and also set as an **HttpOnly coo
 
 The application creates **4 default users** automatically on startup. All users share the same password: `123456`
 
-| Email             | Password | Role     | Description         |
-| ----------------- | -------- | -------- | ------------------- |
-| finance@ubs.com   | 123456   | FINANCE  | Finance team member |
-| manager@ubs.com   | 123456   | MANAGER  | Department manager  |
-| employee@ubs.com  | 123456   | EMPLOYEE | Employee One        |
-| employee2@ubs.com | 123456   | EMPLOYEE | Employee Two        |
+| Email                | Password | Role     | Description         |
+|----------------------| -------- | -------- | ------------------- |
+| finance_it@ubs.com   | 123456   | FINANCE  | Finance team member |
+| manager_it@ubs.com   | 123456   | MANAGER  | Department manager  |
+| employee_it@ubs.com  | 123456   | EMPLOYEE | Employee One        |
+| employee2_it@ubs.com | 123456   | EMPLOYEE | Employee Two        |
+Obs.: it also has `_hr@ubs.com`
 
 **Quick Start:**
 
