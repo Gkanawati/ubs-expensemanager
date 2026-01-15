@@ -11,7 +11,7 @@ import java.util.TimeZone;
 public class ExpenseManagerApplication {
 
     public static void main(String[] args) {
-        TimeZone.setDefault(TimeZone.getTimeZone("GMT-03:00"));
+        TimeZone.setDefault(TimeZone.getTimeZone("America/Sao_Paulo"));
         SpringApplication.run(ExpenseManagerApplication.class, args);
     }
 }
