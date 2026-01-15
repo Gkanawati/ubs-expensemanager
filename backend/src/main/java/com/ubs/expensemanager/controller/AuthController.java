@@ -55,7 +55,7 @@ public class AuthController {
                 .secure(secureCookie)
                 .path("/")
                 .maxAge(maxAge)
-                .sameSite("None")
+                .sameSite(secureCookie ? "None" : "Lax")
                 .build();
     }
 
