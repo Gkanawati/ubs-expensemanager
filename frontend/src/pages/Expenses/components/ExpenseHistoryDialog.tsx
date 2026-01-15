@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { X, Clock } from "lucide-react";
 import { getExpenseAuditHistory, ExpenseAuditEntry } from "@/api/expense.api";
 import { formatCurrency, formatDate } from "@/utils/validation";
+import { formatDateTimeDisplay } from "@/utils/timezone";
 import { getErrorMessage } from "@/types/api-error";
 
 interface ExpenseHistoryDialogProps {
@@ -67,14 +68,7 @@ export const ExpenseHistoryDialog = ({
   };
 
   const formatRevisionDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatDateTimeDisplay(dateString);
   };
 
   if (!open) return null;

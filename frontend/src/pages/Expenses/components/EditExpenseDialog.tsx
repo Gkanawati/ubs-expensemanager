@@ -21,6 +21,11 @@ import {
   getExpenseCategories,
   getCurrencies,
 } from "@/api/expense.api";
+import {
+  formatDateForApi,
+  parseDateFromApi,
+  getNowInSaoPaulo,
+} from "@/utils/timezone";
 
 interface EditExpenseDialogProps {
   open: boolean;
@@ -130,8 +135,8 @@ export const EditExpenseDialog = ({
       if (!strValue) {
         newErrors.expenseDate = "Date is required";
       } else {
-        const selectedDate = new Date(strValue);
-        const today = new Date();
+        const selectedDate = parseDateFromApi(strValue);
+        const today = getNowInSaoPaulo();
         today.setHours(23, 59, 59, 999);
         if (selectedDate > today) {
           newErrors.expenseDate = "Date cannot be in the future";
@@ -181,8 +186,8 @@ export const EditExpenseDialog = ({
     if (!formData.expenseDate) {
       newErrors.expenseDate = "Date is required";
     } else {
-      const selectedDate = new Date(formData.expenseDate);
-      const today = new Date();
+      const selectedDate = parseDateFromApi(formData.expenseDate);
+      const today = getNowInSaoPaulo();
       today.setHours(23, 59, 59, 999);
       if (selectedDate > today) {
         newErrors.expenseDate = "Date cannot be in the future";
@@ -370,11 +375,11 @@ export const EditExpenseDialog = ({
               Date <span className="text-red-600">*</span>
             </Label>
             <DatePicker
-              value={formData.expenseDate ? new Date(formData.expenseDate + "T00:00:00") : undefined}
+              value={formData.expenseDate ? parseDateFromApi(formData.expenseDate) : undefined}
               onChange={(date) =>
-                handleInputChange("expenseDate", date ? date.toISOString().split("T")[0] : "")
+                handleInputChange("expenseDate", date ? formatDateForApi(date) : "")
               }
-              maxDate={new Date()}
+              maxDate={getNowInSaoPaulo()}
               placeholder="Select date"
             />
             {errors.expenseDate && (

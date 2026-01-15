@@ -20,6 +20,12 @@ import {
   getExpenseCategories,
   getCurrencies,
 } from "@/api/expense.api";
+import {
+  getTodayInSaoPaulo,
+  formatDateForApi,
+  parseDateFromApi,
+  getNowInSaoPaulo,
+} from "@/utils/timezone";
 
 interface CreateExpenseDialogProps {
   open: boolean;
@@ -46,7 +52,7 @@ export const CreateExpenseDialog = ({
   const [formData, setFormData] = useState<CreateExpensePayload>({
     amount: 0,
     description: "",
-    expenseDate: new Date().toISOString().split("T")[0],
+    expenseDate: getTodayInSaoPaulo(),
     expenseCategoryId: 0,
     currencyName: "",
     receiptUrl: "",
@@ -112,8 +118,8 @@ export const CreateExpenseDialog = ({
       if (!strValue) {
         newErrors.expenseDate = "Date is required";
       } else {
-        const selectedDate = new Date(strValue);
-        const today = new Date();
+        const selectedDate = parseDateFromApi(strValue);
+        const today = getNowInSaoPaulo();
         today.setHours(23, 59, 59, 999);
         if (selectedDate > today) {
           newErrors.expenseDate = "Date cannot be in the future";
@@ -163,8 +169,8 @@ export const CreateExpenseDialog = ({
     if (!formData.expenseDate) {
       newErrors.expenseDate = "Date is required";
     } else {
-      const selectedDate = new Date(formData.expenseDate);
-      const today = new Date();
+      const selectedDate = parseDateFromApi(formData.expenseDate);
+      const today = getNowInSaoPaulo();
       today.setHours(23, 59, 59, 999);
       if (selectedDate > today) {
         newErrors.expenseDate = "Date cannot be in the future";
@@ -206,7 +212,7 @@ export const CreateExpenseDialog = ({
     setFormData({
       amount: 0,
       description: "",
-      expenseDate: new Date().toISOString().split("T")[0],
+      expenseDate: getTodayInSaoPaulo(),
       expenseCategoryId: 0,
       currencyName: "",
       receiptUrl: "",
@@ -364,11 +370,11 @@ export const CreateExpenseDialog = ({
               Date <span className="text-red-600">*</span>
             </Label>
             <DatePicker
-              value={formData.expenseDate ? new Date(formData.expenseDate + "T00:00:00") : undefined}
+              value={formData.expenseDate ? parseDateFromApi(formData.expenseDate) : undefined}
               onChange={(date) =>
-                handleInputChange("expenseDate", date ? date.toISOString().split("T")[0] : "")
+                handleInputChange("expenseDate", date ? formatDateForApi(date) : "")
               }
-              maxDate={new Date()}
+              maxDate={getNowInSaoPaulo()}
               placeholder="Select date"
             />
             {errors.expenseDate && (

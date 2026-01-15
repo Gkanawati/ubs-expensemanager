@@ -190,14 +190,8 @@ export const formatCurrency = (value: number, currency?: string) => {
 };
 
 /**
- * Formats a date string (YYYY-MM-DD) to a localized date format
+ * Formats a date string (YYYY-MM-DD) to a localized date format.
+ * Uses São Paulo timezone.
  */
-export const formatDate = (dateString: string): string => {
-  const date = new Date(dateString + "T00:00:00");
-  return date.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-};
+export { formatDateStringDisplay as formatDate } from "./timezone";
 

@@ -7,6 +7,7 @@ import { TablePagination } from "@/components/Pagination";
 import { DatePicker } from "@/components/ui/date-picker";
 import { getErrorMessage } from "@/types/api-error";
 import { formatDate } from "@/utils/validation";
+import { formatDateForApi, getNowInSaoPaulo } from "@/utils/timezone";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Expense,
@@ -95,8 +96,8 @@ export const ExpensesPage = () => {
 
       const filters: ExpenseFilters = {};
       if (statusFilter) filters.status = statusFilter;
-      if (startDate) filters.startDate = startDate.toISOString().split("T")[0];
-      if (endDate) filters.endDate = endDate.toISOString().split("T")[0];
+      if (startDate) filters.startDate = formatDateForApi(startDate);
+      if (endDate) filters.endDate = formatDateForApi(endDate);
       if (user?.id) filters.userId = user.id;
 
       const response = await getExpenses({
@@ -292,7 +293,7 @@ export const ExpensesPage = () => {
                         setStartDate(date);
                         setCurrentPage(1);
                       }}
-                      maxDate={endDate || new Date()}
+                      maxDate={endDate || getNowInSaoPaulo()}
                       placeholder="Select start date"
                     />
                   </div>
@@ -305,7 +306,7 @@ export const ExpensesPage = () => {
                         setCurrentPage(1);
                       }}
                       minDate={startDate}
-                      maxDate={new Date()}
+                      maxDate={getNowInSaoPaulo()}
                       placeholder="Select end date"
                     />
                   </div>
